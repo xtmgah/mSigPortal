@@ -18,9 +18,9 @@ pip install -e Path/SigProfilerMatrixGenerator-master/
 
 3. Download Reference Genome, e.g.,'GRCh37’  
 
-$ python 
-from SigProfilerMatrixGenerator import install as genInstall 
-genInstall.install('GRCh37', rsync=False, bash=True)
+$ python <br>
+from SigProfilerMatrixGenerator import install as genInstall <br>
+genInstall.install('GRCh37', rsync=False, bash=True)<br>
 
 
 4. Run the Script mSigPortal_Profiler_Extraction.py
