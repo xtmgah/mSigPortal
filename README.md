@@ -4,6 +4,7 @@ Integrative mutational signature portal (MsigPortal) for cancer genomic study
 Here are some basic steps:
 
 1. Download the script and two Packages from Github:
+
 https://github.com/xtmgah/SigProfilerPlotting<br>
 https://github.com/xtmgah/SigProfilerMatrixGenerator<br>
 https://github.com/xtmgah/mSigPortal
@@ -18,8 +19,8 @@ pip install -e Path/SigProfilerMatrixGenerator-master/
 3. Download Reference Genome, e.g.,'GRCh37’  
 
 $ python 
->> from SigProfilerMatrixGenerator import install as genInstall 
->> genInstall.install('GRCh37', rsync=False, bash=True)
+from SigProfilerMatrixGenerator import install as genInstall 
+genInstall.install('GRCh37', rsync=False, bash=True)
 
 
 4. Run the Script mSigPortal_Profiler_Extraction.py
