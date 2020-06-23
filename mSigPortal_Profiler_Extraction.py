@@ -5,10 +5,10 @@ from SigProfilerMatrixGenerator.scripts import SigProfilerMatrixGeneratorFunc as
 import sigProfilerPlotting as sigPlt
 
 '''
-Name:       mSigPortal_Format_Convert
+Name:       mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
-Version:    8.0
-Date:       June-17-2020
+Version:    1.9
+Date:       June-22-2020
 Update:     (1) Add Error 233: A indicator for format Error
 			(2) Add sigProfilerPlotting to generate PDF and SVG
 			(3) Update sigProfilerPlotting
@@ -18,6 +18,7 @@ Update:     (1) Add Error 233: A indicator for format Error
 			(5) Catelog results should be tsv, no matter if input is csv or tsv
 			(6) Default Output:'mSigPortal_Project_%s' % time.strftime('%Y%m%d%H%M%S',time.localtime(time.time())) (+ ProjectID will be updated later)
 			(7) Add -b option for Bed file in SigProfilerMatrixGenerator function
+			(8) Add Txt file to summarise output SVG (Sample_Name	Profile	Tag	Location)
 '''
 
 ########################################################################
@@ -59,11 +60,15 @@ def If_Compressed():
 	
 	### 002 if in 3 types compressed files?
 	if re.search(r'zip$',Input_Path):
-		String = "unzip %s -d %s" % (Input_Path,Output_Dir) 
+		
+		ss = Input_Path.split("/")
+		Input_Path_New_Dir = "/".join(ss[0:len(ss)-1])
+		
+		String = "unzip %s -d %s" % (Input_Path,Input_Path_New_Dir) 
 		print(String)
 		os.system(String)
 		name = Input_Path.split("/")[1].split(".zip")[0]
-		Input_Path_New_Name = "%s/%s" % (Output_Dir,name)
+		Input_Path_New_Name = "%s/%s" % (Input_Path_New_Dir,name)
 		print(Input_Path_New_Name)
 
 	if re.search(r'tar$',Input_Path):
@@ -733,7 +738,7 @@ def catalog_tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Ty
 	for f in ff:
 		if re.match(r'MutationType	',f):
 			Header = f
-			mSigPortal_Format_catalog_File.write("%s	Count\n" % Header)
+			mSigPortal_Format_catalog_File.write("%s	Collapse\n" % Header)
 
 		else:
 			ss = f.split("	")
@@ -748,6 +753,7 @@ def catalog_tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Ty
 
 	Input_File.close()
 	mSigPortal_Format_catalog_File.close()
+
 
 
 ####### 01-12 catalog_csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
@@ -781,7 +787,7 @@ def catalog_csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Ty
 	for f in ff:
 		if re.match(r'MutationType,',f):
 			Header = f
-			mSigPortal_Format_catalog_File.write("%s	Count\n" % Header.replace(",","\t"))
+			mSigPortal_Format_catalog_File.write("%s	Collapse\n" % Header.replace(",","\t"))
 			#print(f)
 		elif re.match(r'\n',f):
 			pass
@@ -1075,11 +1081,48 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 	ID_Arr = [28,83,415,8268]
 	DBS_Arr = [78,186,312,1248,2976]
 	
+	
+
+	
 	# ####### Which format is the input file
 	if Input_Format in Input_Format_arr_1:
 		matrices = matGen.SigProfilerMatrixGeneratorFunc(Project_ID, Genome_Building, Output_Dir, exome=False, bed_file=Bed, chrom_based=False, plot=True, tsb_stat=False, seqInfo=False)
+		
+		####### Generate Summary File
+		summary_Path = "%s/Summary.txt" % (Output_Dir)
+		summary_File = open(summary_Path,'w')
+		Header = "Sample_Name	Profile_Type	Matrix	Tag	Location\n"
+		summary_File.write(Header)
+		SVG_Ouput_Dir = "%s/output/plots/svg" % (Output_Dir)
+		#print(SVG_Ouput_Dir)
+
+		for svg in os.listdir(SVG_Ouput_Dir):
+			if "_plots_" in svg:
+				#print(svg)
+				Type = svg.split("_plots_")[0]
+				Profile_Type = Type.split("_")[0]
+				Matrix = "%s-%s" % (Type.split("_")[0],Type.split("_")[1])
+
+				Tag = "NA"
+				sample_Name = ""
+				sample_Name_Tag = svg.split("%s_" % Project_ID)[1].strip(".svg")
+				if "@" in sample_Name_Tag:
+					Tag = sample_Name_Tag.split("@")[1]
+					sample_Name = sample_Name_Tag.split("@")[0]
+				else:
+					sample_Name = sample_Name_Tag
+				if sample_Name == "filter":
+					pass
+				else:
+					svg_Location = "%s/%s" % (SVG_Ouput_Dir,svg)
+					String = "%s	%s	%s	%s	%s\n" % (sample_Name,Profile_Type,Matrix,Tag,svg_Location)
+					summary_File.write(String)
+		summary_File.close()
+
+
 
 	elif Input_Format in Input_Format_arr_2:
+
 		for matrix_name in os.listdir(Output_Dir):
 			count = 0
 			matrix_path = "%s/%s" % (Output_Dir,matrix_name)
@@ -1091,7 +1134,7 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 			Type = count-1
 			matrix_File.close()
 			
-			
+			#print(Type)
 			###### Plotting the Matrix Based on Type
 			Final_output_Dir = "%s/" % (Output_Dir)
 			Final_Type = "%d" % Type
@@ -1107,6 +1150,37 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 			else:
 				print("Error 233: Your input type is not supported yet!")
 				sys.exit()
+
+		####### Generate Summary File
+		summary_Path = "%s/Summary.txt" % (Output_Dir)
+		summary_File = open(summary_Path,'w')
+		Header = "Sample_Name	Profile_Type	Matrix	Tag	Location\n"
+		summary_File.write(Header)
+		SVG_Ouput_Dir = "%s/svg" % (Output_Dir)
+
+		for svg in os.listdir(SVG_Ouput_Dir):
+			if "_plots_" in svg:
+				#print(svg)
+				Type = svg.split("_plots_")[0]
+				Profile_Type = Type.split("_")[0]
+				Matrix = "%s-%s" % (Type.split("_")[0],Type.split("_")[1])
+				
+				Tag = "NA"
+				sample_Name = ""
+				sample_Name_Tag = svg.split("%s_" % Project_ID)[1].strip(".svg")
+				if "@" in sample_Name_Tag:
+					Tag = sample_Name_Tag.split("@")[1]
+					sample_Name = sample_Name_Tag.split("@")[0]
+				else:
+					sample_Name = sample_Name_Tag
+				if sample_Name == "filter":
+					pass
+				else:
+					svg_Location = "%s/%s" % (SVG_Ouput_Dir,svg)
+					String = "%s	%s	%s	%s	%s\n" % (sample_Name,Profile_Type,Matrix,Tag,svg_Location)
+					summary_File.write(String)
+		summary_File.close()
+
 
 
 ####### 01-18 Print_Statistic(Output_Dir)
@@ -1139,39 +1213,44 @@ if __name__ == "__main__":
 
 
 ### Usage for csv
-# python mSigPortal_Format_Convert.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output -g GRCh37 -t WGS
 
 ### Usage for tsv
-# python mSigPortal_Format_Convert.py -f tsv -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f tsv -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output -g GRCh37 -t WGS
 
 ### Usage for catalog_csv
-# python mSigPortal_Format_Convert.py -f catalog_csv -i Demo_input/demo_input_catalog.csv -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f catalog_csv -i Demo_input/demo_input_catalog.csv -p Project -o Test_Output -g GRCh37 -t WGS
 
 ### Usage for catalog_tsv
-# python mSigPortal_Format_Convert.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv -p Project -o Test_Output -g GRCh37 -t WGS
 
 ### Collpase ###
-# python mSigPortal_Format_Convert.py -f tsv -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output -g GRCh37 -t WGS -c True
-# python mSigPortal_Format_Convert.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output -g GRCh37 -t WGS -c True
-# python mSigPortal_Format_Convert.py -f vcf_Multiple -F PASS@alt_allele_in_normal -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS -c True
+# python mSigPortal_Profiler_Extraction.py -f tsv -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output -g GRCh37 -t WGS -c True
+# python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output -g GRCh37 -t WGS -c True
+# python mSigPortal_Profiler_Extraction.py -f vcf_Multiple -F PASS@alt_allele_in_normal -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS -c True
 
 ### Usage for vcf
-# python mSigPortal_Format_Convert.py -f vcf -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS
-# python mSigPortal_Format_Convert.py -f vcf -i Demo_input/demo_input_single.vcf -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f vcf -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f vcf -i Demo_input/demo_input_single.vcf -p Project -o Test_Output -g GRCh37 -t WGS
 
 ### Usage for Filter
-# python mSigPortal_Format_Convert.py -f vcf -F PASS -i Demo_input/demo_input_single.vcf -p Project -o Test_Output -g GRCh37 -t WGS
-# python mSigPortal_Format_Convert.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_single.vcf -p Project -o Test_Output -g GRCh37 -t WGS
-# python mSigPortal_Format_Convert.py -f vcf -F PASS@alt_allele_in_normal -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS
-# python mSigPortal_Format_Convert.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f vcf -F PASS -i Demo_input/demo_input_single.vcf -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_single.vcf -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS
+
+
 
 ### Usage for Compressed File
-# python mSigPortal_Format_Convert.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_single.vcf.gz -p Project -o Test_Output -g GRCh37 -t WGS
-# python mSigPortal_Format_Convert.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_single.vcf.tar.gz -p Project -o Test_Output -g GRCh37 -t WGS
-# python mSigPortal_Format_Convert.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_single.vcf.zip -p Project -o Test_Output -g GRCh37 -t WGS
-# python mSigPortal_Format_Convert.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_single.vcf.tar -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_single.vcf.gz -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_single.vcf.tar.gz -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_single.vcf.zip -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_single.vcf.tar -p Project -o Test_Output-6-22 -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv.zip -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f vcf -i Demo_input/demo_input_single.vcf.tar -p Project -o Test_Output -g GRCh37 -t WGS
+
 
 ### Usage for vcf_split_all_filter File
-# python mSigPortal_Format_Convert.py -f vcf -s True -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f vcf -s True -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS
 
 
