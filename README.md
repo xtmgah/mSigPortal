@@ -12,7 +12,7 @@ https://github.com/xtmgah/mSigPortal
 
 2. Install the two Packages locally based on the following order:
 
-pip install -e Path/SigProfilerPlotting-master/
+pip install -e Path/SigProfilerPlotting-master/ <br>
 pip install -e Path/SigProfilerMatrixGenerator-master/
 
 
