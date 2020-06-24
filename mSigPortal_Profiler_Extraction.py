@@ -5,11 +5,11 @@ from SigProfilerMatrixGenerator.scripts import SigProfilerMatrixGeneratorFunc as
 import sigProfilerPlotting as sigPlt
 
 '''
-Name:       mSigPortal_Profiler_Extraction
-Function:	Generate Input File for mSigPortal
-Version:    1.9
-Date:       June-22-2020
-Update:     (1) Add Error 233: A indicator for format Error
+Name:       		mSigPortal_Profiler_Extraction
+Function:		Generate Input File for mSigPortal
+Version:   		1.10
+Date:       		June-24-2020
+Update:     		(1) Add Error 233: A indicator for format Error
 			(2) Add sigProfilerPlotting to generate PDF and SVG
 			(3) Update sigProfilerPlotting
 			(4) SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py:
@@ -19,6 +19,7 @@ Update:     (1) Add Error 233: A indicator for format Error
 			(6) Default Output:'mSigPortal_Project_%s' % time.strftime('%Y%m%d%H%M%S',time.localtime(time.time())) (+ ProjectID will be updated later)
 			(7) Add -b option for Bed file in SigProfilerMatrixGenerator function
 			(8) Add Txt file to summarise output SVG (Sample_Name	Profile	Tag	Location)
+			(9) Add Format Checking for vcf_Multiple_Convert_Filter and vcf_Multiple_Convert_Split_All_Filter function
 '''
 
 ########################################################################
@@ -654,6 +655,22 @@ def vcf_Multiple_Convert_Split_All_Filter(Input_Path,Project_ID,Output_Dir,Genom
 	mSigPortal_Format_SNV_File = open(mSigPortal_Format_SNV_Path,'w')
 	mSigPortal_Format_INDEL_File = open(mSigPortal_Format_INDEL_Path,'w')
 
+
+	####### 01-3-20 Check VCF fromat
+	header = "#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT"
+	String_File = ""
+	
+	Input_File = open(Input_Path)
+	for line in Input_File:
+		String_File += line
+	Input_File.close()
+
+	if header not in String_File:
+		print("Error 233: A header line: \"#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	Sample1...\" is required!")
+		sys.exit()
+
+
+
 	####### 01-3-1 Parse File 
 	Input_File = open(Input_Path)
 	Sample_ID = "Sample"
@@ -824,6 +841,20 @@ def vcf_Single_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,D
 	####### 01-10-1 Parse Filter:
 	option_Filter_Arr = Filter.split("@")
 
+
+	####### 01-3-20 Check VCF fromat
+	header = "#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT"
+	String_File = ""
+	
+	Input_File = open(Input_Path)
+	for line in Input_File:
+		String_File += line
+	Input_File.close()
+
+	if header not in String_File:
+		print("Error 233: A header line: \"#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	Sample1...\" is required!")
+		sys.exit()
+
 	
 	####### 01-10-2 Parse File 
 	Input_File = open(Input_Path)
@@ -894,6 +925,21 @@ def vcf_Multiple_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building
 
 	mSigPortal_Format_SNV_File = open(mSigPortal_Format_SNV_Path,'w')
 	mSigPortal_Format_INDEL_File = open(mSigPortal_Format_INDEL_Path,'w')
+
+
+	####### 01-3-20 Check VCF fromat
+	header = "#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT"
+	String_File = ""
+	
+	Input_File = open(Input_Path)
+	for line in Input_File:
+		String_File += line
+	Input_File.close()
+
+	if header not in String_File:
+		print("Error 233: A header line: \"#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	Sample1...\" is required!")
+		sys.exit()
+
 
 	####### 01-10-1 Parse Filter:
 	option_Filter_Arr = Filter.split("@")
