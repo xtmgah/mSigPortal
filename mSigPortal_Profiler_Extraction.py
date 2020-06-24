@@ -5,21 +5,21 @@ from SigProfilerMatrixGenerator.scripts import SigProfilerMatrixGeneratorFunc as
 import sigProfilerPlotting as sigPlt
 
 '''
-Name:       		mSigPortal_Profiler_Extraction
-Function:		Generate Input File for mSigPortal
-Version:   		1.10
-Date:       		June-24-2020
-Update:     		(1) Add Error 233: A indicator for format Error
-			(2) Add sigProfilerPlotting to generate PDF and SVG
-			(3) Update sigProfilerPlotting
-			(4) SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py:
-				Comment the line of 312, or a exception will happen
-				#log_out.write("SigProfilerPlotting version: "+sigPlt.__version__+"\n")
-			(5) Catelog results should be tsv, no matter if input is csv or tsv
-			(6) Default Output:'mSigPortal_Project_%s' % time.strftime('%Y%m%d%H%M%S',time.localtime(time.time())) (+ ProjectID will be updated later)
-			(7) Add -b option for Bed file in SigProfilerMatrixGenerator function
-			(8) Add Txt file to summarise output SVG (Sample_Name	Profile	Tag	Location)
-			(9) Add Format Checking for vcf_Multiple_Convert_Filter and vcf_Multiple_Convert_Split_All_Filter function
+Name:       	mSigPortal_Profiler_Extraction
+Function:	Generate Input File for mSigPortal
+Version:   	1.10
+Date:       	June-24-2020
+Update:     	(1) Add Error 233: A indicator for format Error
+		(2) Add sigProfilerPlotting to generate PDF and SVG
+		(3) Update sigProfilerPlotting
+		(4) SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py:
+			Comment the line of 312, or a exception will happen
+			#log_out.write("SigProfilerPlotting version: "+sigPlt.__version__+"\n")
+		(5) Catelog results should be tsv, no matter if input is csv or tsv
+		(6) Default Output:'mSigPortal_Project_%s' % time.strftime('%Y%m%d%H%M%S',time.localtime(time.time())) (+ ProjectID will be updated later)
+		(7) Add -b option for Bed file in SigProfilerMatrixGenerator function
+		(8) Add Txt file to summarise output SVG (Sample_Name	Profile	Tag	Location)
+		(9) Add Format Checking for vcf_Multiple_Convert_Filter and vcf_Multiple_Convert_Split_All_Filter function
 '''
 
 ########################################################################
