@@ -13,14 +13,14 @@ Update:		(1) Add Error 233: A indicator for format Error
 		(2) Add sigProfilerPlotting to generate PDF and SVG
 		(3) Update sigProfilerPlotting
 		(4) SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py:
-			Comment the line of 312, or a exception will happen
-			#log_out.write("SigProfilerPlotting version: "+sigPlt.__version__+"\n")
-		(5) Catelog results should be tsv, no matter if input is csv or tsv
-		(6) Default Output:'mSigPortal_Project_%s' % time.strftime('%Y%m%d%H%M%S',time.localtime(time.time())) (+ ProjectID will be updated later)
-		(7) Add -b option for Bed file in SigProfilerMatrixGenerator function
-		(8) Add Txt file to summarise output SVG (Sample_Name	Profile	Tag	Location)
-		(9) Add Format Checking for vcf_Multiple_Convert_Filter and vcf_Multiple_Convert_Split_All_Filter function
-		(10)Add -s function for both TSV and CSV format.
+				Comment the line of 312, or a exception will happen
+				#log_out.write("SigProfilerPlotting version: "+sigPlt.__version__+"\n")
+			(5) Catelog results should be tsv, no matter if input is csv or tsv
+			(6) Default Output:'mSigPortal_Project_%s' % time.strftime('%Y%m%d%H%M%S',time.localtime(time.time())) (+ ProjectID will be updated later)
+			(7) Add -b option for Bed file in SigProfilerMatrixGenerator function
+			(8) Add Txt file to summarise output SVG (Sample_Name	Profile	Tag	Location)
+			(9) Add Format Checking for vcf_Multiple_Convert_Filter and vcf_Multiple_Convert_Split_All_Filter function
+			(10)Add -s function for both TSV and CSV format.
 '''
 
 ########################################################################
@@ -69,7 +69,7 @@ def If_Compressed():
 		String = "unzip %s -d %s" % (Input_Path,Input_Path_New_Dir) 
 		print(String)
 		os.system(String)
-		name = Input_Path.split("/")[1].split(".zip")[0]
+		name = Input_Path.split("/")[-1].split(".zip")[0]
 		Input_Path_New_Name = "%s/%s" % (Input_Path_New_Dir,name)
 		print(Input_Path_New_Name)
 
@@ -77,13 +77,13 @@ def If_Compressed():
 		String = "tar -zxvf %s -C %s" % (Input_Path,Output_Dir) 
 		print(String)
 		os.system(String)
-		name = Input_Path.split("/")[1].split(".tar")[0]
+		name = Input_Path.split("/")[-1].split(".tar")[0]
 		Input_Path_New_Name = "%s/%s" % (Output_Dir,name)
 		print(Input_Path_New_Name)
 		
 	if re.search(r'gz$',Input_Path):
 		if "tar.gz" not in Input_Path:
-			name = Input_Path.split("/")[1].split(".gz")[0]
+			name = Input_Path.split("/")[-1].split(".gz")[0]
 			String = "gunzip -c %s > %s/%s" % (Input_Path,Output_Dir,name) 
 			print(String)
 			os.system(String)
@@ -94,7 +94,7 @@ def If_Compressed():
 			String = "tar -zxvf %s -C %s" % (Input_Path,Output_Dir) 
 			print(String)
 			os.system(String)
-			name = Input_Path.split("/")[1].split(".tar")[0]
+			name = Input_Path.split("/")[-1].split(".tar")[0]
 			Input_Path_New_Name = "%s/%s" % (Output_Dir,name)
 			print(Input_Path_New_Name)
 	#print(Input_Path)
@@ -1423,15 +1423,15 @@ if __name__ == "__main__":
 
 
 ### Usage for Compressed File
-# python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_single.vcf.gz -p Project -o Test_Output -g GRCh37 -t WGS
-# python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_single.vcf.tar.gz -p Project -o Test_Output -g GRCh37 -t WGS
-# python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_single.vcf.zip -p Project -o Test_Output -g GRCh37 -t WGS
-# python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_single.vcf.tar -p Project -o Test_Output-6-22 -g GRCh37 -t WGS
-# python mSigPortal_Profiler_Extraction.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv.zip -p Project -o Test_Output -g GRCh37 -t WGS
-# python mSigPortal_Profiler_Extraction.py -f vcf -i Demo_input/demo_input_single.vcf.tar -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf.gz -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf.tar.gz -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf.zip -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf.tar -p Project -o Test_Output-6-22 -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f catalog_tsv -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_catalog.tsv.zip -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f vcf -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf.tar -p Project -o Test_Output -g GRCh37 -t WGS
 
 
 ### Usage for vcf_split_all_filter File
-# python mSigPortal_Profiler_Extraction.py -f vcf -s True -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f vcf -s True -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS
 
 
