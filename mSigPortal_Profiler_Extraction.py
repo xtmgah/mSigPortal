@@ -8,22 +8,22 @@ from zipfile import ZipFile
 '''
 Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
-Version:	1.14
+Version:	1.12
 Date:		June-26-2020
 Update:		(1) Add Error 233: A indicator for format Error
-		(2) Add sigProfilerPlotting to generate PDF and SVG
-		(3) Update sigProfilerPlotting
-		(4) SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py:
-			Comment the line of 312, or a exception will happen
-			#log_out.write("SigProfilerPlotting version: "+sigPlt.__version__+"\n")
-		(5) Catelog results should be tsv, no matter if input is csv or tsv
-		(6) Default Output:'mSigPortal_Project_%s' % time.strftime('%Y%m%d%H%M%S',time.localtime(time.time())) (+ ProjectID will be updated later)
-		(7) Add -b option for Bed file in SigProfilerMatrixGenerator function
-		(8) Add Txt file to summarise output SVG (Sample_Name	Profile	Tag	Location)
-		(9) Add Format Checking for vcf_Multiple_Convert_Filter and vcf_Multiple_Convert_Split_All_Filter function
-		(10)Add -s function for both TSV and CSV format
-		(11) Capture the last item of the Input Path
-		(12) Fix the bug caused by Mac System when decompress a zip file.
+			(2) Add sigProfilerPlotting to generate PDF and SVG
+			(3) Update sigProfilerPlotting
+			(4) SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py:
+				Comment the line of 312, or a exception will happen
+				#log_out.write("SigProfilerPlotting version: "+sigPlt.__version__+"\n")
+			(5) Catelog results should be tsv, no matter if input is csv or tsv
+			(6) Default Output:'mSigPortal_Project_%s' % time.strftime('%Y%m%d%H%M%S',time.localtime(time.time())) (+ ProjectID will be updated later)
+			(7) Add -b option for Bed file in SigProfilerMatrixGenerator function
+			(8) Add Txt file to summarise output SVG (Sample_Name	Profile	Tag	Location)
+			(9) Add Format Checking for vcf_Multiple_Convert_Filter and vcf_Multiple_Convert_Split_All_Filter function
+			(10)Add -s function for both TSV and CSV format.
+			(11) Capture the last item of the Input Path.
+			(12) Fix the bug caused by Mac System when decompress a zip file.
 '''
 
 ########################################################################
@@ -1260,78 +1260,83 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 	DBS_Arr = [78,186,312,1248,2976]
 	
 	
+	Input_Path_arr = ["mSigPortal_SNV.txt","mSigPortal_INDEL.txt","mSigPortal_SNV_Collapse.txt","mSigPortal_INDEL_Collapse.txt","mSigPortal_catalog_csv.txt","mSigPortal_catalog_tsv.txt"]
 
 	
 	# ####### Which format is the input file
 	if Input_Format in Input_Format_arr_1:
-		matrices = matGen.SigProfilerMatrixGeneratorFunc(Project_ID, Genome_Building, Output_Dir, exome=False, bed_file=Bed, chrom_based=False, plot=True, tsb_stat=False, seqInfo=False)
+		for matrix_name in os.listdir(Output_Dir):
+			####### Only in Mac System, unzip zip file will cause a bug __MACOSX:
+			if re.match(r'__MACOSX',matrix_name):
+				os.system("rm -rf %s/%s" % (Output_Dir,matrix_name))
+			else:
+				matrices = matGen.SigProfilerMatrixGeneratorFunc(Project_ID, Genome_Building, Output_Dir, exome=False, bed_file=Bed, chrom_based=False, plot=True, tsb_stat=False, seqInfo=False)
 		
-		####### Generate Summary File
-		summary_Path = "%s/Summary.txt" % (Output_Dir)
-		summary_File = open(summary_Path,'w')
-		Header = "Sample_Name	Profile_Type	Matrix	Tag	Location\n"
-		summary_File.write(Header)
-		SVG_Ouput_Dir = "%s/output/plots/svg" % (Output_Dir)
-		#print(SVG_Ouput_Dir)
+				####### Generate Summary File
+				summary_Path = "%s/Summary.txt" % (Output_Dir)
+				summary_File = open(summary_Path,'w')
+				Header = "Sample_Name	Profile_Type	Matrix	Tag	Location\n"
+				summary_File.write(Header)
+				SVG_Ouput_Dir = "%s/output/plots/svg" % (Output_Dir)
+				#print(SVG_Ouput_Dir)
 
-		for svg in os.listdir(SVG_Ouput_Dir):
-			if "_plots_" in svg:
-				#print(svg)
-				Type = svg.split("_plots_")[0]
-				Profile_Type = Type.split("_")[0]
-				Matrix = "%s-%s" % (Type.split("_")[0],Type.split("_")[1])
+				for svg in os.listdir(SVG_Ouput_Dir):
+					if "_plots_" in svg:
+						#print(svg)
+						Type = svg.split("_plots_")[0]
+						Profile_Type = Type.split("_")[0]
+						Matrix = "%s-%s" % (Type.split("_")[0],Type.split("_")[1])
 
-				Tag = "NA"
-				sample_Name = ""
-				sample_Name_Tag = svg.split("%s_" % Project_ID)[1].strip(".svg")
-				if "@" in sample_Name_Tag:
-					Tag = sample_Name_Tag.split("@")[1]
-					sample_Name = sample_Name_Tag.split("@")[0]
-				else:
-					sample_Name = sample_Name_Tag
-				if sample_Name == "filter":
-					pass
-				else:
-					svg_Location = "%s/%s" % (SVG_Ouput_Dir,svg)
-					String = "%s	%s	%s	%s	%s\n" % (sample_Name,Profile_Type,Matrix,Tag,svg_Location)
-					summary_File.write(String)
-		summary_File.close()
+						Tag = "NA"
+						sample_Name = ""
+						sample_Name_Tag = svg.split("%s_" % Project_ID)[1].strip(".svg")
+						if "@" in sample_Name_Tag:
+							Tag = sample_Name_Tag.split("@")[1]
+							sample_Name = sample_Name_Tag.split("@")[0]
+						else:
+							sample_Name = sample_Name_Tag
+						if sample_Name == "filter":
+							pass
+						else:
+							svg_Location = "%s/%s" % (SVG_Ouput_Dir,svg)
+							String = "%s	%s	%s	%s	%s\n" % (sample_Name,Profile_Type,Matrix,Tag,svg_Location)
+							summary_File.write(String)
+				summary_File.close()
 
 
 
 	elif Input_Format in Input_Format_arr_2:
 
 		for matrix_name in os.listdir(Output_Dir):
-			if re.match(r'_',matrix_name):
-				pass
-			else:
-				count = 0
-				matrix_path = "%s/%s" % (Output_Dir,matrix_name)
-				matrix_File = open(matrix_path)
-				for line in matrix_File:
-					ss = line.split("	")
-					if len(ss) > 1:
-						count += 1
-				Type = count-1
-				matrix_File.close()
-				
-				#print(Type)
-				###### Plotting the Matrix Based on Type
-				Final_output_Dir = "%s/" % (Output_Dir)
-				Final_Type = "%d" % Type
-				#print(Type)
-				if Type in SBS_Arr:
-					sigPlt.plotSBS(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=False)
+			for i in Input_Path_arr:
+				if re.search(i,matrix_name):
+					count = 0
+					matrix_path = "%s/%s" % (Output_Dir,matrix_name)
+					matrix_File = open(matrix_path)
+					for line in matrix_File:
+						ss = line.split("	")
+						if len(ss) > 1:
+							count += 1
+					Type = count-1
+					matrix_File.close()
+					
+					#print(Type)
+					###### Plotting the Matrix Based on Type
+					Final_output_Dir = "%s/" % (Output_Dir)
+					Final_Type = "%d" % Type
+					#print(Type)
+					if Type in SBS_Arr:
+						sigPlt.plotSBS(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=False)
 
-				elif Type in DBS_Arr:
-					sigPlt.plotDBS(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=False)
+					elif Type in DBS_Arr:
+						sigPlt.plotDBS(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=False)
 
-				elif Type in ID_Arr:
-					sigPlt.plotID(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=False)
+					elif Type in ID_Arr:
+						sigPlt.plotID(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=False)
 
-				else:
-					print("Error 233: Your input type is not supported yet!")
-					sys.exit()
+					else:
+						print("Error 233: Your input type in the file is not supported yet!" )
+						sys.exit()
 
 		####### Generate Summary File
 		summary_Path = "%s/Summary.txt" % (Output_Dir)
