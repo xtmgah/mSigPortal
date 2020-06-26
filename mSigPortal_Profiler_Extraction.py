@@ -3,26 +3,28 @@
 import re,os,argparse,sys,time
 from SigProfilerMatrixGenerator.scripts import SigProfilerMatrixGeneratorFunc as matGen
 import sigProfilerPlotting as sigPlt
+import zipfile
 
 '''
 Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
-Version:	1.11
+Version:	1.12
 Date:		June-26-2020
 Update:		(1) Add Error 233: A indicator for format Error
-		(2) Add sigProfilerPlotting to generate PDF and SVG
-		(3) Update sigProfilerPlotting
-		(4) SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py:
-			Comment the line of 312, or a exception will happen
-			#log_out.write("SigProfilerPlotting version: "+sigPlt.__version__+"\n")
-		(5) Catelog results should be tsv, no matter if input is csv or tsv
-		(6) Default Output:'mSigPortal_Project_%s' % time.strftime('%Y%m%d%H%M%S',time.localtime(time.time())) (+ ProjectID will be updated later)
-		(7) Add -b option for Bed file in SigProfilerMatrixGenerator function
-		(8) Add Txt file to summarise output SVG (Sample_Name	Profile	Tag	Location)
-		(9) Add Format Checking for vcf_Multiple_Convert_Filter and vcf_Multiple_Convert_Split_All_Filter function
-		(10)Add -s function for both TSV and CSV format
-		(11) Capture the last item of the Input Path.
-'''.
+			(2) Add sigProfilerPlotting to generate PDF and SVG
+			(3) Update sigProfilerPlotting
+			(4) SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py:
+				Comment the line of 312, or a exception will happen
+				#log_out.write("SigProfilerPlotting version: "+sigPlt.__version__+"\n")
+			(5) Catelog results should be tsv, no matter if input is csv or tsv
+			(6) Default Output:'mSigPortal_Project_%s' % time.strftime('%Y%m%d%H%M%S',time.localtime(time.time())) (+ ProjectID will be updated later)
+			(7) Add -b option for Bed file in SigProfilerMatrixGenerator function
+			(8) Add Txt file to summarise output SVG (Sample_Name	Profile	Tag	Location)
+			(9) Add Format Checking for vcf_Multiple_Convert_Filter and vcf_Multiple_Convert_Split_All_Filter function
+			(10)Add -s function for both TSV and CSV format.
+			(11) Capture the last item of the Input Path.
+			(12) Use zipfile for Extration of ZipFile
+'''
 
 ########################################################################
 ###################### 0 Define Basic Function #########################
@@ -63,16 +65,12 @@ def If_Compressed():
 	
 	### 002 if in 3 types compressed files?
 	if re.search(r'zip$',Input_Path):
-		
-		ss = Input_Path.split("/")
-		Input_Path_New_Dir = "/".join(ss[0:len(ss)-1])
-		
-		String = "unzip %s -d %s" % (Input_Path,Input_Path_New_Dir) 
-		print(String)
-		os.system(String)
-		name = Input_Path.split("/")[-1].split(".zip")[0]
-		Input_Path_New_Name = "%s/%s" % (Input_Path_New_Dir,name)
-		print(Input_Path_New_Name)
+		zFile = zipfile.ZipFile(Input_Path,"r")
+		for fileM in zFile.namelist():
+			zFile.extract(fileM,Output_Dir)
+			#print(fileM)
+			Input_Path_New_Name = "%s/%s" % (Output_Dir,fileM)
+		zFile.close()
 
 	if re.search(r'tar$',Input_Path):
 		String = "tar -zxvf %s -C %s" % (Input_Path,Output_Dir) 
