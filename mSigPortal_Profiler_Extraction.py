@@ -23,7 +23,7 @@ Update:		(1) Add Error 233: A indicator for format Error
 		(9) Add Format Checking for vcf_Multiple_Convert_Filter and vcf_Multiple_Convert_Split_All_Filter function
 		(10)Add -s function for both TSV and CSV format
 		(11) Capture the last item of the Input Path
-		(12) Fix the bug caused by Mac System when compress a zip file.
+		(12) Fix the bug caused by Mac System when decompress a zip file.
 '''
 
 ########################################################################
