@@ -3,7 +3,7 @@
 import re,os,argparse,sys,time
 from SigProfilerMatrixGenerator.scripts import SigProfilerMatrixGeneratorFunc as matGen
 import sigProfilerPlotting as sigPlt
-import zipfile
+from zipfile import ZipFile
 
 '''
 Name:		mSigPortal_Profiler_Extraction
@@ -11,19 +11,18 @@ Function:	Generate Input File for mSigPortal
 Version:	1.12
 Date:		June-26-2020
 Update:		(1) Add Error 233: A indicator for format Error
-		(2) Add sigProfilerPlotting to generate PDF and SVG
-		(3) Update sigProfilerPlotting
-		(4) SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py:
-			Comment the line of 312, or a exception will happen
-			#log_out.write("SigProfilerPlotting version: "+sigPlt.__version__+"\n")
-		(5) Catelog results should be tsv, no matter if input is csv or tsv
-		(6) Default Output:'mSigPortal_Project_%s' % time.strftime('%Y%m%d%H%M%S',time.localtime(time.time())) (+ ProjectID will be updated later)
-		(7) Add -b option for Bed file in SigProfilerMatrixGenerator function
-		(8) Add Txt file to summarise output SVG (Sample_Name	Profile	Tag	Location)
-		(9) Add Format Checking for vcf_Multiple_Convert_Filter and vcf_Multiple_Convert_Split_All_Filter function
-		(10)Add -s function for both TSV and CSV format.
-		(11) Capture the last item of the Input Path.
-		(12) Use zipfile for Extration of ZipFile
+			(2) Add sigProfilerPlotting to generate PDF and SVG
+			(3) Update sigProfilerPlotting
+			(4) SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py:
+				Comment the line of 312, or a exception will happen
+				#log_out.write("SigProfilerPlotting version: "+sigPlt.__version__+"\n")
+			(5) Catelog results should be tsv, no matter if input is csv or tsv
+			(6) Default Output:'mSigPortal_Project_%s' % time.strftime('%Y%m%d%H%M%S',time.localtime(time.time())) (+ ProjectID will be updated later)
+			(7) Add -b option for Bed file in SigProfilerMatrixGenerator function
+			(8) Add Txt file to summarise output SVG (Sample_Name	Profile	Tag	Location)
+			(9) Add Format Checking for vcf_Multiple_Convert_Filter and vcf_Multiple_Convert_Split_All_Filter function
+			(10)Add -s function for both TSV and CSV format.
+			(11) Capture the last item of the Input Path.
 '''
 
 ########################################################################
@@ -63,14 +62,15 @@ def If_Compressed():
 		os.system("rm -rf %s" % Output_Dir)
 	GenerateDir(Output_Dir) 
 	
-	### 002 if in 3 types compressed files?
+		
 	if re.search(r'zip$',Input_Path):
-		zFile = zipfile.ZipFile(Input_Path,"r")
-		for fileM in zFile.namelist():
-			zFile.extract(fileM,Output_Dir)
-			#print(fileM)
-			Input_Path_New_Name = "%s/%s" % (Output_Dir,fileM)
-		zFile.close()
+		String = "unzip %s -d %s" % (Input_Path,Output_Dir) 
+		print(String)
+		os.system(String)
+		name = Input_Path.split("/")[-1].split(".zip")[0]
+		Input_Path_New_Name = "%s/%s" % (Output_Dir,name)
+		print(Input_Path_New_Name)
+
 
 	if re.search(r'tar$',Input_Path):
 		String = "tar -zxvf %s -C %s" % (Input_Path,Output_Dir) 
@@ -96,7 +96,7 @@ def If_Compressed():
 			name = Input_Path.split("/")[-1].split(".tar")[0]
 			Input_Path_New_Name = "%s/%s" % (Output_Dir,name)
 			print(Input_Path_New_Name)
-	#print(Input_Path)
+	print(Input_Path_New_Name)
 	return Input_Path_New_Name
 
 
@@ -1301,32 +1301,36 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 	elif Input_Format in Input_Format_arr_2:
 
 		for matrix_name in os.listdir(Output_Dir):
-			count = 0
-			matrix_path = "%s/%s" % (Output_Dir,matrix_name)
-			matrix_File = open(matrix_path)
-			for line in matrix_File:
-				ss = line.split("	")
-				if len(ss) > 1:
-					count += 1
-			Type = count-1
-			matrix_File.close()
-			
-			#print(Type)
-			###### Plotting the Matrix Based on Type
-			Final_output_Dir = "%s/" % (Output_Dir)
-			Final_Type = "%d" % Type
-			if Type in SBS_Arr:
-				sigPlt.plotSBS(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=False)
-
-			elif Type in DBS_Arr:
-				sigPlt.plotDBS(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=False)
-
-			elif Type in ID_Arr:
-				sigPlt.plotID(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=False)
-
+			if re.match(r'_',matrix_name):
+				pass
 			else:
-				print("Error 233: Your input type is not supported yet!")
-				sys.exit()
+				count = 0
+				matrix_path = "%s/%s" % (Output_Dir,matrix_name)
+				matrix_File = open(matrix_path)
+				for line in matrix_File:
+					ss = line.split("	")
+					if len(ss) > 1:
+						count += 1
+				Type = count-1
+				matrix_File.close()
+				
+				#print(Type)
+				###### Plotting the Matrix Based on Type
+				Final_output_Dir = "%s/" % (Output_Dir)
+				Final_Type = "%d" % Type
+				#print(Type)
+				if Type in SBS_Arr:
+					sigPlt.plotSBS(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=False)
+
+				elif Type in DBS_Arr:
+					sigPlt.plotDBS(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=False)
+
+				elif Type in ID_Arr:
+					sigPlt.plotID(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=False)
+
+				else:
+					print("Error 233: Your input type is not supported yet!")
+					sys.exit()
 
 		####### Generate Summary File
 		summary_Path = "%s/Summary.txt" % (Output_Dir)
@@ -1428,6 +1432,8 @@ if __name__ == "__main__":
 # python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf.tar -p Project -o Test_Output-6-22 -g GRCh37 -t WGS
 # python mSigPortal_Profiler_Extraction.py -f catalog_tsv -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_catalog.tsv.zip -p Project -o Test_Output -g GRCh37 -t WGS
 # python mSigPortal_Profiler_Extraction.py -f vcf -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf.tar -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f catalog_csv -i Demo_input/demo_input_catalog.csv.zip -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv.zip -p Project -o Test_Output -g GRCh37 -t WGS
 
 
 ### Usage for vcf_split_all_filter File
