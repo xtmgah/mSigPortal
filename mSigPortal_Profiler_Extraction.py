@@ -5,11 +5,11 @@ from SigProfilerMatrixGenerator.scripts import SigProfilerMatrixGeneratorFunc as
 import sigProfilerPlotting as sigPlt
 
 '''
-Name:       	mSigPortal_Profiler_Extraction
+Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
-Version:   	1.10
-Date:       	June-24-2020
-Update:     	(1) Add Error 233: A indicator for format Error
+Version:	1.11
+Date:		June-26-2020
+Update:		(1) Add Error 233: A indicator for format Error
 		(2) Add sigProfilerPlotting to generate PDF and SVG
 		(3) Update sigProfilerPlotting
 		(4) SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py:
@@ -20,6 +20,7 @@ Update:     	(1) Add Error 233: A indicator for format Error
 		(7) Add -b option for Bed file in SigProfilerMatrixGenerator function
 		(8) Add Txt file to summarise output SVG (Sample_Name	Profile	Tag	Location)
 		(9) Add Format Checking for vcf_Multiple_Convert_Filter and vcf_Multiple_Convert_Split_All_Filter function
+		(10) Add -s function for both TSV and CSV format.
 '''
 
 ########################################################################
@@ -153,15 +154,16 @@ def Parse_Options():
 
 	elif Input_Format == "csv":
 		###### if vcf_split_all_filter option is on
-		if vcf_split_all_filter != None:
-			print("Error: -s option only supports vcf format")
-			sys.exit()
-
-		###### Note Default of an option is None,not ''
-		if Filter == None:
-			csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse)
+		if vcf_split_all_filter == "True":
+			if Filter == None:
+				csv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse)
 		else:
-			csv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse)
+			###### Note Default of an option is None,not ''
+			if Filter == None:
+				csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse)
+			else:
+				csv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse)
+
 
 		###### Only if Collapse option is given, tsv_Convert_collpase will run
 		if Collapse == None:
@@ -173,16 +175,20 @@ def Parse_Options():
 
 
 	elif Input_Format == "tsv":
-		###### if vcf_split_all_filter option is on
-		if vcf_split_all_filter != None:
-			print("Error: -s option only supports vcf format")
-			sys.exit()
+		
+		if vcf_split_all_filter == "True":
+			if Filter == None:
+				tsv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse)
+			else:
+				print("Error, You have spcified '-s True', in this case the option -F is not supported!")
+				sys.exit()
 
-		###### Note Default of an option is None,not ''
-		if Filter == None:
-			tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse)
 		else:
-			tsv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse)
+			###### Note Default of an option is None,not ''
+			if Filter == None:
+				tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse)
+			else:
+				tsv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse)
 
 		###### Only if Collapse option is given, tsv_Convert_collpase will run
 		if Collapse == None:
@@ -192,7 +198,7 @@ def Parse_Options():
 			String = "Finish Running Collapse Step"
 			print(String)
 
-
+#
 
 	elif Input_Format == "catalog_tsv":
 		###### if vcf_split_all_filter option is on
@@ -443,16 +449,80 @@ def csv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Typ
 				End = ss[3]
 				REF = ss[4]
 				ALT = ss[5]
-				Filter = ss[6].strip()
-				if Filter in option_Filter_Arr:
-					Sample_ID = "%s@%s" % (Sample_ID,Filter)
+				Filter_arr = ss[6].strip().split(";")
+				for Filter in option_Filter_Arr:
+					if Filter in Filter_arr:
+						Sample_ID = "%s@%s" % (Sample_ID,Filter)
+						if len(REF) == len(ALT):
+							Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+							mSigPortal_Format_SNV_File.write(Output_String)
+						else:
+							Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+							mSigPortal_Format_INDEL_File.write(Output_String)
+
+	Input_File.close()
+
+
+
+####### 01-16 csv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse)
+def csv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse):
+	GenerateDir(Output_Dir)
+	print('******* Your Input File is in CSV format, with filtration: %s ******* ' % Filter)
+
+	####### 01-6-0 Output_Path:
+	mSigPortal_Format_SNV_Path = "%s/%s_mSigPortal_SNV.txt" %  (Output_Dir,Project_ID)
+	mSigPortal_Format_INDEL_Path = "%s/%s_mSigPortal_INDEL.txt" % (Output_Dir,Project_ID)
+
+	mSigPortal_Format_SNV_File = open(mSigPortal_Format_SNV_Path,'w')
+	mSigPortal_Format_INDEL_File = open(mSigPortal_Format_INDEL_Path,'w')
+
+	####### 01-6-1 Parse File 
+	Input_File = open(Input_Path)
+	Header = "Sample_ID,Chrom,Start,End,REF,ALT,Filter"
+	String_File = ""
+	Count = 1
+	for line in Input_File:
+		ss = line.split(",")
+		if len(ss) == 7:
+			String_File += line
+		else:
+			print("Error 233: The CSV option requires each line in input file should include 7 Item: Sample,Chrom,Start,End,Ref,Alt,Filter.\nHowever, the %d line contains %d items!" % (Count,len(ss)))
+			sys.exit()
+			Count += 1
+	if Header not in String_File:
+		print("Error 233: A header line: \"Sample_ID,Chrom,Start,End,REF,ALT,Filter\" is required!")
+		sys.exit()
+
+	####### 01-6-2 Parse Filter:
+	#option_Filter_Arr = Filter.split("@")
+
+	####### 01-6-3 Generate Result
+	ff = String_File.split("\n")
+	for f in ff:
+		if re.match(r'Sample_ID',f):
+			pass
+		else:
+			ss = f.split(",")
+			if len(ss) == 7:
+				Sample_ID = ss[0]
+				Chr = ss[1]
+				Start = ss[2]
+				End = ss[3]
+				REF = ss[4]
+				ALT = ss[5]
+				Filter_arr = ss[6].strip().split(";")
+
+				for Filter in Filter_arr:
+					Sample_ID_Final = "%s@%s" % (Sample_ID,Filter)
 					if len(REF) == len(ALT):
-						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Final,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
 						mSigPortal_Format_SNV_File.write(Output_String)
 					else:
-						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Final,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
 						mSigPortal_Format_INDEL_File.write(Output_String)
 	Input_File.close()
+
+
 
 
 ####### 01-7 tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
@@ -533,7 +603,7 @@ def tsv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Typ
 		if len(ss) == 7:
 			String_File += line
 		else:
-			print("Error 233: The CSV optformat requires each line in input file should include 7 Item: Sample_ID	Chrom	Start	End	Ref	Alt	Filter.\nHowever, the %d line contains %d items!" % (Count,len(ss)))
+			print("Error 233: The TSV optformat requires each line in input file should include 7 Item: Sample_ID	Chrom	Start	End	Ref	Alt	Filter.\nHowever, the %d line contains %d items!" % (Count,len(ss)))
 			sys.exit()
 			Count += 1
 	if Header not in String_File:
@@ -557,16 +627,78 @@ def tsv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Typ
 				End = ss[3]
 				REF = ss[4]
 				ALT = ss[5]
-				Filter = ss[6].strip()
-				if Filter in option_Filter_Arr:
-					Sample_ID = "%s@%s" % (Sample_ID,Filter)
+				Filter_arr = ss[6].strip().split(";")
+				for Filter in option_Filter_Arr:
+					if Filter in Filter_arr:
+						Sample_ID = "%s@%s" % (Sample_ID,Filter)
+						if len(REF) == len(ALT):
+							Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+							mSigPortal_Format_SNV_File.write(Output_String)
+						else:
+							Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+							mSigPortal_Format_INDEL_File.write(Output_String)
+	Input_File.close()
+
+
+
+
+####### 01-18 tsv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse)
+def tsv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse):
+	GenerateDir(Output_Dir)
+	print('******* Your Input File is in TSV format, with filtration: -s True ******* ')
+
+	####### 01-6-0 Output_Path:
+	mSigPortal_Format_SNV_Path = "%s/%s_mSigPortal_SNV.txt" %  (Output_Dir,Project_ID)
+	mSigPortal_Format_INDEL_Path = "%s/%s_mSigPortal_INDEL.txt" % (Output_Dir,Project_ID)
+
+	mSigPortal_Format_SNV_File = open(mSigPortal_Format_SNV_Path,'w')
+	mSigPortal_Format_INDEL_File = open(mSigPortal_Format_INDEL_Path,'w')
+
+	####### 01-6-1 Parse File 
+	Input_File = open(Input_Path)
+	Header = "Sample_ID	Chrom	Start	End	Ref	Alt	Filter"
+	String_File = ""
+	Count = 1
+	for line in Input_File:
+		ss = line.split("	")
+		if len(ss) == 7:
+			String_File += line
+		else:
+			print("Error 233: The TSV optformat requires each line in input file should include 7 Item: Sample_ID	Chrom	Start	End	Ref	Alt	Filter.\nHowever, the %d line contains %d items!" % (Count,len(ss)))
+			sys.exit()
+			Count += 1
+	if Header not in String_File:
+		print("Error 233: A header line: \"Sample_ID	Chrom	Start	End	Ref	Alt	Filter\" is required!")
+		sys.exit()
+
+	####### 01-6-3 Generate Result
+	ff = String_File.split("\n")
+	for f in ff:
+		if re.match(r'Sample_ID',f):
+			pass
+		else:
+			ss = f.split("	")
+			if len(ss) == 7:
+				Sample_ID = ss[0]
+				Chr = ss[1]
+				Start = ss[2]
+				End = ss[3]
+				REF = ss[4]
+				ALT = ss[5]
+				Filter_arr = ss[6].strip().split(";")
+
+				for Filter in Filter_arr:
+					Sample_ID_Final = "%s@%s" % (Sample_ID,Filter)
+					#print(Sample_ID)
 					if len(REF) == len(ALT):
-						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Final,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						#print(Output_String)
 						mSigPortal_Format_SNV_File.write(Output_String)
 					else:
-						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Final,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
 						mSigPortal_Format_INDEL_File.write(Output_String)
 	Input_File.close()
+
 
 
 
@@ -1284,6 +1416,9 @@ if __name__ == "__main__":
 # python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_single.vcf -p Project -o Test_Output -g GRCh37 -t WGS
 # python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS
 # python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f tsv -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output -g GRCh37 -t WGS
+
+
 
 
 
