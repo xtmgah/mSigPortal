@@ -6,12 +6,14 @@ python mSigPortal_Profiler_Extraction.py -f vcf -i Demo_input/demo_input_single.
 #002 CSV<br>
 python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output-sigle-VCF -g GRCh37 -t WGS -F alt_allele_in_normal<br>
 python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output_CSV_Split -g GRCh37 -t WGS -F germline_risk<br>
-python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output_CSV_Split -g GRCh37 -t WGS -s True
+python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output_CSV_Split -g GRCh37 -t WGS -s True<br>
+python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv.zip -p Project -o Test_Output -g GRCh37 -t WGS -F germline_risk
 
 #003 TSV<br>
 python mSigPortal_Profiler_Extraction.py -f tsv -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output-sigle-VCF -g GRCh37 -t WGS -F alt_allele_in_normal <br>
 python mSigPortal_Profiler_Extraction.py -f tsv -F germline_risk -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output -g GRCh37 -t WGS<br>
-python mSigPortal_Profiler_Extraction.py -f tsv -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output_CSV_Split -g GRCh37 -t WGS -s True
+python mSigPortal_Profiler_Extraction.py -f tsv -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output_CSV_Split -g GRCh37 -t WGS -s True<br>
+python mSigPortal_Profiler_Extraction.py -f tsv -i Demo_input/demo_input_multi.tsv.zip -p Project -o Test_Output_tsv -g GRCh37 -t WGS -F germline_risk
 
 #004 catalog_tsv<br>
 python mSigPortal_Profiler_Extraction.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv -p Project -o Test_Output_catalog_tsv -g GRCh37 -t WGS
