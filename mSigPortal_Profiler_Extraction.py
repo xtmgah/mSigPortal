@@ -20,7 +20,7 @@ Update:		(1) Add Error 233: A indicator for format Error
 		(7) Add -b option for Bed file in SigProfilerMatrixGenerator function
 		(8) Add Txt file to summarise output SVG (Sample_Name	Profile	Tag	Location)
 		(9) Add Format Checking for vcf_Multiple_Convert_Filter and vcf_Multiple_Convert_Split_All_Filter function
-		(10) Add -s function for both TSV and CSV format.
+		(10)Add -s function for both TSV and CSV format.
 '''
 
 ########################################################################
@@ -467,7 +467,7 @@ def csv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Typ
 ####### 01-16 csv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse)
 def csv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse):
 	GenerateDir(Output_Dir)
-	print('******* Your Input File is in CSV format, with filtration: %s ******* ' % Filter)
+	print('******* Your Input File is in TSV format, with filtration: -s True ******* ')
 
 	####### 01-6-0 Output_Path:
 	mSigPortal_Format_SNV_Path = "%s/%s_mSigPortal_SNV.txt" %  (Output_Dir,Project_ID)
