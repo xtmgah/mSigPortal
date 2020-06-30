@@ -16,9 +16,9 @@ python mSigPortal_Profiler_Extraction.py -f tsv -i Demo_input/demo_input_multi.t
 python mSigPortal_Profiler_Extraction.py -f tsv -i Demo_input/demo_input_multi.tsv.zip -p Project -o Test_Output_tsv -g GRCh37 -t WGS -F germline_risk
 
 #004 catalog_tsv<br>
-python mSigPortal_Profiler_Extraction.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv -p Project -o Test_Output_catalog_tsv -g GRCh37 -t WGS
+python mSigPortal_Profiler_Extraction.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv -p Project -o Test_Output_catalog_tsv -g GRCh37 -t WGS<br>
 python mSigPortal_Profiler_Extraction.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv.zip -p Project -o Test_Output -g GRCh37 -t WGS
 
 #005 catalog_csv<br>
-python mSigPortal_Profiler_Extraction.py -f catalog_csv -i Demo_input/demo_input_catalog.csv -p Project -o Test_Output_catalog_csv -g GRCh37 -t WGS
+python mSigPortal_Profiler_Extraction.py -f catalog_csv -i Demo_input/demo_input_catalog.csv -p Project -o Test_Output_catalog_csv -g GRCh37 -t WGS<br>
 python mSigPortal_Profiler_Extraction.py -f catalog_csv -i Demo_input/demo_input_catalog.csv.zip -p Project -o Test_Output -g GRCh37 -t WGS
