@@ -11,9 +11,9 @@ Function:	Generate Input File for mSigPortal
 Version:	1.16
 Date:		July-09-2020
 Update:		(1) In summary file, each element is delimited by a comma;
-			(2) Fix bug: The format in ['vcf', 'csv', 'tsv'],sigProfilerPlotting
+		(2) Fix bug: The format in ['vcf', 'csv', 'tsv'],sigProfilerPlotting
 				is running twice repeatedly. 
-			(3) Fix bug: The Created new name of Collapse Group can not be assigned 
+		(3) Fix bug: The Created new name of Collapse Group can not be assigned 
 				to the final file.
 '''
 
