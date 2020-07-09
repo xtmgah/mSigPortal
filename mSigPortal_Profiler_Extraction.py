@@ -1329,7 +1329,7 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 					else:
 						print("Error 233: Your input type in the file is not supported yet!" )
 						sys.exit()
-		print("Finisheh !!!!!!!!!!!!!!!!!!!!!!!!!!")
+		
 
 		####### Generate Summary File
 		summary_Path = "%s/Summary.txt" % (Output_Dir)
