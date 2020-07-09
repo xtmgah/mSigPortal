@@ -15,6 +15,7 @@ Update:		(1) In summary file, each element is delimited by a comma;
 				is running twice repeatedly. 
 		(3) Fix bug: The Created new name of Collapse Group can not be assigned 
 				to the final file.
+		(4) Fix bug: Missing Sample Names in some cases.
 '''
 
 ########################################################################
