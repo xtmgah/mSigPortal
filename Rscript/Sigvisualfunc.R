@@ -1,0 +1,1002 @@
+library(tidyverse)
+
+### reformat the signature name ###
+signames <- 
+  tibble(
+    SBSname=c(
+      "SBS1",
+      "SBS2",
+      "SBS3",
+      "SBS4",
+      "SBS5",
+      "SBS6",
+      "SBS7a",
+      "SBS7b",
+      "SBS7c",
+      "SBS7d",
+      "SBS8",
+      "SBS9",
+      "SBS10a",
+      "SBS10b",
+      "SBS11",
+      "SBS12",
+      "SBS13",
+      "SBS14",
+      "SBS15",
+      "SBS16",
+      "SBS17a",
+      "SBS17b",
+      "SBS18",
+      "SBS19",
+      "SBS20",
+      "SBS21",
+      "SBS22",
+      "SBS23",
+      "SBS24",
+      "SBS25",
+      "SBS26",
+      "SBS27",
+      "SBS28",
+      "SBS29",
+      "SBS30",
+      "SBS31",
+      "SBS32",
+      "SBS33",
+      "SBS34",
+      "SBS35",
+      "SBS36",
+      "SBS37",
+      "SBS38",
+      "SBS39",
+      "SBS40",
+      "SBS41",
+      "SBS42",
+      "SBS43",
+      "SBS44",
+      "SBS45",
+      "SBS46",
+      "SBS47",
+      "SBS48",
+      "SBS49",
+      "SBS50",
+      "SBS51",
+      "SBS52",
+      "SBS53",
+      "SBS54",
+      "SBS55",
+      "SBS56",
+      "SBS57",
+      "SBS58",
+      "SBS59",
+      "SBS60",
+      "SBS-others"
+    ),
+    Subsname=c(
+      "Signature Subs-01",
+      "Signature Subs-02",
+      "Signature Subs-03",
+      "Signature Subs-04",
+      "Signature Subs-05",
+      "Signature Subs-06",
+      "Signature Subs-07a",
+      "Signature Subs-07b",
+      "Signature Subs-07c",
+      "Signature Subs-07d",
+      "Signature Subs-08",
+      "Signature Subs-09",
+      "Signature Subs-10a",
+      "Signature Subs-10b",
+      "Signature Subs-11",
+      "Signature Subs-12",
+      "Signature Subs-13",
+      "Signature Subs-14",
+      "Signature Subs-15",
+      "Signature Subs-16",
+      "Signature Subs-17a",
+      "Signature Subs-17b",
+      "Signature Subs-18",
+      "Signature Subs-19",
+      "Signature Subs-20",
+      "Signature Subs-21",
+      "Signature Subs-22",
+      "Signature Subs-23",
+      "Signature Subs-24",
+      "Signature Subs-25",
+      "Signature Subs-26",
+      "Signature Subs-27",
+      "Signature Subs-28",
+      "Signature Subs-29",
+      "Signature Subs-30",
+      "Signature Subs-31",
+      "Signature Subs-32",
+      "Signature Subs-33",
+      "Signature Subs-34",
+      "Signature Subs-35",
+      "Signature Subs-36",
+      "Signature Subs-37",
+      "Signature Subs-38",
+      "Signature Subs-39",
+      "Signature Subs-40",
+      "Signature Subs-41",
+      "Signature Subs-42",
+      "Signature Subs-43",
+      "Signature Subs-44",
+      "Signature Subs-45",
+      "Signature Subs-46",
+      "Signature Subs-47",
+      "Signature Subs-48",
+      "Signature Subs-49",
+      "Signature Subs-50",
+      "Signature Subs-51",
+      "Signature Subs-52",
+      "Signature Subs-53",
+      "Signature Subs-54",
+      "Signature Subs-55",
+      "Signature Subs-56",
+      "Signature Subs-57",
+      "Signature Subs-58",
+      "Signature Subs-59",
+      "Signature Subs-60",
+      "Signature Subs-others"
+      
+    )
+  )
+
+
+
+SBS2Subs <- signames$Subsname
+names(SBS2Subs) <- signames$SBSname
+Subs2SBS <- signames$SBSname
+names(Subs2SBS) <- signames$Subsname
+
+
+### define the signature funciton ####
+Subscolor <- c(
+  'Signature Subs-01'='#4a9855',
+  'Signature Subs-02'='#e2a8ab',
+  'Signature Subs-03'='#40004b',
+  'Signature Subs-04'='#5aa1ca',
+  'Signature Subs-05'='#305d39',
+  'Signature Subs-06'='#785940',
+  "Signature Subs-07a"='#6e70b7',
+  "Signature Subs-07b"='#ff7f00',
+  "Signature Subs-07c"='#fec44f',
+  "Signature Subs-07d"='#846a2a',
+  "Signature Subs-08"='#cab2d6',
+  "Signature Subs-09"='#f4a582',
+  "Signature Subs-10a"='#8dd3c7',
+  "Signature Subs-10b"='#5e4fa2',
+  'Signature Subs-12'='#ffed6f',
+  'Signature Subs-13'='#e41a1c',
+  'Signature Subs-14'='#ffffbf',
+  'Signature Subs-15'='#4d4d4d',
+  'Signature Subs-16'='#513276',
+  'Signature Subs-17a'='#df4c7d',
+  'Signature Subs-17b'='#08519c',
+  'Signature Subs-18'='#b3de69',
+  'Signature Subs-19'='#4d4d4d',
+  'Signature Subs-20'='#b2182b',
+  'Signature Subs-22'='#d9ef8b',
+  'Signature Subs-21'='#e6f5d0',
+  'Signature Subs-24'='#1c9099',
+  'Signature Subs-25'='#35978f',
+  'Signature Subs-26'='#5e4fa2',
+  'Signature Subs-28'='#de77ae',
+  'Signature Subs-30'='#5e4fa2',
+  'Signature Subs-31'='#f781bf',
+  'Signature Subs-32'='#dd1c77',
+  'Signature Subs-33'='#b25d7e',
+  'Signature Subs-35'='#fc8d59',
+  'Signature Subs-36'='yellow',
+  'Signature Subs-39'='#636363',
+  'Signature Subs-40'='#b15928',
+  'Signature Subs-41'='#fccde5',
+  'Signature Subs-44'='#b3de69',
+  'Signature Subs-46'='#e6f598',
+  'Signature Subs-47'='#bababa',
+  'Signature Subs-42'='#ae017e',
+  'Signature Subs-54'='#fcc5c0',
+  'Signature Subs-56'='#8c510a',
+  'Signature Subs-others'='#cececa'
+)
+
+SBScolor <- Subscolor
+names(SBScolor) <- Subs2SBS[names(SBScolor)]
+
+
+### color 12 for the clustering
+color12 <- rev(c(
+  "#a6cee3",
+  "#1f78b4",
+  "#b2df8a",
+  "#33a02c",
+  "#fb9a99",
+  "#e31a1c",
+  "#fdbf6f",
+  "#ff7f00",
+  "#cab2d6",
+  "#6a3d9a",
+  "#b15928"
+))
+
+
+### SBS cluster funciton ####
+# p4 proportion bar
+
+
+SBS96_Clustering <- function(sigdata,studydata=NULL,cosinedata,cosine_cutoff=0,sigcolor=NULL,studycolor=NULL,puritydata=NULL,puritydata_cat=FALSE, puritycol=NULL,purity_cutoff=0,clustern,highlight=NULL,legendnrow=3,sampletext_size=6, filename='SBS96_clustering.pdf',height=10,width=20,hc_func='hclust',hc_metric = 'euclidean',hc_method = 'ward.D2',stand=TRUE){
+  
+  require(tidyverse)
+  require(scales)
+  require(janitor)
+  require(ggsci)
+  require(ggpubr)
+  require(factoextra)
+  require(cowplot)
+  
+  blankcol <- NA
+  names(blankcol) <- "        "
+  
+  if(is.null(sigcolor)){
+    sigcolorindex <- as.character(Subscolor[colnames(sigdata)[-1]])
+    names(sigcolorindex) <- colnames(sigdata)[-1]
+  }else{
+    sigcolorindex <- sigcolor
+  }
+  
+  # colorall <- c(sigcolorindex,"white",studycolor)
+  # names(colorall) <- c(names(sigcolorindex),"        ",names(studycolor))
+  # 
+  colorall <- c(sigcolorindex,blankcol,studycolor)
+  
+  tmp=sigdata %>% adorn_percentages('row') 
+  mdata=as.matrix(tmp[,-1])
+  rownames(mdata) <- tmp$Samples
+  
+  #fviz_nbclust(mdata, kmeans, method = "gap_stat")
+  kcolors <- pal_d3("category20")(clustern)
+  
+  res <- hcut(mdata,k = clustern,hc_func = hc_func,hc_metric = hc_metric,hc_method = hc_method,stand=stand)
+  p1 <- fviz_dend(res, rect = TRUE, cex = 0.5,k_colors = kcolors,lwd = 0.5,show_labels = F)+scale_x_discrete(expand = c(0,0))+ theme(plot.margin=margin(b=-0.7,unit="cm"),title = element_blank())
+  #plot.margin=margin(b=-1,unit="cm")
+  
+  if(!is.null(studydata)){
+    studydata <- studydata %>% filter(Samples %in% res$labels) %>% mutate(Samples=factor(Samples,levels=res$labels[res$order]))
+    p2 <- studydata %>% ggplot(aes(Samples,1,fill=factor(Study,levels = names(studycolor))))+geom_tile(col="black")+scale_fill_manual(values =studycolor,drop=FALSE)+theme_minimal()+theme(legend.position = "none",panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t=0.4,unit="cm"),title = element_blank())+ylim(c(0,2))
+  }
+  p2.1 <- cosinedata %>%  mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% mutate(Similarity=if_else(Similarity<cosine_cutoff,NA_real_,Similarity)) %>% ggplot(aes(Samples,1,fill=Similarity))+geom_tile(col="black")+scale_fill_viridis_c(na.value = "#cccccc",option = 'C',limits = c(0.6, 1), oob = scales::squish)+theme_minimal()+theme(legend.position = "bottom",legend.key.width =unit(3, "cm"),legend.key.height = unit(0.3,"cm"), panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(title = element_blank())+ylim(c(0,2))
+  p2.2 <- as_ggplot(get_legend(p2.1))
+  p2.2 <- p2.2+theme(plot.margin = margin(b = 30))
+  p2.1 <- cosinedata %>%  mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% mutate(Similarity=if_else(Similarity<cosine_cutoff,NA_real_,Similarity)) %>% ggplot(aes(Samples,1,fill=Similarity))+geom_tile(col="black")+scale_fill_viridis_c(na.value = "#cccccc",option = 'C',limits = c(0.6, 1), oob = scales::squish)+theme_minimal()+theme(legend.position = "none", panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t = 0.5,unit="cm"),title = element_blank())+ylim(c(0,2))
+  
+  p2.5 <- p2.2
+  
+  if(!is.null(puritydata)){
+    puritydata <- puritydata %>% filter(Samples %in% res$labels) %>% mutate(Samples=factor(Samples,levels=res$labels[res$order])) 
+    
+    if(!puritydata_cat) {
+      puritydata <- puritydata %>% mutate(Purity=if_else(Purity<purity_cutoff,NA_real_,Purity))
+      p2.3 <- puritydata  %>% ggplot(aes(Samples,1,fill=Purity))+geom_tile(col="black")+scale_fill_viridis_c(na.value = "#cccccc",option = 'D',breaks=pretty_breaks(5))+theme_minimal()+theme(legend.position = "bottom",legend.key.width =unit(3, "cm"),legend.key.height = unit(0.3,"cm"), panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(title = element_blank())+ylim(c(0,2))
+      p2.4 <- as_ggplot(get_legend(p2.3))
+      p2.4 <- p2.4+theme(plot.margin = margin(b = 30))
+      p2.3 <- puritydata %>% ggplot(aes(Samples,1,fill=Purity))+geom_tile(col="black")+scale_fill_viridis_c(na.value = "#cccccc",option = 'D',breaks=pretty_breaks(5))+theme_minimal()+theme(legend.position = "none", panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t = 0.5,unit="cm"),title = element_blank())+ylim(c(0,2))
+      #
+      p2.5 <- plot_grid(p2.2, p2.4, align = "h", axis = "b", rel_widths = c(1, 1))
+      
+    }else { 
+      names(blankcol) <- "    "
+      colorall <- c(colorall,blankcol,puritycol)
+      p2.3 <- puritydata %>% ggplot(aes(Samples,1,fill=factor(Purity,levels = names(puritycol))))+geom_tile(col="black")+scale_fill_manual(values =puritycol)+theme_minimal()+theme(legend.position = "none",panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t=0.5,unit="cm"),title = element_blank())+ylim(c(0,2))
+      
+    }
+  }
+  
+  
+  p3 <- sigdata %>% gather(Signature,Weight,-Samples) %>% mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% ggplot(aes(Samples,(Weight),fill=factor(Signature,levels = names(colorall))))+geom_bar(stat="identity",col="gray95",width=1,size=0.1)+theme_ipsum_rc(axis_title_just = "m",axis_title_size = 12,axis = "xy")+theme(legend.title = element_blank(),axis.ticks.x = element_blank(), axis.text.x = element_blank(),panel.grid.major.x=element_blank(),legend.position = "none",legend.box.spacing = unit(0,"cm"),plot.margin=margin(b=-1,t = 1,unit="cm"))+scale_y_continuous(expand = c(0, 0),breaks = pretty_breaks(),labels = comma)+scale_fill_manual(values = colorall,drop=FALSE)+guides(fill=guide_legend(nrow=2,byrow=TRUE))+xlab("")+ylab("Number of mutations \n")
+  #+theme(plot.margin=margin(b=4,unit="pt"))
+  
+  p4 <- sigdata %>% gather(Signature,Weight,-Samples) %>% mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% ggplot(aes(Samples,Weight,fill=factor(Signature,levels = names(colorall))))+geom_bar(stat="identity",position="fill",col="gray95",width = 1,size=0.1)+theme_ipsum_rc(axis_title_just = "m",axis_title_size = 12)+theme(legend.title = element_blank(),axis.ticks.x = element_blank(), axis.text.x = element_text(size = sampletext_size, angle = 90, vjust = 0.5, hjust = 1),panel.grid.major=element_line(),legend.position = "bottom",legend.box.background = element_blank(),legend.box.spacing = unit(-0.5,"cm"),legend.key = element_rect(size = 0),axis.ticks.y = element_line(colour = "black"),legend.key.size = unit(0.25, "cm"),legend.key.width =unit(1, "cm"))+scale_y_continuous(expand = c(0, 0),breaks = pretty_breaks())+xlab("")+scale_fill_manual(values = colorall,drop=FALSE)+guides(fill=guide_legend(nrow=legendnrow,byrow=TRUE,label.position = "bottom"))+ylab("Signature contribution\n")
+  #+theme(plot.margin=margin(t=4,unit="pt"))
+  
+  
+  if(!is.null(highlight)){
+    samhigh <- sigdata %>% mutate(Samples_high=if_else(Samples %in% highlight,paste0("*",Samples),Samples))
+    p4 <-  p4+scale_x_discrete(breaks=samhigh$Samples,labels=samhigh$Samples_high)
+  }
+  
+  #p3 <- flush_ticks(p3,flush = "Y",plot = FALSE)
+  #p4 <- flush_ticks(p4,flush = "Y",plot = FALSE)
+  
+  
+  if(!is.null(studydata)){
+    if(!is.null(puritydata)){
+      pall <- ggarrange(p1,p2,p2.3,p3,p2.1,p4,p2.5,ncol=1,nrow = 7,align = 'v',heights = c(2,0.1,0.1,4,0.1,7,0.1))
+    }else {
+      pall <- ggarrange(p1,p2,p3,p2.1,p4,p2.5,ncol=1,nrow = 6,align = 'v',heights = c(2,0.1,4,0.1,7,0.1))
+    }
+  }else{
+    if(!is.null(puritydata)){
+      pall <- ggarrange(p1,p2.3,p3,p2.1,p4,p2.5,ncol=1,nrow = 6,align = 'v',heights = c(2,0.1,4,0.1,7,0.1))
+    }
+  }
+  
+  ggsave(filename = filename,plot = pall,height = height,width = width,device = cairo_pdf)
+}
+
+
+
+
+### calculate_similarities ####
+
+# cos_sim <- function(a, b) {
+#   if (sum(a) == 0 | sum(b) == 0) {
+#     value = 0
+#   }
+#   dot_product = a %*% b
+#   norm_a <- norm(as.matrix(a), "2")
+#   norm_b <- norm(as.matrix(b), "2")
+#   value = dot_product / (norm_a * norm_b)
+#   return(value)
+# }
+
+## from MutationalPattern
+cos_sim <- function (x, y) 
+{
+  res = x %*% y/(sqrt(x %*% x) * sqrt(y %*% y))
+  res = as.numeric(res)
+  return(res)
+}
+
+
+calculate_similarities <- function(orignal_genomes, signature, signature_activaties) {
+  require(entropy)
+  data2 <- as.data.frame(orignal_genomes)
+  #data2 <- read.delim(orignal_genomes_file,header = T,check.names = F,stringsAsFactors = F)
+  #data2 <- data.frame(data2)
+  data2 <- data2[,!is.na(colSums(data2 != 0)) & colSums(data2 != 0) > 0]
+  genomes <- data2[, 2:length(data2)]
+  sample_names <- colnames(data2[,2:ncol(data2)])
+  #data3 <- read.delim(signature_file,header = T,check.names = F,stringsAsFactors = F)
+  data3 <-  as.data.frame(signature)
+  data3 <- data3[,2:ncol(data3)]
+  #data4 <- read.delim(signature_activaties_file,header = T,check.names = F,stringsAsFactors = F)
+  data4 <-  as.data.frame(signature_activaties)
+  data4 <- data4[,2:ncol(data4)]
+  est_genomes <- as.data.frame(as.matrix(data3) %*% as.matrix(t(data4)))
+  
+  cosine_sim_list = c()
+  kl_divergence_list = c()
+  l1_norm_list = c()
+  l2_norm_list = c()
+  total_mutations = c()
+  relative_l1_list = c()
+  relative_l2_list = c()
+  for (i in 1:ncol(genomes)) {
+    p_i <- as.numeric(genomes[, i])
+    q_i = (est_genomes[, i])
+    cosine_sim_list = append(cosine_sim_list, round(cos_sim(p_i, q_i), digits=3))
+    kl_divergence_list = append(kl_divergence_list, round(KL.empirical(p_i, q_i), digits=4))
+    l1_norm_list = append(l1_norm_list, round(norm(as.matrix(p_i-q_i), "1"), digits=3))
+    relative_l1_list = append(relative_l1_list, round((dplyr::last(l1_norm_list)/norm(as.matrix(p_i), "1"))*100, digits=3))
+    l2_norm_list = append(l2_norm_list, round(norm(as.matrix(p_i-q_i), "2"), digits=3))
+    relative_l2_list = append(relative_l2_list, round((dplyr::last(l2_norm_list)/norm(as.matrix(p_i), "2"))*100, digits=3))
+    total_mutations = append(total_mutations, sum(p_i))
+  }
+  kl_divergence_list[!is.finite(kl_divergence_list)] <- 1000
+  similarities_dataframe = data.frame("Sample_Names"=sample_names,
+                                      "Total_Mutations"=total_mutations,
+                                      "Cosine_similarity"=cosine_sim_list,
+                                      "L1_Norm"=l1_norm_list,
+                                      `L1_Norm_%`=relative_l1_list,
+                                      "L2_Norm"=l2_norm_list,
+                                      `L2_Norm_%`=relative_l2_list,
+                                      "KL_Divergence"= kl_divergence_list,check.names = F)
+  #write.csv(similarities_dataframe, file="MyData.csv")
+  #write.table(similarities_dataframe, file="MyData.txt", sep="\t", row.names = FALSE)
+  return(similarities_dataframe)
+}
+
+#calculate_similarities("Test/orignal_genomes.txt", "Test/Wsignature_sigs.txt", "Test/Wsignature_activaties.txt")
+L1_normal_displot <- function(similarities_dataframe,...){
+  require(ggplot2)
+  require(hrbrthemes)
+  similarities_dataframe %>% ggplot(aes(100-`L1_Norm_%`))+geom_histogram(color="white",binwidth = 2)+theme_ipsum_rc(axis_title_just = "m",axis_title_size = 16,axis = "xy")+scale_x_continuous(name ="\n% mutations explained by extracted signatures (100-L1_Norm %)",expand = c(0,0),limits = c(0,100))+scale_y_continuous(name = "Number of sample",expand = c(0,0))
+}
+
+
+
+
+#Generation of probabilities for each processes given to A mutation type 
+#probabilities('Decomposed_Solution_Signatures.txt','Decomposed_Solution_Activities.txt')
+probabilities <-  function(W, H){ 
+  require(dplyr)
+  #W=read.delim(Wfile,header = T,check.names = F,stringsAsFactors = F)
+  #H=read.delim(Hfile,header = T,check.names = F,stringsAsFactors = F)
+  
+  MutationType <- W$MutationType
+  allcolnames <- H$Samples
+  
+  W <- as.matrix(W[,2:ncol(W)])
+  H <- t(as.matrix(H[,2:ncol(H)]))
+  genomes <- W %*% H
+  
+  probs_all <- NULL
+  
+  for(i in 1:dim(H)[2]){
+    probs <-(W*(H[,i])[col(W)])/(genomes[,i])[row(W)]
+    rownames(probs) <- MutationType
+    probs <- as.data.frame(probs) %>% rownames_to_column(var = "MutationType") %>% mutate(Sample_Names=allcolnames[i]) %>% select(Sample_Names,MutationType,everything())
+    probs_all <- bind_rows(probs_all,probs)
+  }
+  return(probs_all)
+  
+}
+
+
+
+# SBS96_plot --------------------------------------------------------------
+
+plot_sbs_96_profile <- function(data,samplename=NULL,totalmut=NULL,samplename_plot=TRUE, totalmut_plot=TRUE,filename=NULL,percentage=TRUE,ytitle="Percentage of Single Base Subsitutions"){
+  
+  require(tidyverse)
+  require(hrbrthemes)
+  require(scales)
+  require(ggpubr)  
+  
+  #### data is a frame with the following columns: Type, SubType, MutationType, Value ###
+  
+  if(dim(data)[2]==2){
+    data <- data %>% mutate(Type=str_sub(MutationType,3,5),SubType=paste0(str_sub(MutationType,1,1),str_sub(MutationType,3,3),str_sub(MutationType,7,7))) %>% select(Type,SubType,MutationType,everything()) %>% arrange(Type,SubType)
+  }
+  
+  if(is.null(samplename)){
+    samplename <- colnames(data)[4]
+  }
+  
+  colnames(data)[4] <- "Value"
+  
+  data <- data %>% mutate(Seq=seq_along(MutationType)) %>% mutate(Type=fct_inorder(Type),SubType=fct_inorder(SubType),MutationType=fct_inorder(MutationType))
+  
+  stype <- unique(data$Type)
+  
+  if(!is.null(totalmut)){
+    totalmut <- comma_format()(totalmut)
+  }
+  
+  COLORS6 = c(
+    "#2EBAED", "#000000", "#DE1C14",
+    "#D4D2D2", "#ADCC54", "#F0D0CE")
+  names(COLORS6) <- stype
+  
+  data0 <- bind_cols(
+    data %>% group_by(Type) %>% dplyr::slice(1) %>% ungroup() %>% mutate(Value1=Seq+0.25) %>% select(Value1,Type),
+    data %>% group_by(Type) %>% dplyr::slice(16) %>% ungroup() %>% mutate(Value2=Seq+0.25) %>% select(Value2)
+  )
+  
+  if(percentage){
+    
+    if(sum(data$Value)>10){
+      totalmut <- sum(data$Value)
+      data$Value <- data$Value/totalmut
+    }
+    ymax <- max(data$Value)/0.9
+    ymax <- 0.04*ceiling(ymax/0.04)
+    labelx <- percent
+    #ylabp <- percent(pretty_breaks(n = 5)(ymax))
+    ylabp <- percent(seq(0,ymax,length.out = 5))
+    ytext <- ytitle
+    
+  }else{
+    ymax <- max(data$Value)/0.9
+    ymax <- ceiling(ymax)
+    labelx <- comma
+    #ylabp <- comma(pretty_breaks(n = 5)(ymax))
+    ylabp <- comma(seq(0,ymax,length.out = 5))
+    ytext <- "Number of Single Base Subsitutions"
+  }
+  
+  
+  
+  #ylabp <- percent(pretty_breaks(n = 5)(data$Value))
+  ylabp <- ylabp[length(ylabp)]
+  
+  data00 <- data %>%  mutate(B1=str_sub(SubType,1,1),B2=str_sub(SubType,2,2),B3=str_sub(SubType,3,3))
+  
+  p1 <- data0 %>% ggplot(aes(xmin=Value1,xmax=Value2,ymin=0,ymax=1,fill=Type))+
+    geom_rect()+
+    scale_fill_manual(values=COLORS6)+
+    scale_x_continuous(expand = c(0,0),sec.axis = dup_axis(labels = NULL,name = NULL),limits=c(1,96.5))+
+    scale_y_continuous(expand = c(0,0),labels =ylabp,breaks = 1,limits = c(0,2.2),sec.axis = dup_axis(labels = NULL,name = NULL))+
+    labs(x="",y=" ")+
+    theme(axis.title.y=element_text(size=12,face = "bold"),
+          axis.title.x=element_blank(),
+          axis.text.y=element_text(size=10,color = "white"),
+          axis.text.x=element_blank(),
+          strip.text=element_blank(),
+          strip.background = element_blank(),
+          panel.background = element_blank(),
+          panel.border = element_blank(),
+          axis.ticks = element_blank(),
+          legend.position = "none",
+          panel.grid = element_blank(),
+          #axis.line = element_blank(),
+          axis.line.x = element_line(colour = 'white',size=0.6),
+          axis.line.y = element_line(colour = 'white',size=0.6),
+          plot.margin=margin(b=-1.2,l = 0.2,unit="cm")
+    )+
+    annotate("text", x = 8.75+16*0, y = 1.5, label = stype[1],size=5,fontface =2)+
+    annotate("text", x = 8.75+16*1, y = 1.5, label = stype[2],size=5,fontface =2)+
+    annotate("text", x = 8.75+16*2, y = 1.5, label = stype[3],size=5,fontface =2)+
+    annotate("text", x = 8.75+16*3, y = 1.5, label = stype[4],size=5,fontface =2)+
+    annotate("text", x = 8.75+16*4, y = 1.5, label = stype[5],size=5,fontface =2)+
+    annotate("text", x = 8.75+16*5, y = 1.5, label = stype[6],size=5,fontface =2)
+  
+  
+  
+  p2 <- data %>% 
+    ggplot(aes(Seq,Value,fill=Type))+
+    geom_col(color="white",width = 0.5,size=0)+
+    scale_fill_manual(values=COLORS6)+
+    scale_x_continuous(expand = c(0,0),labels = data$SubType,breaks = data$Seq,sec.axis = dup_axis(labels = NULL,name = NULL))+
+    scale_y_continuous(expand = c(0,0),labels = labelx,breaks = seq(0,ymax,length.out = 5),limits = c(0,ymax),sec.axis = dup_axis(labels = NULL,name = NULL))+
+    labs(x="",y=ytext)+
+    theme(axis.title.y=element_text(size=12,face = "bold"),
+          axis.title.x=element_blank(),
+          axis.text.y=element_text(size=10),
+          #axis.text.x=element_text(angle = 90,hjust = 1,vjust = 0.5),
+          axis.text.x=element_blank(),
+          strip.text=element_blank(),
+          strip.background = element_blank(),
+          panel.background = element_blank(),
+          panel.border = element_blank(),
+          axis.ticks = element_blank(),
+          legend.position = "none",
+          panel.grid.major.y = element_line(colour = "gray90",size = 0.3,linetype="solid"),
+          panel.grid.minor.y = element_line(colour = "gray96",size = 0.3,linetype="solid"),
+          panel.grid.major.x = element_blank(),
+          axis.line.x = element_line(colour = 'gray80',size=0.6),
+          axis.line.y = element_line(colour = 'gray80',size=0.6),
+          plot.margin=margin(t=-1.2,b=-1,l=0.2,unit="cm")
+          
+    )
+  
+  if(samplename_plot & !is.null(samplename)){
+    p2 <- p2+annotate("text", x = 1.5, y = ymax*0.9, label = samplename,size=7,fontface =2,hjust = 0)
+  }
+  
+  if(totalmut_plot & !is.null(totalmut)){
+    p2 <- p2+annotate("text", x = 78, y = ymax*0.88, label = paste0("Total Mutations: ",totalmut),size=6.5,fontface =2,hjust = 0)
+  }
+  
+  invisible(capture.output(p2 = flush_ticks(p2)+theme(axis.text.x = element_blank())))
+  
+  p3 <- data00 %>% 
+    ggplot(aes(Seq))+
+    geom_text(aes(y=0.4,label=B1),col="gray60",angle=90,hjust = 0,vjust = 0.5,size=3.5)+
+    geom_text(aes(y=1,label=B2,col=Type),angle=90,hjust = 0,vjust = 0.5,size=3.5,family = "Arial")+
+    geom_text(aes(y=1.6,label=B3),col="gray60",angle=90,hjust = 0,vjust = 0.5,size=3.5)+
+    scale_color_manual(values=COLORS6)+
+    scale_x_continuous(expand = c(0,0),sec.axis = dup_axis(labels = NULL,name = NULL),limits = c(0.5,96.5))+
+    scale_y_continuous(expand = c(0,0),labels =ylabp,breaks = 1,limits = c(0,2.2),sec.axis = dup_axis(labels = NULL,name = NULL))+
+    labs(x="",y=" ")+
+    theme(axis.title.y=element_text(size=12,face = "bold"),
+          axis.title.x=element_blank(),
+          axis.text.y=element_text(size=10,colour = "white"),
+          #axis.text.x=element_text(angle = 90,hjust = 1,vjust = 0.5),
+          axis.text.x=element_blank(),
+          strip.text=element_blank(),
+          strip.background = element_blank(),
+          panel.background = element_blank(),
+          panel.border = element_blank(),
+          axis.ticks = element_blank(),
+          legend.position = "none",
+          panel.grid.major.y = element_line(colour = "white",size = 0.4,linetype="solid"),
+          panel.grid.minor.y = element_line(colour = "white",size = 0.4,linetype="solid"),
+          panel.grid.major.x = element_blank(),
+          axis.line.x = element_line(colour = 'white',size=0.6),
+          axis.line.y = element_line(colour = 'white',size=0.6),
+          plot.margin=margin(t=-1,l=0.2,unit="cm")
+    )
+  #,text = element_text(family = "Arial")
+  
+  
+  #cairo_pdf(file = 'tmp.pdf',width = 16,height = 4)
+  pcomb <- ggarrange(p1,p2,p3,nrow = 3,align = "h",heights = c(1.8,10,1.5))
+  #pcomb <- plot_grid(p1,p2,p3,nrow = 3,align = "v",axis = c("tb"),rel_heights = c(1.8,10,1.5))
+  
+  if(is.null(filename)){
+    return(pcomb)
+  } else {
+    ggsave(filename,width = 18,height = 4,device = cairo_pdf)
+  }
+  
+}
+
+
+
+
+# PLOT_DBS_78 -------------------------------------------------------------
+
+plot_dbs_78_profile <- function(data,samplename=NULL,samplename_plot=TRUE, filename=NULL){
+  require(tidyverse)
+  require(hrbrthemes)
+  require(scales)
+  require(cowplot)  
+  
+  data <- data %>% mutate(Type=paste0(str_sub(MutationType,1,3),"NN"),SubType=str_sub(MutationType,4,5)) %>% select(Type,SubType,MutationType,everything()) %>% arrange(Type,SubType)
+  
+  if(is.null(samplename)){
+    samplename <- colnames(data)[4]
+  }
+  
+  colnames(data)[4] <- "Value"
+  data <- data %>% mutate(Seq=seq_along(MutationType)) %>% mutate(Type=fct_inorder(Type),SubType=fct_inorder(SubType),MutationType=fct_inorder(MutationType))
+  stype <- unique(data$Type)
+  
+  totalmut <- sum(data$Value)
+  totalmut <- comma_format()(totalmut)
+  
+  COLORS10 = c("#03BCEE", "#0366CB", "#A1CE63", "#016601", "#FE9898", "#E32926", "#FEB166", "#FE8001", "#CB98FE", "#4C0198")
+  names(COLORS10) <- stype
+  
+  ymax <- max(data$Value)/0.9
+  ymax <- 4*ceiling(ymax/4)
+  
+  #ylabp <- pretty_breaks(n = 5)(data$Value)
+  ylabp <- comma(seq(0,ymax,length.out = 5))
+  ylabp <- ylabp[length(ylabp)]
+  
+  data0 <- bind_cols(
+    data %>% group_by(Type) %>% filter(row_number() == 1) %>% ungroup() %>% mutate(Value1=Seq+0.25) %>% select(Value1,Type),
+    data %>% group_by(Type) %>% "["(.,c(which(data$Type != lag(data$Type))-1, 78),) %>% ungroup() %>% mutate(Value2=Seq+0.25) %>% select(Value2)
+  )
+  
+  #ylabp <- pretty_breaks(n = 5)(data$Value)
+  #ylabp <- ylabp[length(ylabp)]
+  
+  anno.x=(data0$Value1+data0$Value2)/2
+  anno.lab=data0$Type
+  
+  p1 <- 
+    data0 %>% ggplot(aes(xmin=Value1,xmax=Value2,ymin=0,ymax=0.9,fill=Type))+
+    geom_rect()+
+    scale_fill_manual(values=COLORS10)+
+    scale_x_continuous(expand = c(0,0),limits=c(1,78.5))+
+    scale_y_continuous(expand = c(0,0),breaks = 1,labels = ylabp,limits = c(0,2.2),sec.axis = dup_axis(labels = NULL,name = NULL))+
+    labs(y=" ",x=NULL)+annotate("text",x=anno.x,y=1.5,label=anno.lab,size=5,fontface =2,hjust=0.5)+
+    theme(axis.title.y=element_text(size=12,face = "bold"),
+          axis.title.x=element_blank(),
+          axis.text.y=element_text(size=10,color = "white"),
+          axis.text.x=element_blank(),
+          strip.text=element_blank(),
+          panel.background = element_blank(),
+          panel.border = element_blank(),
+          axis.ticks = element_blank(),
+          legend.position = "none",
+          panel.grid = element_blank(),
+          #axis.line.x = element_line(colour = 'white',size=0.6),
+          #axis.line.y = element_line(colour = 'white',size=0.6),
+          axis.line = element_blank(),
+          plot.margin=margin(b=0,l = 0.2,unit="cm"),
+    )
+  #+theme(plot.background = element_rect(fill = "darkblue"))
+  
+  p2 <- data %>% 
+    ggplot(aes(Seq,Value,fill=Type))+
+    geom_col(color="white",width = 0.4,size=0)+
+    scale_fill_manual(values=COLORS10)+
+    scale_x_continuous(expand = c(0,0),labels = data$SubType,breaks = data$Seq,sec.axis = dup_axis(labels = NULL,name = NULL))+
+    scale_y_continuous(expand = c(0,0),breaks = seq(0,ymax,length.out = 5),limits = c(0,ymax),sec.axis = dup_axis(labels = NULL,name = NULL))+
+    labs(x="",y="Number of Double Base Subsitutions")+
+    theme(axis.title.y=element_text(size=12,face = "bold"),
+          axis.title.x=element_blank(),
+          axis.text.y=element_text(size=10),
+          axis.text.x=element_text(size=11,angle = 90,hjust = 1,vjust = 0.5,colour = COLORS10[data$Type]),
+          #axis.text.x=element_blank(),
+          strip.text=element_blank(),
+          strip.background = element_blank(),
+          panel.background = element_blank(),
+          panel.border = element_blank(),
+          axis.ticks = element_blank(),
+          legend.position = "none",
+          panel.grid.major.y = element_line(colour = "gray90",size = 0.3,linetype="solid"),
+          panel.grid.minor.y = element_line(colour = "gray96",size = 0.3,linetype="solid"),
+          panel.grid.major.x = element_blank(),
+          axis.line.x = element_line(colour = 'gray80',size=0.6),
+          axis.line.y = element_line(colour = 'gray80',size=0.6),
+          plot.margin=margin(t=0,l=0.2,unit="cm")
+    )
+  
+  if(samplename_plot & !is.null(samplename)){
+    p2 <- p2+annotate("text", x = 1, y = ymax*0.9, label = paste0(samplename,": ",totalmut," double subs"),size=7,fontface =2,hjust = 0)
+  }
+  
+  #invisible(capture.output(p2 <- flush_ticks(p2,flush = "X")))
+  p2 <- p2+ theme(axis.text.y=element_text(vjust=c(0, rep(0.5, 3), 1)))
+  
+  
+  #cairo_pdf(file = 'tmp.pdf',width = 16,height = 4)
+  #pcomb <- ggarrange(p1,p2,nrow = 2,align = "h",heights = c(3,15))
+  #pcomb <- grid.arrange(p1,p2,nrow=2)
+  pcomb <- plot_grid(p1, p2, align = "v", nrow = 2, rel_heights = c(1/6,5/6))
+  
+  if(is.null(filename)){
+    return(pcomb)
+  } else {
+    ggsave(filename,pcomb,width = 18,height = 4,device = cairo_pdf)
+  }
+  
+}
+#plot_dbs_78_profile(data = data_dbs_exm1,filename = "tmp.pdf")
+
+
+#save(data_sbs_exm1,data_dbs_exm1,file='../Example.RData')
+
+
+
+
+
+# Mutational Patten funcitons ---------------------------------------------
+
+profile_format_df <- function(data,factortype=FALSE){
+  # format, sorting and factor the signature dataframe for SBS96,DBS78 and ID83
+  
+  if(dim(data)[1]==96){
+    data <- data %>% mutate(Type=str_sub(MutationType,3,5),SubType=paste0(str_sub(MutationType,1,1),str_sub(MutationType,3,3),str_sub(MutationType,7,7))) %>% select(Type,SubType,MutationType,everything()) %>% arrange(Type,SubType)
+  }
+  
+  if(dim(data)[1]==78){
+    data <- data %>% mutate(Type=paste0(str_sub(MutationType,1,3),"NN"),SubType=str_sub(MutationType,4,5)) %>% select(Type,SubType,MutationType,everything()) %>% arrange(Type,SubType)
+  }
+  
+  if(dim(data)[1]==83){
+    idtypeorder <- c("1:Del:C","1:Del:T","1:Ins:C","1:Ins:T","2:Del:R","3:Del:R","4:Del:R","5:Del:R","1:Ins:R","2:Ins:R","3:Ins:R","4:Ins:R","5:Ins:R","2:Del:M","3:Del:M","4:Del:M","5:Del:M")
+    data <- data %>% mutate(Type=str_sub(MutationType,1,7),SubType=str_sub(MutationType,9,9)) %>% select(Type,SubType,MutationType,everything()) %>% mutate(Type=factor(Type,levels = idtypeorder)) %>% arrange(Type,SubType) %>% mutate(Type=as.character(Type))
+  }
+  
+  if(factortype){
+    tmplev <- unique(data$Type)
+    data <- data %>% mutate(Type=factor(Type,levels = tmplev))
+    #tmplev <- unique(data$SubType)
+    #data <- data %>% mutate(SubType=factor(SubType,levels = tmplev))
+    tmplev <- unique(data$MutationType)
+    data <- data %>% mutate(MutationType=factor(MutationType,levels = tmplev))
+  }
+  
+  return(data)
+  
+}
+
+
+
+
+
+
+
+# Calculate cosine similarity between two signature in dataframe format --------
+cos_sim_df <- function (mut_df1, mut_df2, output_matrix=FALSE) 
+{
+  colnames(mut_df1)[1] <- "MutationType"
+  colnames(mut_df2)[1] <- "MutationType"
+  
+  mut_matrix1 <- mut_df1 %>% 
+    arrange(MutationType) %>% 
+    select(-MutationType) %>% 
+    as.matrix()
+  
+  mut_matrix2 <- mut_df2 %>% 
+    arrange(MutationType) %>% 
+    select(-MutationType) %>% 
+    as.matrix()
+  
+  n_samples1 = ncol(mut_matrix1)
+  n_samples2 = ncol(mut_matrix2)
+  res_matrix = matrix(nrow = n_samples1, ncol = n_samples2)
+  for (s in 1:n_samples1) {
+    signal1 = mut_matrix1[, s]
+    cos_sim_vector = c()
+    for (i in 1:n_samples2) {
+      signal2 = mut_matrix2[, i]
+      cos_sim_vector[i] = cos_sim(signal1, signal2)
+    }
+    res_matrix[s, ] = cos_sim_vector
+  }
+  rownames(res_matrix) = colnames(mut_matrix1)
+  colnames(res_matrix) = colnames(mut_matrix2)
+  
+  if(output_matrix){
+    return(res_matrix)
+  }else {
+    res_matrix %>% as.data.frame() %>% rownames_to_column() %>% as_tibble()
+  }
+}
+
+
+
+# Heatmap of cosine similairty  -------------------------------------------
+plot_cosine_heatmap_df <- function (cos_sim_df, col_order, cluster_rows = TRUE, method = "complete", plot_values = FALSE) 
+{
+  colnames(cos_sim_df)[1] <- "Sample"
+  # if (class(cos_sim_matrix) != "matrix") {
+  #   stop("cos_sim_matrix must be a matrix")
+  # }
+  if (length(colnames(cos_sim_df)) == 0) {
+    stop("cos_sim_df is missing colnames")
+  }
+  if (length(rownames(cos_sim_df)) == 0) {
+    stop("cos_sim_df is missing rownames")
+  }
+  
+  # covert to matrix
+  cos_sim_matrix <- as.matrix(cos_sim_df[,-1])
+  rownames(cos_sim_matrix) <- cos_sim_df[[1]]
+  
+  if (missing(col_order)) {
+    #col_order = colnames(cos_sim_df)[-1]
+    hc.sample = hclust(dist(t(cos_sim_matrix)), method = method)
+    col_order = rownames(t(cos_sim_matrix))[hc.sample$order]
+  }
+  
+  if (class(col_order) != "character") {
+    stop("col_order must be a character vector")
+  }
+  if (length(col_order) != ncol(cos_sim_df)-1) {
+    stop("col_order must have the same length as the number of signatures in the explained df")
+  }
+  
+  if (cluster_rows == TRUE) {
+    hc.sample = hclust(dist(cos_sim_matrix), method = method)
+    sample_order = rownames(cos_sim_matrix)[hc.sample$order]
+  }
+  else {
+    sample_order = rownames(cos_sim_matrix)
+  }
+  Cosine.sim = NULL
+  Signature = NULL
+  Sample = NULL
+  x = NULL
+  y = NULL
+  xend = NULL
+  yend = NULL
+  #cos_sim_matrix.m = melt(cos_sim_matrix)
+  #colnames(cos_sim_matrix.m) = c("Sample", "Signature", "Cosine.sim")
+  cos_sim_matrix.m <- cos_sim_df %>% pivot_longer(-1, names_to="Signature",values_to="Cosine.sim") %>% select(Sample,Signature,Cosine.sim)
+  cos_sim_matrix.m$Signature = factor(cos_sim_matrix.m$Signature,  levels = col_order)
+  cos_sim_matrix.m$Sample = factor(cos_sim_matrix.m$Sample,  levels = sample_order)
+  heatmap = ggplot(cos_sim_matrix.m, aes(x = Signature, y = Sample,  fill = Cosine.sim, order = Sample)) + 
+    geom_tile(color = "white") + 
+    scale_fill_viridis_c(name = "Cosine similarity\n", limits = c(0, 1))+
+    # scale_fill_distiller(palette = "YlGnBu", direction = 1,name = "Cosine similarity", limits = c(0, 1)) + 
+    theme_ipsum_rc(grid = FALSE,ticks = T)+
+    theme(axis.text.x = element_text(angle = 90,hjust = 1,vjust = 0.5)) +
+    labs(x = NULL, y = NULL)+
+    scale_y_discrete(expand = c(0,0))+
+    scale_x_discrete(expand = c(0,0))+
+    theme(legend.position = "top",legend.key.width = unit(2,"cm"))
+  if (plot_values) {
+    heatmap = heatmap + geom_text(aes(label = round(Cosine.sim, 2)), size = 3,col="red")
+  }
+  if (cluster_rows == TRUE) {
+    dhc = as.dendrogram(hc.sample)
+    ddata = ggdendro::dendro_data(dhc, type = "rectangle")
+    dendrogram = ggplot(ggdendro::segment(ddata)) + geom_segment(aes(x = x, y = y, xend = xend, yend = yend)) + coord_flip() + 
+      scale_y_reverse(expand = c(0.1, 0)) + scale_x_continuous(expand = expansion(add=0.5)) + ggdendro::theme_dendro()
+    plot_final = plot_grid(dendrogram+theme(plot.margin = margin(r = -0.2,unit = "cm")), heatmap+theme(plot.margin = margin(l = -0.2,r=0.5,unit = "cm")), align = "h",axis = "tb",rel_widths = c(0.3, 1))
+  } else {
+    plot_final = heatmap + ylim(rev(levels(factor(cos_sim_matrix.m$Sample))))
+  }
+  return(plot_final)
+}
+
+
+
+
+# Plot two profile difference for SBS96, ID83 and DBS78 ---------------------------------------------
+plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL, profile_ymax = NULL, diff_ylim = NULL, colors = NULL, condensed = FALSE) 
+{
+  ## profile 1 and profile 2 will be the dataframe with two columns: MutationType and value
+  
+  COLORS6 = c("#03BCEE", "#010101", "#E32926", "#CAC9C9", "#A1CE63", "#EBC6C4")
+  COLORS10 = c("#03BCEE", "#0366CB", "#A1CE63", "#016601", "#FE9898", "#E32926", "#FEB166", "#FE8001", "#CB98FE", "#4C0198")
+  COLORS16=c("#FCBD6F", "#FE8002", "#AFDC8A", "#36A02E", "#FCC9B4", "#FB896A", "#F04432", "#BB191A", "#CFE0F1", "#93C3DE", "#4A97C8", "#1764AA", "#E1E1EE", "#B5B5D7", "#8582BC", "#62409A")
+
+  ## make sure the order profile 1 and profile 2 are the same order
+  profile1 <- profile_format_df(profile1,factortype = TRUE) 
+  profile2 <- profile_format_df(profile2,factortype = TRUE)
+  
+  typelength = length(levels(profile1$Type))
+  if (is.null(colors)) {
+    if(typelength == 6){colors = COLORS6}
+    if(typelength == 10){colors = COLORS10}
+    if(typelength == 16){colors = COLORS16}
+  }
+  names(colors) <- levels(profile1$Type)
+  
+  #print(colors)
+  
+  profile1[,4] <- profile1[,4]/sum(profile1[,4])  
+  profile2[,4] <- profile2[,4]/sum(profile2[,4]) 
+  diff = profile1[[4]] - profile2[[4]]
+  RSS = sum(diff^2)
+  RSS = format(RSS, scientific = TRUE, digits = 3)
+  cosine_sim = cos_sim(profile1[[4]], profile2[[4]])
+  cosine_sim = round(cosine_sim, 3)
+  df <-  profile1 %>% left_join(profile2) %>% mutate(Difference=diff)
+  if(is.null(profile_names)){
+    profile_names <- colnames(df)[4:5]
+  }
+  colnames(df)[4:5] <- profile_names
+  df <- df %>% pivot_longer(cols = -c(1,2,3)) %>% mutate(name=factor(name,levels = c(profile_names,"Difference")))
+  
+  if(is.null(profile_ymax)){
+    profile_ymax <- max(c(profile1[[4]],profile2[[4]]))*1.1
+  }
+  
+  if(is.null(diff_ylim)){
+    diff_ylim <- range(diff)*1.1
+  }
+  dftmp = tibble(Type = rep(levels(profile1$Type)[1], 4), SubType = rep((profile1$SubType)[1], 4), name = c(profile_names, "Difference", "Difference"), value = c(profile_ymax, profile_ymax, diff_ylim[1], diff_ylim[2])) %>% mutate(name=factor(name,levels = c(profile_names,"Difference")))
+  
+  if (condensed) {
+    plot = ggplot(data = df, aes(x = SubType, y = value,  fill = Type, width = 1)) + 
+      geom_bar(stat = "identity", position = "identity", colour = "black", size = 0.2) + 
+      geom_point(data = dftmp, aes(x = SubType, y = value), alpha = 0,size=0) + 
+      scale_fill_manual(values = colors) + 
+      facet_grid(name ~ Type, scales = "free_y") +
+      ylab("Relative contribution") +
+      guides(fill = FALSE) + 
+      labs(x="")+
+      #scale_y_continuous(expand = c(0,0))+
+      theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
+      ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5))+
+      panel_border(color = gray(0.5),size = 0.3)
+  }
+  else {
+    plot = ggplot(data = df, aes(x = SubType, y = value,  fill = Type, width = 0.7)) + 
+      geom_bar(stat = "identity", position = "identity", colour = "black", size = 0) + 
+      geom_point(data = dftmp, aes(x = SubType, y = value), alpha = 0,size=0) + 
+      scale_fill_manual(values = colors) + 
+      facet_grid(name ~ Type, scales = "free_y") +
+      ylab("Relative contribution") +
+      guides(fill = FALSE) + 
+      labs(x="")+
+      #scale_y_continuous(expand = c(0,0))+
+      theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
+      ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5))+
+      panel_border(color = gray(0.5),size = 0.3)
+  }
+  return(plot)
+}
+
+
+# signature_sum_operation  --------------------------------------------------------------
+## use the * and ;
+
+signature_sum_operation <- function(sigdatabase,sigsetname,formulax,outsigname="Contribution") {
+  #sigsetname <- 'COSMIC v3 Signatures (SBS)'
+  #formulax <- "0.4*SBS1;0.4*SBS2;0.2*SBS13"
+  formulax <- str_trim(formulax)
+  inforx <- (str_split(unlist(str_split(formulax,"\\;")),"\\*"))
+  #sigalltmp <- tibble(MutationType=character(),Contribution=numeric())
+  for(i in 1:length(inforx)){
+    tmp <- inforx[[i]]
+    ratio <- as.numeric(tmp[[1]])
+    signame <- tmp[[2]]
+    sigtmp <- sigdatabase %>% filter(Signature_set_name==sigsetname,Signature_name==signame)
+    sigtmp <- sigtmp %>% select(MutationType,tmpC=Contribution) %>% mutate(tmpC=ratio*tmpC)
+    if(i==1){
+      colnames(sigtmp)[2] <- 'Contribution'
+      sigalltmp <- sigtmp
+    }else{
+      sigalltmp <- left_join(sigalltmp,sigtmp) %>% mutate(Contribution=Contribution+tmpC) %>% select(MutationType,Contribution)
+    }
+  }
+  consum <- sum(sigalltmp$Contribution)
+  sigalltmp$Contribution <- sigalltmp$Contribution/consum
+  colnames(sigalltmp)[2] <- outsigname
+  return(sigalltmp)
+}
+
+
