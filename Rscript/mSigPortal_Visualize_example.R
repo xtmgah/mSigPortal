@@ -23,16 +23,17 @@ signature_refsets_input <- signature_refsets %>% filter(Profile==profilename2,Si
 
 # load SBS-96/DBS-78/ID-83 catalog file generated from previous result according to the profilename -----------
 if(profilename == "SBS"){
-  data_input <- read_delim('../Demo_input/passed/results/output/SBS/22520169-fe27-4549-ad3e-e78d1812c45e.SBS96.all',delim = '\t')
+  data_input <- read_delim('example_results/output/SBS/22520169-fe27-4549-ad3e-e78d1812c45e.SBS96.all',delim = '\t')
 }
 if(profilename == "DBS"){
-  data_input <- read_delim('../Demo_input/passed/results/output/DBS/22520169-fe27-4549-ad3e-e78d1812c45e.DBS78.all',delim = '\t')
+  data_input <- read_delim('example_results/output/DBS/22520169-fe27-4549-ad3e-e78d1812c45e.DBS78.all',delim = '\t')
 }
 if(profilename == "ID"){
-  data_input <- read_delim('../Demo_input/passed/results/output/ID/22520169-fe27-4549-ad3e-e78d1812c45e.ID83.all',delim = '\t')
+  data_input <- read_delim('example_results/output/ID/22520169-fe27-4549-ad3e-e78d1812c45e.ID83.all',delim = '\t')
 }
 
-#data_input <- data_input %>% select(-False,-seen)
+## remove the false data from the result. Don't know why the web generated two additonal columns: False and seen, i think you trying to find the bug and remove. 
+data_input <- data_input %>% select(-False,-seen)
 
 # Heatmap of cosine similarity to reference set ---------------------------
 
