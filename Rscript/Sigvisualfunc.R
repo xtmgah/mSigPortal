@@ -863,9 +863,15 @@ plot_cosine_heatmap_df <- function (cos_sim_df, col_order, cluster_rows = TRUE, 
   cos_sim_matrix.m <- cos_sim_df %>% pivot_longer(-1, names_to="Signature",values_to="Cosine.sim") %>% select(Sample,Signature,Cosine.sim)
   cos_sim_matrix.m$Signature = factor(cos_sim_matrix.m$Signature,  levels = col_order)
   cos_sim_matrix.m$Sample = factor(cos_sim_matrix.m$Sample,  levels = sample_order)
+  
+  cos_sim_matrix.m$Cosine.sim <- round(cos_sim_matrix.m$Cosine.sim,digits = 2)
+  mincosine <- min(cos_sim_matrix.m$Cosine.sim)
+  maxcosine <- max(cos_sim_matrix.m$Cosine.sim)
+  mincosine <- if_else(mincosine<0.1,0,mincosine)
+  maxcosine <- if_else(maxcosine>0.9,1,maxcosine)
   heatmap = ggplot(cos_sim_matrix.m, aes(x = Signature, y = Sample,  fill = Cosine.sim, order = Sample)) + 
     geom_tile(color = "white") + 
-    scale_fill_viridis_c(name = "Cosine similarity\n", limits = c(0, 1))+
+    scale_fill_viridis_c(name = "Cosine similarity\n", limits = c(mincosine, maxcosine))+
     # scale_fill_distiller(palette = "YlGnBu", direction = 1,name = "Cosine similarity", limits = c(0, 1)) + 
     theme_ipsum_rc(grid = FALSE,ticks = T)+
     theme(axis.text.x = element_text(angle = 90,hjust = 1,vjust = 0.5)) +
@@ -999,4 +1005,69 @@ signature_sum_operation <- function(sigdatabase,sigsetname,formulax,outsigname="
   return(sigalltmp)
 }
 
+
+
+
+# Define Signature Set Colors  -------------------------------------------------------
+sigsetcolor <- c(
+  "Cancer Reference Signatures (RS)" = "#35978f",
+  "Cancer Reference Signatures (SBS)"  = "#01665e",
+  "COSMIC v2 Signatures (SBS)" = "#c994c7",
+  "COSMIC v3 Signatures (DBS)" = "#df65b0",
+  "COSMIC v3 Signatures (ID)" = "#e7298a",
+  "COSMIC v3 Signatures (SBS)" = "#d73027",
+  "Environmental Mutagen Signatures (SBS)" = "#ff7f00",
+  "Organ-specific Cancer Signatures (RS)" = "#74a9cf",
+  "Organ-specific Cancer Signatures (SBS)" = "#0570b0",
+  "Other published signatures (ID)" = "#969696",
+  "Other published signatures (SBS)" = "#525252",
+  "SignatureAnalyzer PCAWG WGS 1536 Signatures (SBS)" = "#d9ef8b",
+  "SignatureAnalyzer PCAWG WGS Signatures (DBS)" = "#a6d96a",
+  "SignatureAnalyzer PCAWG WGS Signatures (ID)" = "#66bd63",
+  "SignatureAnalyzer PCAWG WGS Signatures (SBS)" = "#1a9850",
+  "SigProfiler PCAWG Strand Signatures (SBS)" = "#8073ac",
+  "SigProfiler PCAWG WXS Signatures (SBS)" = "#542788"
+)
+
+
+
+# Signature pie chart -----------------------------------------------------
+
+signature_piechart <- function(data,colset){
+  
+  # convert nsig_data to another format for the piechart
+  nsig_data_pie <- data %>%
+    group_by(Profile) %>% 
+    arrange(N) %>%
+    mutate(
+      end_angle = 2*pi*cumsum(N)/sum(N),   # ending angle for each pie slice
+      start_angle = lag(end_angle, default = 0),   # starting angle for each pie slice
+      mid_angle = 0.5*(start_angle + end_angle),   # middle of each pie slice, for the text label
+      # horizontal and vertical justifications depend on whether we're to the left/right
+      # or top/bottom of the pie
+      hjust = ifelse(mid_angle > pi, 1, 0),
+      vjust = ifelse(mid_angle < pi/2 | mid_angle > 3*pi/2, 0, 1)
+    ) %>% 
+    ungroup()
+  
+  # radius of the pie and radius for outside and inside labels
+  rpie <- 1
+  rlabel_out <- 1.05 * rpie
+  rlabel_in <- 0.6 * rpie
+  
+  
+  
+  p <- ggplot(nsig_data_pie) +
+    geom_arc_bar(aes(x0 = 0, y0 = 0, r0 = 0, r = rpie, start = start_angle, end = end_angle, fill = Signature_set_name)) +
+    geom_text(aes(x = rlabel_in * sin(mid_angle), y = rlabel_in * cos(mid_angle), label = N2 ), size = 14/.pt)+
+    facet_wrap(~Profile,nrow = 2)+
+    coord_fixed()+
+    labs(x="",y="")+
+    scale_fill_manual("Signature Set Name",values = colset)+
+    theme_ipsum_rc(axis = FALSE, grid = FALSE)+
+    theme(axis.text.y = element_blank(),axis.text.x = element_blank(),strip.text = element_text(size = 14,hjust = 0.5,face = "bold"))
+  
+  return(p)
+  
+} 
 
