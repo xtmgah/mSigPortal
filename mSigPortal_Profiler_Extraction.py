@@ -11,14 +11,14 @@ Function:	Generate Input File for mSigPortal
 Version:	1.18
 Date:		July-18-2020
 Update:		(1) Add Collpase for Catalog_CSV format
-			(2) Add Collpase for Catalog_TSV format
-			(3) When Splitting (-s), Each sample without splitting will be also printed
-			(4) When Single are collpased, no error will be reported
-			(5) Solve the problem in collpased samples with duplicated line
-			(6) -s and -F should not be used together
-			(7) -s option only supports csv, tsv and vcf format
-			(8) If input file is in compressed format, a "tmp" dir will be created 
-				in the input Dir, where the compressed file will be decompressed 
+		(2) Add Collpase for Catalog_TSV format
+		(3) When Splitting (-s), Each sample without splitting will be also printed
+		(4) When Single are collpased, no error will be reported
+		(5) Solve the problem in collpased samples with duplicated line
+		(6) -s and -F should not be used together
+		(7) -s option only supports csv, tsv and vcf format
+		(8) If input file is in compressed format, a "tmp" dir will be created 
+		    in the input Dir, where the compressed file will be decompressed 
 '''
 
 ########################################################################
@@ -50,7 +50,7 @@ def If_Compressed():
 	### 000 Parse Options
 	Input_Format,Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse,gzip,vcf_split_all_filter,Bed = Parser()
 	
-	Input_Path_New_Name = ""
+	Input_Path_New_Name = Input_Path
 	
 	####### 获取输入文件所在的当前路径 ####### 
 	Input_Dir = os.path.dirname(Input_Path)
