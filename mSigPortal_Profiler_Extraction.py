@@ -10,17 +10,17 @@ Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
 Version:	1.18
 Date:		July-18-2020
-Update:		(1) Add Collpase function for Catalog_CSV format
-		(2) Add Collpase function for Catalog_TSV format
+Update:		(1) Add Collapse function for Catalog_CSV format
+		(2) Add Collapse function for Catalog_TSV format
 		(3) When Splitting (-s) option is given, Each sample 
 		    without splitting will be also printed
-		(4) When input file with Single sample is collpased, 
+		(4) When input file with Single sample is collapsed, 
 		    no error will be reported
-		(5) Solve the problem in collpased samples with duplicated line
+		(5) Solve the problem in collapsed samples with duplicated line
 		(6) -s and -F should not be used together
 		(7) -s option only supports csv, tsv and vcf format
 		(8) If input file is in compressed format, a "tmp" dir will be created 
-		   in the input Dir, where the compressed file will be decompressed 
+		in the input Dir, where the compressed file will be decompressed 
 '''
 
 ########################################################################
