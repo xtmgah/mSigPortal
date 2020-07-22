@@ -17,8 +17,6 @@ Update:		Fix the input header:
 			(4) catalog_tsv header:		MutationType	Sample1	Sample2	Sample3...
 			(5) catalog_csv header:		MutationType,Sample1,Sample2,Sample3...
 '''
-#SAMPLE,CHROM,START,END,REF,ALT,FILTER
-
 
 ########################################################################
 ###################### 0 Define Basic Function #########################
