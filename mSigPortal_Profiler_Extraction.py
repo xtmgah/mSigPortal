@@ -8,14 +8,19 @@ from zipfile import ZipFile
 '''
 Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
-Version:	1.16
-Date:		July-09-2020
-Update:		(1) In summary file, each element is delimited by a comma;
-		(2) Fix bug: The format in ['vcf', 'csv', 'tsv'],sigProfilerPlotting
-				is running twice repeatedly. 
-		(3) Fix bug: The Created new name of Collapse Group can not be assigned 
-				to the final file.
-		(4) Fix bug: Missing Sample Names in some cases.
+Version:	1.18
+Date:		July-18-2020
+Update:		(1) Add Collapse function for Catalog_CSV format
+		(2) Add Collapse function for Catalog_TSV format
+		(3) When Splitting (-s) option is given, Each sample 
+		    without splitting will be also printed
+		(4) When input file with Single sample is collapsed, 
+		    no error will be reported
+		(5) Solve the problem in collapsed samples with duplicated line
+		(6) -s and -F should not be used together
+		(7) -s option only supports csv, tsv and vcf format
+		(8) If input file is in compressed format, a "tmp" dir will be created 
+		in the input Dir, where the compressed file will be decompressed 
 '''
 
 ########################################################################
@@ -49,45 +54,47 @@ def If_Compressed():
 	
 	Input_Path_New_Name = Input_Path
 	
+	####### 获取输入文件所在的当前路径 ####### 
+	Input_Dir = os.path.dirname(Input_Path)
+	Input_Dir_tmp = "%s/tmp" % (Input_Dir)
 	
-	### 001 if Output_Dir exists, delete it!
-	if os.path.exists(Output_Dir):
-		os.system("rm -rf %s" % Output_Dir)
-	GenerateDir(Output_Dir) 
-	
-		
+	if os.path.exists(Input_Dir_tmp):
+		os.system("rm -rf %s" % Input_Dir_tmp)
+	GenerateDir(Input_Dir_tmp)
+
+
 	if re.search(r'zip$',Input_Path):
-		String = "unzip %s -d %s" % (Input_Path,Output_Dir) 
+		String = "unzip %s -d %s" % (Input_Path,Input_Dir_tmp) 
 		print(String)
 		os.system(String)
 		name = Input_Path.split("/")[-1].split(".zip")[0]
-		Input_Path_New_Name = "%s/%s" % (Output_Dir,name)
+		Input_Path_New_Name = "%s/%s" % (Input_Dir_tmp,name)
 		print(Input_Path_New_Name)
 
 
 	if re.search(r'tar$',Input_Path):
-		String = "tar -zxvf %s -C %s" % (Input_Path,Output_Dir) 
+		String = "tar -zxvf %s -C %s" % (Input_Path,Input_Dir_tmp) 
 		print(String)
 		os.system(String)
 		name = Input_Path.split("/")[-1].split(".tar")[0]
-		Input_Path_New_Name = "%s/%s" % (Output_Dir,name)
+		Input_Path_New_Name = "%s/%s" % (Input_Dir_tmp,name)
 		print(Input_Path_New_Name)
 		
 	if re.search(r'gz$',Input_Path):
 		if "tar.gz" not in Input_Path:
 			name = Input_Path.split("/")[-1].split(".gz")[0]
-			String = "gunzip -c %s > %s/%s" % (Input_Path,Output_Dir,name) 
+			String = "gunzip -c %s > %s/%s" % (Input_Path,Input_Dir_tmp,name) 
 			print(String)
 			os.system(String)
 
-			Input_Path_New_Name = "%s/%s" % (Output_Dir,name)
+			Input_Path_New_Name = "%s/%s" % (Input_Dir_tmp,name)
 			print(Input_Path_New_Name)
 		else:
-			String = "tar -zxvf %s -C %s" % (Input_Path,Output_Dir) 
+			String = "tar -zxvf %s -C %s" % (Input_Path,Input_Dir_tmp) 
 			print(String)
 			os.system(String)
 			name = Input_Path.split("/")[-1].split(".tar")[0]
-			Input_Path_New_Name = "%s/%s" % (Output_Dir,name)
+			Input_Path_New_Name = "%s/%s" % (Input_Dir_tmp,name)
 			print(Input_Path_New_Name)
 	print(Input_Path_New_Name)
 	return Input_Path_New_Name
@@ -100,55 +107,27 @@ def If_Compressed():
 def Parse_Options():
 	Input_Format,Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse,gzip,vcf_split_all_filter,Bed = Parser()
 	
+
+	### 000 if Output_Dir exists, delete it! #######
+	if os.path.exists(Output_Dir):
+		os.system("rm -rf %s" % Output_Dir)
+	GenerateDir(Output_Dir) 
+	
+	
 	###### Parse Options 001 Check Compressed.Generate New Input_Path, still named as Input_Path
 	Input_Path = If_Compressed()
 
 	###### Parse Options 002 Choose Transforming Function based on Input_Format
-	if Input_Format == "vcf_Single":
-		###### if vcf_split_all_filter option is on
-		if vcf_split_all_filter != None:
-			print("Error: -s option only supports vcf format")
-			sys.exit()
-
-		if Collapse == None:
-			pass
-		else:
-			String = "Error, \"Collapse\" option doese not support \"%s\" format " % (Input_Format)
-			print(String)
-			sys.exit()
-
-		if Filter == None:
-			vcf_Single_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
-		else:
-			vcf_Single_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter)
 
 
-	elif Input_Format == "vcf_Multiple":
-		###### if vcf_split_all_filter option is on
-		if vcf_split_all_filter != None:
-			print("Error: -s option only supports vcf format")
-			sys.exit()
-
-		if Filter == None:
-			vcf_Multiple_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
-		else:
-			vcf_Multiple_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse)
-
-		###### Only if Collapse option is given, tsv_Convert_collpase will run
-		if Collapse == None:
-			pass
-		else:
-			Convert_Collapse(Output_Dir,Collapse,Project_ID)
-			String = "Finish Running Collapse Step"
-			print(String)
-
-
-
-	elif Input_Format == "csv":
+	if Input_Format == "csv":
 		###### if vcf_split_all_filter option is on
 		if vcf_split_all_filter == "True":
 			if Filter == None:
 				csv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse)
+			else:
+				print("Error 233, You have spcified '-s True', in this case the option -F is not supported!")
+				sys.exit()
 		else:
 			###### Note Default of an option is None,not ''
 			if Filter == None:
@@ -172,7 +151,7 @@ def Parse_Options():
 			if Filter == None:
 				tsv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse)
 			else:
-				print("Error, You have spcified '-s True', in this case the option -F is not supported!")
+				print("Error 233, You have spcified '-s True', in this case the option -F is not supported!")
 				sys.exit()
 
 		else:
@@ -190,50 +169,47 @@ def Parse_Options():
 			String = "Finish Running Collapse Step"
 			print(String)
 
-#
 
 	elif Input_Format == "catalog_tsv":
 		###### if vcf_split_all_filter option is on
 		if vcf_split_all_filter != None:
-			print("Error: -s option only supports vcf format")
-			sys.exit()
-
-		###### Note Default of an option is None,not ''
-		if Collapse == None:
-			pass
-		else:
-			String = "Error, \"-c/--Collapse\" option doese not support \"%s\" format " % (Input_Format)
-			print(String)
+			print("Error: -s option only supports csv, tsv and vcf format")
 			sys.exit()
 
 		if Filter == None:
-			catalog_tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
+			pass
 		else:
 			String = "Error, \"%s\" format do not support option \"-F/--Filter\"" % (Input_Format)
 			print(String)
+			sys.exit()
 
+
+		###### Note Default of an option is None,not ''
+		if Collapse == None:
+			catalog_tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
+		else:
+			catalog_tsv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse)
 
 
 	elif Input_Format == "catalog_csv":
 		###### if vcf_split_all_filter option is on
 		if vcf_split_all_filter != None:
-			print("Error: -s option only supports vcf format")
-			sys.exit()
-		
-		###### Note Default of an option is None,not ''
-		if Collapse == None:
-			pass
-		else:
-			String = "Error, \"Collapse\" option doese not support \"%s\" format " % (Input_Format)
-			print(String)
+			print("Error: -s option only supports csv, tsv and vcf format")
 			sys.exit()
 
 		if Filter == None:
-			catalog_csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
+			pass
 		else:
 			String = "Error, \"%s\" format do not support option \"-F/--Filter\"" % (Input_Format)
 			print(String)
 			sys.exit()
+
+
+		###### Note Default of an option is None,not ''
+		if Collapse == None:
+			catalog_csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
+		else:
+			catalog_csv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse)
 
 
 	elif Input_Format == "vcf":
@@ -241,7 +217,7 @@ def Parse_Options():
 			if Filter == None:
 				vcf_Multiple_Convert_Split_All_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
 			else:
-				print("Error, You have spcified '-s True', in this case the option -F is not supported!")
+				print("Error 233, You have spcified '-s True', in this case the option -F is not supported!")
 				sys.exit()
 
 		else:
@@ -283,58 +259,6 @@ def Parse_Options():
 		String = "Error: Cannot Compress Output File. -z/--gzip option can only follow 'True' or 'False'"
 		print(String)
 		sys.exit()
-
-
-####### 01-3 vcf_Single_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
-def vcf_Single_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type):
-	GenerateDir(Output_Dir)
-	print('******* Your Input File is in VCF format with single sample. ******* ')
-	
-	####### 01-3-0 Output_Path:
-	mSigPortal_Format_SNV_Path = "%s/%s_mSigPortal_SNV.txt" %  (Output_Dir,Project_ID)
-	mSigPortal_Format_INDEL_Path = "%s/%s_mSigPortal_INDEL.txt" % (Output_Dir,Project_ID)
-
-	mSigPortal_Format_SNV_File = open(mSigPortal_Format_SNV_Path,'w')
-	mSigPortal_Format_INDEL_File = open(mSigPortal_Format_INDEL_Path,'w')
-
-	####### 01-3-1 Parse File 
-	Input_File = open(Input_Path)
-	Sample_ID = "Sample"
-	
-	for line in Input_File:
-		if re.match(r'##',line):
-			pass
-		elif re.match(r'#CHROM',line):
-			ss = line.strip().split("	")
-			Sample_ID = ss[-1]
-		else:
-			ss = line.strip().split("	")
-			REF = ss[3]
-			ALT = ss[4]
-			Chr = ss[0]
-			Start = ss[1]
-			
-			if len(REF) == len(ALT):
-				End = ss[1]
-				Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-				mSigPortal_Format_SNV_File.write(Output_String)
-				#print(Output_String)
-			else:
-				if len(REF) == 1:
-					Start = ss[1]
-					End = ss[1]
-				else:
-					Start = ss[1]
-					End = int(Start) + len(REF) - 1
-				Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-				mSigPortal_Format_INDEL_File.write(Output_String)
-
-
-	Input_File.close()
-	
-	#print(Sample_ID)
-	mSigPortal_Format_INDEL_File.close()
-	mSigPortal_Format_SNV_File.close()
 
 
 ####### 01-4 GenerateDir
@@ -441,6 +365,15 @@ def csv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Typ
 				End = ss[3]
 				REF = ss[4]
 				ALT = ss[5]
+				###### 首先，不管有木有filter，都要先输出不filter时的样本名称
+				if len(REF) == len(ALT):
+					Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+					mSigPortal_Format_SNV_File.write(Output_String)
+				else:
+					Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+					mSigPortal_Format_INDEL_File.write(Output_String)
+				
+				###### 其次，进行filter
 				Filter_arr = ss[6].strip().split(";")
 				for Filter in option_Filter_Arr:
 					if Filter in Filter_arr:
@@ -503,7 +436,16 @@ def csv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type
 				REF = ss[4]
 				ALT = ss[5]
 				Filter_arr = ss[6].strip().split(";")
+				
+				###### 首先，不管有木有filter，都要先输出不filter时的样本名称
+				if len(REF) == len(ALT):
+					Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+					mSigPortal_Format_SNV_File.write(Output_String)
+				else:
+					Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+					mSigPortal_Format_INDEL_File.write(Output_String)
 
+				###### 其次，进行Filter
 				for Filter in Filter_arr:
 					Sample_ID_Final = "%s@%s" % (Sample_ID,Filter)
 					if len(REF) == len(ALT):
@@ -620,6 +562,16 @@ def tsv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Typ
 				REF = ss[4]
 				ALT = ss[5]
 				Filter_arr = ss[6].strip().split(";")
+				
+				###### 首先，不管有木有filter，都要先输出不filter时的样本名称
+				if len(REF) == len(ALT):
+					Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+					mSigPortal_Format_SNV_File.write(Output_String)
+				else:
+					Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+					mSigPortal_Format_INDEL_File.write(Output_String)
+
+				###### 其次，filter
 				for Filter in option_Filter_Arr:
 					if Filter in Filter_arr:
 						Sample_ID = "%s@%s" % (Sample_ID,Filter)
@@ -678,6 +630,15 @@ def tsv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type
 				REF = ss[4]
 				ALT = ss[5]
 				Filter_arr = ss[6].strip().split(";")
+
+				###### 首先，不管有木有filter，都要先输出不filter时的样本名称
+				if len(REF) == len(ALT):
+					Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+					mSigPortal_Format_SNV_File.write(Output_String)
+				else:
+					Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+					mSigPortal_Format_INDEL_File.write(Output_String)
+
 
 				for Filter in Filter_arr:
 					Sample_ID_Final = "%s@%s" % (Sample_ID,Filter)
@@ -822,6 +783,26 @@ def vcf_Multiple_Convert_Split_All_Filter(Input_Path,Project_ID,Output_Dir,Genom
 					#print i,Sample_ID_arr[i]
 					Sample_ID = Sample_ID_arr[i]
 					
+					
+					####### 在 Filter之前先打印所有样本未filter的信息 #######
+					if len(REF) == len(ALT):
+						End = ss[1]
+						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						mSigPortal_Format_SNV_File.write(Output_String)
+							#print(Output_String)
+					else:
+						if len(REF) == 1:
+							Start = ss[1]
+							End = ss[1]
+						else:
+							Start = ss[1]
+							End = int(Start) + len(REF) - 1
+						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						mSigPortal_Format_INDEL_File.write(Output_String)
+					
+					
+					
+					####### 对每个sample 进行filter #######
 					for i in Filter_arr:
 						Sample_ID_Filter = "%s@%s" % (Sample_ID,i)
 						
@@ -847,9 +828,8 @@ def vcf_Multiple_Convert_Split_All_Filter(Input_Path,Project_ID,Output_Dir,Genom
 
 
 
-
-####### 01-11 catalog_tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
-def catalog_tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type):
+####### 01-11 catalog_tsv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
+def catalog_tsv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse):
 	GenerateDir(Output_Dir)
 	print('******* Your Input File is in CATALOG tsv format. ******* ')
 
@@ -879,7 +859,7 @@ def catalog_tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Ty
 	for f in ff:
 		if re.match(r'MutationType	',f):
 			Header = f
-			mSigPortal_Format_catalog_File.write("%s	Collapse\n" % Header)
+			mSigPortal_Format_catalog_File.write("%s	%s\n" % (Header,Collapse))
 
 		else:
 			ss = f.split("	")
@@ -896,9 +876,84 @@ def catalog_tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Ty
 	mSigPortal_Format_catalog_File.close()
 
 
+####### 01-11-2 catalog_tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
+def catalog_tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type):
+	GenerateDir(Output_Dir)
+	print('******* Your Input File is in CATALOG tsv format. ******* ')
 
-####### 01-12 catalog_csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
+	####### 01-3-0 Output_Path:
+
+	mSigPortal_Format_catalog_Path = "%s/%s_mSigPortal_catalog_tsv.txt" % (Output_Dir,Project_ID)
+	mSigPortal_Format_catalog_File = open(mSigPortal_Format_catalog_Path,'w')
+
+	####### 01-3-1 Parse File 
+	Input_File = open(Input_Path)
+	Header = "MutationType	"
+	String_File = ""
+
+	for line in Input_File:
+		if re.match(r'\n',line):
+			pass
+		else:
+			String_File += line
+		
+	if Header not in String_File:
+		print("Error 233: A header line like \"MutationType	Sample1	Sample2	Sample3...\" is required!")
+		sys.exit()
+	Input_File.close()
+
+	####### 01-3-2 Generate Result
+	Input_File = open(Input_Path)
+	for New_line in Input_File:
+		if re.match(r'\n',line):
+			pass
+		else:
+			mSigPortal_Format_catalog_File.write(New_line)
+
+	Input_File.close()
+	mSigPortal_Format_catalog_File.close()
+
+
+####### 01-12-2 catalog_tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
 def catalog_csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type):
+	GenerateDir(Output_Dir)
+	print('******* Your Input File is in CATALOG csv format. ******* ')
+
+	####### 01-3-0 Output_Path:
+
+	mSigPortal_Format_catalog_Path = "%s/%s_mSigPortal_catalog_csv.txt" % (Output_Dir,Project_ID)
+	mSigPortal_Format_catalog_File = open(mSigPortal_Format_catalog_Path,'w')
+
+	####### 01-3-1 Parse File 
+	Input_File = open(Input_Path)
+	Header = "MutationType,"
+	String_File = ""
+
+	for line in Input_File:
+		if re.match(r'\n',line):
+			pass
+		else:
+			String_File += line
+		
+	if Header not in String_File:
+		print("Error 233: A header line like \"MutationType,Sample1,Sample2,Sample3...\" is required!")
+		sys.exit()
+	Input_File.close()
+
+	####### 01-3-2 Generate Result
+	Input_File = open(Input_Path)
+	for New_line in Input_File:
+		if re.match(r'\n',line):
+			pass
+		else:
+			mSigPortal_Format_catalog_File.write(New_line.replace(",","	"))
+
+	Input_File.close()
+	mSigPortal_Format_catalog_File.close()
+
+
+####### 01-12 catalog_csv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
+def catalog_csv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse):
 	GenerateDir(Output_Dir)
 	print('******* Your Input File is in CATALOG csv format. ******* ')
 
@@ -928,7 +983,7 @@ def catalog_csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Ty
 	for f in ff:
 		if re.match(r'MutationType,',f):
 			Header = f
-			mSigPortal_Format_catalog_File.write("%s	Collapse\n" % Header.replace(",","\t"))
+			mSigPortal_Format_catalog_File.write("%s	%s\n" % (Header.replace(",","\t"),Collapse))
 			#print(f)
 		elif re.match(r'\n',f):
 			pass
@@ -947,94 +1002,6 @@ def catalog_csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Ty
 	mSigPortal_Format_catalog_File.close()
 
 	#print("ssss")
-
-
-####### 01-13 vcf_Single_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter)
-def vcf_Single_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter):
-
-	GenerateDir(Output_Dir)
-	print("******* Your Input File is in VCF format. Your Filter term is: %s ******* " % Filter)
-	
-	####### 01-10-0 Output_Path:
-	mSigPortal_Format_SNV_Path = "%s/%s_mSigPortal_SNV.txt" %  (Output_Dir,Project_ID)
-	mSigPortal_Format_INDEL_Path = "%s/%s_mSigPortal_INDEL.txt" % (Output_Dir,Project_ID)
-
-	mSigPortal_Format_SNV_File = open(mSigPortal_Format_SNV_Path,'w')
-	mSigPortal_Format_INDEL_File = open(mSigPortal_Format_INDEL_Path,'w')
-
-	####### 01-10-1 Parse Filter:
-	option_Filter_Arr = Filter.split("@")
-
-
-	####### 01-3-20 Check VCF fromat
-	header = "#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT"
-	String_File = ""
-	
-	Input_File = open(Input_Path)
-	for line in Input_File:
-		String_File += line
-	Input_File.close()
-
-	if header not in String_File:
-		print("Error 233: A header line: \"#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	Sample1...\" is required!")
-		sys.exit()
-
-	
-	####### 01-10-2 Parse File 
-	Input_File = open(Input_Path)
-	Sample_ID = "Sample"
-	
-	for line in Input_File:
-		if re.match(r'##',line):
-			pass
-		elif re.match(r'#CHROM',line):
-			ss = line.strip().split("	")
-			Sample_ID = ss[-1]
-		else:
-			ss = line.strip().split("	")
-			REF = ss[3]
-			ALT = ss[4]
-			Chr = ss[0]
-			Start = ss[1]
-			vcf_Filter_arr = ss[6].split(";")
-			
-			if len(REF) == len(ALT):
-				End = ss[1]
-				
-				### Pay attention to option "-"
-				if "-" in option_Filter_Arr:
-					Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-					mSigPortal_Format_SNV_File.write(Output_String)
-				for x in vcf_Filter_arr:
-					if x in option_Filter_Arr:
-						Sample_ID_Final = "%s@%s" % (Sample_ID,x)
-						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Final,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-						mSigPortal_Format_SNV_File.write(Output_String)
-				#print(Output_String)
-			else:
-				if len(REF) == 1:
-					Start = ss[1]
-					End = ss[1]
-				else:
-					Start = ss[1]
-					End = int(Start) + len(REF) - 1
-
-				### Pay attention to option "-"
-				if "-" in option_Filter_Arr:
-					Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-					mSigPortal_Format_INDEL_File.write(Output_String)
-
-				for x in vcf_Filter_arr:
-					if x in option_Filter_Arr:
-						Sample_ID_Final = "%s@%s" % (Sample_ID,x)
-						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Final,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-						mSigPortal_Format_INDEL_File.write(Output_String)
-
-	Input_File.close()
-	
-	print(Sample_ID)
-	mSigPortal_Format_INDEL_File.close()
-	mSigPortal_Format_SNV_File.close()
 
 
 ####### 01-14 vcf_Multiple_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter)
@@ -1067,8 +1034,8 @@ def vcf_Multiple_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building
 
 	####### 01-10-1 Parse Filter:
 	option_Filter_Arr = Filter.split("@")
-	
-	
+
+
 	####### 01-3-1 Parse File 
 	Input_File = open(Input_Path)
 	Sample_ID = "Sample"
@@ -1094,7 +1061,7 @@ def vcf_Multiple_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building
 			if "-" in option_Filter_Arr:
 				if len(REF) == len(ALT):
 					End = ss[1]
-					Output_String = "%s	Sample	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+					Output_String = "%s	Sample_Collpase	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
 					mSigPortal_Format_SNV_File.write(Output_String)
 				else:
 					if len(REF) == 1:
@@ -1103,7 +1070,7 @@ def vcf_Multiple_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building
 					else:
 						Start = ss[1]
 						End = int(Start) + len(REF) - 1
-					Output_String = "%s	Sample	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+					Output_String = "%s	Sample_Collpase	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
 					mSigPortal_Format_INDEL_File.write(Output_String)
 
 
@@ -1168,6 +1135,8 @@ def Convert_Collapse(Output_Dir,Collapse,Project_ID):
 	String_Collpase = "There are %d samples in the original Output File:%s" % (count,mSigPortal_Format_SNV_Path)
 	
 	####### Only the Input file with more than 1 sample can support “Collapse Option” !
+	####### 还有一个问题，collpase之后，会出现，重复字段。所以这里面要设置一个 collapse_String_arr
+	collapse_String_arr = []
 
 	####### 01-12-3 Parse Input_Path: mSigPortal_Format_SNV_File
 	if count > 1:
@@ -1179,12 +1148,19 @@ def Convert_Collapse(Output_Dir,Collapse,Project_ID):
 			String_1 = "%s	%s	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],ss[1],ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
 			String_2 = "%s	%s	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],Collapse,ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
 			mSigPortal_Format_SNV_Collapse_File.write(String_1)
-			mSigPortal_Format_SNV_Collapse_File.write(String_2)
+			
+			collapse_String_arr.append(String_2)
+
+		for line_2 in set(collapse_String_arr):
+			mSigPortal_Format_SNV_Collapse_File.write(line_2)
+		
 		mSigPortal_Format_SNV_File.close()
 		mSigPortal_Format_SNV_Collapse_File.close()
 
-	else:
-		print("Error: Only the Input file with more than 1 sample can support “Collapse Option”")
+		####### 01-6-0 RM mSigPortal_Format_SNV_Path
+		cmd_1 = "rm %s" % (mSigPortal_Format_SNV_Path)
+		os.system(cmd_1)
+
 
 
 	####### 01-12-4 Count the Sample in Input_Path: mSigPortal_Format_INDEL_File
@@ -1199,6 +1175,10 @@ def Convert_Collapse(Output_Dir,Collapse,Project_ID):
 	String_Collpase = "There are %d samples in the original Output File:%s" % (count,mSigPortal_Format_SNV_Path)
 	mSigPortal_Format_INDEL_File.close()
 
+	####### Only the Input file with more than 1 sample can support “Collapse Option” !
+	####### 还有一个问题，collpase之后，会出现，重复字段。所以这里面要设置一个 collapse_String_arr
+	collapse_String_arr = []
+
 
 	####### 01-12-5 Parse Input_Path: mSigPortal_Format_INDEL_File
 	if count > 1:
@@ -1210,19 +1190,18 @@ def Convert_Collapse(Output_Dir,Collapse,Project_ID):
 			String_1 = "%s	%s	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],ss[1],ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
 			String_2 = "%s	%s	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],Collapse,ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
 			mSigPortal_Format_INDEL_Collapse_File.write(String_1)
-			mSigPortal_Format_INDEL_Collapse_File.write(String_2)
+
+			collapse_String_arr.append(String_2)
+
+		for line_2 in set(collapse_String_arr):
+			mSigPortal_Format_INDEL_Collapse_File.write(line_2)
+
 		mSigPortal_Format_INDEL_Collapse_File.close()
 		mSigPortal_Format_INDEL_File.close()
-	else:
-		print("Error: Only the Input file with more than 1 sample can support “Collapse Option”")
 
-
-	####### 01-6-0 RM mSigPortal_Format_SNV_Path and mSigPortal_Format_INDEL_Path
-	cmd_1 = "rm %s" % (mSigPortal_Format_SNV_Path)
-	cmd_2 = "rm %s" % (mSigPortal_Format_INDEL_Path)
-
-	os.system(cmd_1)
-	os.system(cmd_2)
+		####### 01-6-0 RM  mSigPortal_Format_INDEL_Path
+		cmd_2 = "rm %s" % (mSigPortal_Format_INDEL_Path)
+		os.system(cmd_2)
 
 
 
@@ -1329,8 +1308,8 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 					else:
 						print("Error 233: Your input type in the file is not supported yet!" )
 						sys.exit()
-		
-
+		print("Finisheh !!!!!!!!!!!!!!!!!!!!!!!!!!")
+		print(Final_Type)
 		####### Generate Summary File
 		summary_Path = "%s/Summary.txt" % (Output_Dir)
 		summary_File = open(summary_Path,'w')
@@ -1438,5 +1417,5 @@ if __name__ == "__main__":
 
 ### Usage for vcf_split_all_filter File
 # python mSigPortal_Profiler_Extraction.py -f vcf -s True -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS
-
+# python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output -g GRCh37 -t WGS -s True
 
