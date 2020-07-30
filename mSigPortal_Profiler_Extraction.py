@@ -8,15 +8,20 @@ from zipfile import ZipFile
 '''
 Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
-Version:	1.20
-Date:		July-22-2020
-Update:		Fix the input header:
-			(1) TSV header:			SAMPLE	CHROM	START	END	REF	ALT	FILTER
-			(2) CSV header:			SAMPLE,CHROM,START,END,REF,ALT,FILTER
-			(3) VCF header:			#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT
-			(4) catalog_tsv header:		MutationType	Sample1	Sample2	Sample3...
-			(5) catalog_csv header:		MutationType,Sample1,Sample2,Sample3...
+Version:	1.21
+Date:		July-29-2020
+Update:		(1) Generate seqInfo for downloading (seqInfo=True)
+		(2) Generate Compressed Dir: 
+			DBS.tar.gz;
+			ID.tar.gz;
+			plots.tar.gz;
+			SBS.tar.gz;
+			vcf_files.tar.gz;
+		(3) Generate Statistics.txt (need to update: github:SigProfilerMatrixGenerator-master/SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py)
+
 '''
+#SAMPLE,CHROM,START,END,REF,ALT,FILTER
+
 
 ########################################################################
 ###################### 0 Define Basic Function #########################
@@ -1235,7 +1240,7 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 	# ####### Which format is the input file
 	if Input_Format in Input_Format_arr_1:
 		#print("CCCCCCCC")
-		matrices = matGen.SigProfilerMatrixGeneratorFunc(Project_ID, Genome_Building, Output_Dir, exome=False, bed_file=Bed, chrom_based=False, plot=True, tsb_stat=False, seqInfo=False)
+		matrices = matGen.SigProfilerMatrixGeneratorFunc(Project_ID, Genome_Building, Output_Dir, exome=False, bed_file=Bed, chrom_based=False, plot=True, tsb_stat=False, seqInfo=True)
 		
 		####### Generate Summary File
 		summary_Path = "%s/Summary.txt" % (Output_Dir)
@@ -1244,8 +1249,34 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 		summary_File.write(Header)
 		SVG_Ouput_Dir = "%s/output/plots/svg" % (Output_Dir)
 		#print(SVG_Ouput_Dir)
+		SVG_New_Output_Dir = "%s/output/svg" % (Output_Dir)
+		os.system("mv %s %s" % (SVG_Ouput_Dir,SVG_New_Output_Dir))
 
-		for svg in os.listdir(SVG_Ouput_Dir):
+		####### Download File #######
+		DBS_Path = "%s/output/DBS" % (Output_Dir)
+		ID_Path = "%s/output/ID" % (Output_Dir)
+		PDF_Path = "%s/output/plots" % (Output_Dir)
+		SBS_Path = "%s/output/SBS" % (Output_Dir)
+		Matrix_Path = "%s/output/vcf_files" % (Output_Dir)
+
+		if os.path.exists(DBS_Path):
+			os.system("tar -zcvf %s.tar.gz %s" % (DBS_Path,DBS_Path))
+
+		if os.path.exists(ID_Path):
+			os.system("tar -zcvf %s.tar.gz %s" % (ID_Path,ID_Path))
+			
+		if os.path.exists(PDF_Path):
+			os.system("tar -zcvf %s.tar.gz %s" % (PDF_Path,PDF_Path))
+
+		if os.path.exists(SBS_Path):
+			os.system("tar -zcvf %s.tar.gz %s" % (SBS_Path,SBS_Path))
+
+		if os.path.exists(Matrix_Path):
+			os.system("tar -zcvf %s.tar.gz %s" % (Matrix_Path,Matrix_Path))
+
+		####### zip #######
+
+		for svg in os.listdir(SVG_New_Output_Dir):
 			if "_plots_" in svg:
 				#print(svg)
 				Type = svg.split("_plots_")[0]
@@ -1263,7 +1294,7 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 				if sample_Name == "filter":
 					pass
 				else:
-					svg_Location = "%s/%s" % (SVG_Ouput_Dir,svg)
+					svg_Location = "%s/%s" % (SVG_New_Output_Dir,svg)
 					String = "%s,%s,%s,%s,%s\n" % (sample_Name,Profile_Type,Matrix,Tag,svg_Location)
 					summary_File.write(String)
 		summary_File.close()
