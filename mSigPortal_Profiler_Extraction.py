@@ -10,16 +10,13 @@ Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
 Version:	1.22
 Date:		August-02-2020
-Update:		(1) Generate seqInfo for downloading (seqInfo=True)
-		(2) Generate Compressed Dir: 
-			DBS.tar.gz;
-			ID.tar.gz;
-			plots.tar.gz;
-			SBS.tar.gz;
-			vcf_files.tar.gz;
-		(3) Generate Statistics.txt (need to update: github:SigProfilerMatrixGenerator-master/SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py)
-		(4) Solve the 'True' bug for Collpase Option 
-		(5) Generate Matrix_List.txt
+Update:		
+		(1) Fix the weird “True” bug when using collapse option (-c True).
+		(2) Generate seqInfo for downloading (seqInfo=True).
+		(3) Generate Compressed Dir: DBS.tar.gz; ID.tar.gz; plots.tar.gz; SBS.tar.gz; vcf_files.tar.gz for downloading.
+		(4) Generate Matrix_List.txt file to give a list of output matrix such as DBS2400.all, ID83.all, et al.
+		(5) Generate Statistics.txt file
+
 '''
 #SAMPLE,CHROM,START,END,REF,ALT,FILTER
 
