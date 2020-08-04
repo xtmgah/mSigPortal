@@ -8,8 +8,8 @@ from zipfile import ZipFile
 '''
 Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
-Version:	1.21
-Date:		July-29-2020
+Version:	1.22
+Date:		August-02-2020
 Update:		(1) Generate seqInfo for downloading (seqInfo=True)
 		(2) Generate Compressed Dir: 
 			DBS.tar.gz;
@@ -18,7 +18,8 @@ Update:		(1) Generate seqInfo for downloading (seqInfo=True)
 			SBS.tar.gz;
 			vcf_files.tar.gz;
 		(3) Generate Statistics.txt (need to update: github:SigProfilerMatrixGenerator-master/SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py)
-
+		(4) Solve the 'True' bug for Collpase Option 
+		(5) Generate Matrix_List.txt
 '''
 #SAMPLE,CHROM,START,END,REF,ALT,FILTER
 
@@ -37,7 +38,7 @@ def Parser():
 	parser.add_argument('-g', '--Genome_Building', required=True, nargs='?', const='GRCh37', type=str, help = "Define the version of Genome_Building, default:GRCh37 ")
 	parser.add_argument('-t', '--Data_Type', required=True, type=str, help = "Define the Data_Type: 'WGS' or 'WES' ")
 	parser.add_argument('-F', '--Filter', required=False, type=str, help="Define the Terms for filtring. Different terms should be seperated by \'@\' ")
-	parser.add_argument('-c', '--Collapse', required=False, type=str, nargs='?', const='Sample_Collpase', help="Whether collapses multiple samples into one group, If yes: add '-c Group_Name'; Default:'Sample_Collpase'")
+	parser.add_argument('-c', '--Collapse', required=False, type=str, nargs='?', const='Sample_Collpase', help="Whether collapses multiple samples into one group, If yes: add '-c True'")
 	parser.add_argument('-z', '--gzip', required=False, type=str, nargs='?', help="Whether gzip results? samples into one group, If yes: add '-z True'")
 	parser.add_argument('-s', '--vcf_split_all_filter', required=False, type=str, nargs='?', help="Whether split all vcf filter? If yes: add '-s True'")
 	parser.add_argument('-b', '--Bed', required=False, type=str, nargs='?', help="Bed File for SigProfilerMatrixGenerator")
@@ -136,9 +137,7 @@ def Parse_Options():
 
 
 		###### Only if Collapse option is given, tsv_Convert_collpase will run
-		if Collapse == None:
-			pass
-		else:
+		if Collapse == "True":
 			Convert_Collapse(Output_Dir,Collapse,Project_ID)
 			String = "Finish Running Collapse Step"
 			print(String)
@@ -161,9 +160,7 @@ def Parse_Options():
 				tsv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse)
 
 		###### Only if Collapse option is given, tsv_Convert_collpase will run
-		if Collapse == None:
-			pass
-		else:
+		if Collapse == "True":
 			Convert_Collapse(Output_Dir,Collapse,Project_ID)
 			String = "Finish Running Collapse Step"
 			print(String)
@@ -226,9 +223,7 @@ def Parse_Options():
 				vcf_Multiple_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse)
 
 		###### Only if Collapse option is given, tsv_Convert_collpase will run
-		if Collapse == None:
-			pass
-		else:
+		if Collapse == "True":
 			Convert_Collapse(Output_Dir,Collapse,Project_ID)
 			String = "Finish Running Collapse Step"
 			print(String)
@@ -858,7 +853,7 @@ def catalog_tsv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Buildin
 	for f in ff:
 		if re.match(r'MutationType	',f):
 			Header = f
-			mSigPortal_Format_catalog_File.write("%s	%s\n" % (Header,Collapse))
+			mSigPortal_Format_catalog_File.write("%s	Sample_Collapse\n" % (Header))
 
 		else:
 			ss = f.split("	")
@@ -982,7 +977,7 @@ def catalog_csv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Buildin
 	for f in ff:
 		if re.match(r'MutationType,',f):
 			Header = f
-			mSigPortal_Format_catalog_File.write("%s	%s\n" % (Header.replace(",","\t"),Collapse))
+			mSigPortal_Format_catalog_File.write("%s	Sample_Collapse\n" % Header.replace(",","\t"))
 			#print(f)
 		elif re.match(r'\n',f):
 			pass
@@ -1145,7 +1140,7 @@ def Convert_Collapse(Output_Dir,Collapse,Project_ID):
 			ss = line.strip().split("	")
 			Sample_Name = ss[1].split("@")[0]
 			String_1 = "%s	%s	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],ss[1],ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
-			String_2 = "%s	%s	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],Collapse,ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
+			String_2 = "%s	Sample_Collapse	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
 			mSigPortal_Format_SNV_Collapse_File.write(String_1)
 			
 			collapse_String_arr.append(String_2)
@@ -1187,7 +1182,7 @@ def Convert_Collapse(Output_Dir,Collapse,Project_ID):
 			ss = line.strip().split("	")
 			Sample_Name = ss[1].split("@")[0]
 			String_1 = "%s	%s	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],ss[1],ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
-			String_2 = "%s	%s	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],Collapse,ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
+			String_2 = "%s	Sample_Collapse	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
 			mSigPortal_Format_INDEL_Collapse_File.write(String_1)
 
 			collapse_String_arr.append(String_2)
@@ -1252,28 +1247,57 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 		SVG_New_Output_Dir = "%s/output/svg" % (Output_Dir)
 		os.system("mv %s %s" % (SVG_Ouput_Dir,SVG_New_Output_Dir))
 
-		####### Download File #######
+		####### Generate Download File and Matrix_List_File #######
+		Matrix_List_Path = "%s/Matrix_List.txt" % (Output_Dir)
+		
 		DBS_Path = "%s/output/DBS" % (Output_Dir)
 		ID_Path = "%s/output/ID" % (Output_Dir)
 		PDF_Path = "%s/output/plots" % (Output_Dir)
 		SBS_Path = "%s/output/SBS" % (Output_Dir)
 		Matrix_Path = "%s/output/vcf_files" % (Output_Dir)
 
+		Matrix_List_File = open(Matrix_List_Path,'w')
+		Header = "Catalog,Type,FileName,Path\n"
+		Matrix_List_File.write(Header)
+
 		if os.path.exists(DBS_Path):
 			os.system("tar -zcvf %s.tar.gz %s" % (DBS_Path,DBS_Path))
 
+			Catagory = "DBS"
+			for ii in os.listdir(DBS_Path):
+				Type = ii.split(".")[1]
+				Path = "%s/%s" % (DBS_Path,ii)
+				Final_String = "%s,%s,%s,%s\n" % (Catagory,Type,ii,Path)
+				Matrix_List_File.write(Final_String)
+
 		if os.path.exists(ID_Path):
 			os.system("tar -zcvf %s.tar.gz %s" % (ID_Path,ID_Path))
-			
+
+			Catalog = "ID"
+			for ii in os.listdir(ID_Path):
+				Type = ii.split(".")[1]
+				Path = "%s/%s" % (DBS_Path,ii)
+				Final_String = "%s,%s,%s,%s\n" % (Catagory,Type,ii,Path)
+				Matrix_List_File.write(Final_String)
+
 		if os.path.exists(PDF_Path):
 			os.system("tar -zcvf %s.tar.gz %s" % (PDF_Path,PDF_Path))
 
 		if os.path.exists(SBS_Path):
 			os.system("tar -zcvf %s.tar.gz %s" % (SBS_Path,SBS_Path))
+			Catalog = "SBS"
+			for ii in os.listdir(DBS_Path):
+				Type = ii.split(".")[1]
+				Path = "%s/%s" % (SBS_Path,ii)
+				Final_String = "%s,%s,%s,%s\n" % (Catagory,Type,ii,Path)
+				Matrix_List_File.write(Final_String)
 
 		if os.path.exists(Matrix_Path):
 			os.system("tar -zcvf %s.tar.gz %s" % (Matrix_Path,Matrix_Path))
 
+
+		Matrix_List_File.close()
+		
 		####### zip #######
 
 		for svg in os.listdir(SVG_New_Output_Dir):
