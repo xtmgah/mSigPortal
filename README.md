@@ -9,22 +9,25 @@ https://github.com/xtmgah/SigProfilerPlotting<br>
 https://github.com/xtmgah/SigProfilerMatrixGenerator<br>
 https://github.com/xtmgah/mSigPortal
 
+2. Download the updated script: SigProfilerMatrixGeneratorFunc.py
 
-2. Install the two Packages locally based on the following order:
+
+3. Install the two Packages locally based on the following order:
 
 pip install -e Path/SigProfilerPlotting-master/ <br>
 pip install -e Path/SigProfilerMatrixGenerator-master/
 
 
-3. Download Reference Genome, e.g.,'GRCh37’  
+4. Download Reference Genome, e.g.,'GRCh37’  
 
 $ python <br>
 from SigProfilerMatrixGenerator import install as genInstall <br>
 genInstall.install('GRCh37', rsync=False, bash=True)<br>
 
 
-4. Run the Script mSigPortal_Profiler_Extraction.py
+5. Replace the script [SigProfilerMatrixGeneratorFunc.py] in SigProfilerMatrixGenerator-master/SigProfilerMatrixGenerator/scripts/ , with the updated one from our github portal.
 
-python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS
+6. Run Script:
+python mSigPortal_Profiler_Extraction.py -f vcf -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS -c True
 
  
