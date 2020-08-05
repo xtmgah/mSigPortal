@@ -16,10 +16,7 @@ Update:
 		(3) Generate Compressed Dir: DBS.tar.gz; ID.tar.gz; plots.tar.gz; SBS.tar.gz; vcf_files.tar.gz for downloading.
 		(4) Generate Matrix_List.txt file to give a list of output matrix such as DBS2400.all, ID83.all, et al.
 		(5) Generate Statistics.txt file
-
 '''
-#SAMPLE,CHROM,START,END,REF,ALT,FILTER
-
 
 ########################################################################
 ###################### 0 Define Basic Function #########################
