@@ -8,15 +8,19 @@ from zipfile import ZipFile
 '''
 Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
-Version:	1.22
-Date:		August-02-2020
-Update:		
-		(1) Fix the “True” bug when using collapse option (-c True).
-		(2) Generate seqInfo for downloading (seqInfo=True).
-		(3) Generate Compressed Dir: DBS.tar.gz; ID.tar.gz; plots.tar.gz; SBS.tar.gz; vcf_files.tar.gz for downloading.
-		(4) Generate Matrix_List.txt file to give a list of output matrix such as DBS2400.all, ID83.all, et al.
-		(5) Generate Statistics.txt file
+Version:	1.25
+Date:		August-10-2020
+Update:	
+			(1) Fix the “True” bug when using collapse option (-c True).
+			(2) Generate seqInfo for downloading (seqInfo=True).
+			(3) Generate Compressed Dir: DBS.tar.gz; ID.tar.gz; plots.tar.gz; SBS.tar.gz; vcf_files.tar.gz for downloading.
+			(4) Generate Matrix_List.txt file to give a list of output matrix such as DBS2400.all, ID83.all, et al.
+			(5) Generate Statistics.txt file
+			(6) Fix the bug in Catalog format with -c function
+			(7) Add -b option for filtration with bed file
 '''
+#SAMPLE,CHROM,START,END,REF,ALT,FILTER
+
 
 ########################################################################
 ###################### 0 Define Basic Function #########################
@@ -175,10 +179,10 @@ def Parse_Options():
 
 
 		###### Note Default of an option is None,not ''
-		if Collapse == None:
-			catalog_tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
-		else:
+		if Collapse == "True":
 			catalog_tsv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse)
+		else:
+			catalog_tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
 
 
 	elif Input_Format == "catalog_csv":
@@ -196,10 +200,10 @@ def Parse_Options():
 
 
 		###### Note Default of an option is None,not ''
-		if Collapse == None:
-			catalog_csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
-		else:
+		if Collapse == "True":
 			catalog_csv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse)
+		else:
+			catalog_csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
 
 
 	elif Input_Format == "vcf":
@@ -287,7 +291,7 @@ def csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 	####### 01-3-2 Generate Result
 	ff = String_File.split("\n")
 	for f in ff:
-		if re.match(r'Sample_ID',f):
+		if re.match(r'SAMPLE',f):
 			pass
 		else:
 			ss = f.split(",")
@@ -342,7 +346,7 @@ def csv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Typ
 	####### 01-6-3 Generate Result
 	ff = String_File.split("\n")
 	for f in ff:
-		if re.match(r'Sample_ID',f):
+		if re.match(r'SAMPLE',f):
 			pass
 		else:
 			ss = f.split(",")
@@ -412,7 +416,7 @@ def csv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type
 	####### 01-6-3 Generate Result
 	ff = String_File.split("\n")
 	for f in ff:
-		if re.match(r'Sample_ID',f):
+		if re.match(r'SAMPLE',f):
 			pass
 		else:
 			ss = f.split(",")
@@ -481,7 +485,7 @@ def tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 	####### 01-3-2 Generate Result
 	ff = String_File.split("\n")
 	for f in ff:
-		if re.match(r'Sample_ID',f):
+		if re.match(r'SAMPLE',f):
 			pass
 		else:
 			ss = f.split("	")
@@ -538,7 +542,7 @@ def tsv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Typ
 	####### 01-6-3 Generate Result
 	ff = String_File.split("\n")
 	for f in ff:
-		if re.match(r'Sample_ID',f):
+		if re.match(r'SAMPLE',f):
 			pass
 		else:
 			ss = f.split("	")
@@ -847,7 +851,7 @@ def catalog_tsv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Buildin
 	for f in ff:
 		if re.match(r'MutationType	',f):
 			Header = f
-			mSigPortal_Format_catalog_File.write("%s	Sample_Collapse\n" % (Header))
+			mSigPortal_Format_catalog_File.write("%s	All_Samples\n" % (Header))
 
 		else:
 			ss = f.split("	")
@@ -971,7 +975,7 @@ def catalog_csv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Buildin
 	for f in ff:
 		if re.match(r'MutationType,',f):
 			Header = f
-			mSigPortal_Format_catalog_File.write("%s	Sample_Collapse\n" % Header.replace(",","\t"))
+			mSigPortal_Format_catalog_File.write("%s	All_Samples\n" % Header.replace(",","\t"))
 			#print(f)
 		elif re.match(r'\n',f):
 			pass
@@ -1049,7 +1053,7 @@ def vcf_Multiple_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building
 			if "-" in option_Filter_Arr:
 				if len(REF) == len(ALT):
 					End = ss[1]
-					Output_String = "%s	Sample_Collpase	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+					Output_String = "%s	All_Samples	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
 					mSigPortal_Format_SNV_File.write(Output_String)
 				else:
 					if len(REF) == 1:
@@ -1058,7 +1062,7 @@ def vcf_Multiple_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building
 					else:
 						Start = ss[1]
 						End = int(Start) + len(REF) - 1
-					Output_String = "%s	Sample_Collpase	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+					Output_String = "%s	All_Samples	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
 					mSigPortal_Format_INDEL_File.write(Output_String)
 
 
@@ -1134,7 +1138,7 @@ def Convert_Collapse(Output_Dir,Collapse,Project_ID):
 			ss = line.strip().split("	")
 			Sample_Name = ss[1].split("@")[0]
 			String_1 = "%s	%s	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],ss[1],ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
-			String_2 = "%s	Sample_Collapse	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
+			String_2 = "%s	All_Samples	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
 			mSigPortal_Format_SNV_Collapse_File.write(String_1)
 			
 			collapse_String_arr.append(String_2)
@@ -1176,7 +1180,7 @@ def Convert_Collapse(Output_Dir,Collapse,Project_ID):
 			ss = line.strip().split("	")
 			Sample_Name = ss[1].split("@")[0]
 			String_1 = "%s	%s	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],ss[1],ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
-			String_2 = "%s	Sample_Collapse	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
+			String_2 = "%s	All_Samples	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
 			mSigPortal_Format_INDEL_Collapse_File.write(String_1)
 
 			collapse_String_arr.append(String_2)
@@ -1209,7 +1213,9 @@ def gzip_Output(Output_Dir):
 
 ####### 01-17 sigProfilerPlotting
 def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
-
+	
+	print(Bed)
+	
 	Input_Format_arr_1 = ['vcf', 'csv', 'tsv']
 	Input_Format_arr_2 = ['catalog_csv', 'catalog_tsv']
 	
@@ -1417,7 +1423,7 @@ if __name__ == "__main__":
 # python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output -g GRCh37 -t WGS
 
 ### Usage for tsv
-# python mSigPortal_Profiler_Extraction.py -f tsv -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f tsv -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output -g GRCh37 -t WGS -c True
 
 ### Usage for catalog_csv
 # python mSigPortal_Profiler_Extraction.py -f catalog_csv -i Demo_input/demo_input_catalog.csv -p Project -o Test_Output -g GRCh37 -t WGS
@@ -1429,6 +1435,7 @@ if __name__ == "__main__":
 # python mSigPortal_Profiler_Extraction.py -f tsv -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output -g GRCh37 -t WGS -c True
 # python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output -g GRCh37 -t WGS -c True
 # python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS -c True
+
 
 ### Usage for vcf
 # python mSigPortal_Profiler_Extraction.py -f vcf -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS
@@ -1461,4 +1468,9 @@ if __name__ == "__main__":
 ### Usage for vcf_split_all_filter File
 # python mSigPortal_Profiler_Extraction.py -f vcf -s True -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS
 # python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output -g GRCh37 -t WGS -s True
+
+
+### Usage for -b option
+# python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output -g GRCh37 -t WGS -b Demo_input/demo_input_bed.bed
+# python mSigPortal_Profiler_Extraction.py -f vcf -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf -p Project -o Test_Output -g GRCh37 -t WGS -b Demo_input/demo_input_bed.bed
 
