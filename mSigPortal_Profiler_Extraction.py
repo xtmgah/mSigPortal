@@ -19,7 +19,6 @@ Update:
 			(6) Fix the bug in Catalog format with -c function
 			(7) Add -b option for filtration with bed file
 '''
-#SAMPLE,CHROM,START,END,REF,ALT,FILTER
 
 
 ########################################################################
