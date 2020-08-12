@@ -8,8 +8,8 @@ from zipfile import ZipFile
 '''
 Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
-Version:	1.25
-Date:		August-10-2020
+Version:	1.26
+Date:		August-12-2020
 Update:	
 			(1) Fix the “True” bug when using collapse option (-c True).
 			(2) Generate seqInfo for downloading (seqInfo=True).
@@ -18,6 +18,7 @@ Update:
 			(5) Generate Statistics.txt file
 			(6) Fix the bug in Catalog format with -c function
 			(7) Add -b option for filtration with bed file
+			(8) Fix the bug of wrong path listed in Matrix_List.txt 
 '''
 
 
@@ -1272,10 +1273,10 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 		if os.path.exists(ID_Path):
 			os.system("tar -zcvf %s.tar.gz %s" % (ID_Path,ID_Path))
 
-			Catalog = "ID"
+			Catagory = "ID"
 			for ii in os.listdir(ID_Path):
 				Type = ii.split(".")[1]
-				Path = "%s/%s" % (DBS_Path,ii)
+				Path = "%s/%s" % (ID_Path,ii)
 				Final_String = "%s,%s,%s,%s\n" % (Catagory,Type,ii,Path)
 				Matrix_List_File.write(Final_String)
 
@@ -1284,8 +1285,8 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 
 		if os.path.exists(SBS_Path):
 			os.system("tar -zcvf %s.tar.gz %s" % (SBS_Path,SBS_Path))
-			Catalog = "SBS"
-			for ii in os.listdir(DBS_Path):
+			Catagory = "SBS"
+			for ii in os.listdir(SBS_Path):
 				Type = ii.split(".")[1]
 				Path = "%s/%s" % (SBS_Path,ii)
 				Final_String = "%s,%s,%s,%s\n" % (Catagory,Type,ii,Path)
@@ -1472,4 +1473,5 @@ if __name__ == "__main__":
 ### Usage for -b option
 # python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output -g GRCh37 -t WGS -b Demo_input/demo_input_bed.bed
 # python mSigPortal_Profiler_Extraction.py -f vcf -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf -p Project -o Test_Output -g GRCh37 -t WGS -b Demo_input/demo_input_bed.bed
+# python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_multi.vcf.gz -p Project -o Test_Output -g GRCh37 -t WGS -b Demo_input/demo_input_bed.bed
 
