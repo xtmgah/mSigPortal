@@ -65,8 +65,6 @@ cos_sim_res2 %>% write_delim('cos_sim_res2.txt',delim = '\t',col_names = T)
 
 
 
-
-
 ### Profile Comparison tab ### 
 # section 1: Cosine similarity within samples # 
 # three parameters need: Profile Type, Sample Name1 and Sample Name2 # 
