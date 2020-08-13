@@ -814,7 +814,7 @@ cos_sim_df <- function (mut_df1, mut_df2, output_matrix=FALSE)
 
 
 # Heatmap of cosine similairty  -------------------------------------------
-plot_cosine_heatmap_df <- function (cos_sim_df, col_order, cluster_rows = TRUE, method = "complete", plot_values = FALSE) 
+plot_cosine_heatmap_df <- function (cos_sim_df, col_order, cluster_rows = TRUE, method = "complete", plot_values = FALSE,output_plot = NULL,plot_width=NULL, plot_height=NULL) 
 {
   colnames(cos_sim_df)[1] <- "Sample"
   # if (class(cos_sim_matrix) != "matrix") {
@@ -864,48 +864,74 @@ plot_cosine_heatmap_df <- function (cos_sim_df, col_order, cluster_rows = TRUE, 
   cos_sim_matrix.m$Signature = factor(cos_sim_matrix.m$Signature,  levels = col_order)
   cos_sim_matrix.m$Sample = factor(cos_sim_matrix.m$Sample,  levels = sample_order)
   
+  cos_sim_matrix.m <- cos_sim_matrix.m %>% mutate(coslab=round(Cosine.sim, 2))
   cos_sim_matrix.m$Cosine.sim <- round(cos_sim_matrix.m$Cosine.sim,digits = 2)
   mincosine <- min(cos_sim_matrix.m$Cosine.sim)
   maxcosine <- max(cos_sim_matrix.m$Cosine.sim)
+  
+  if(mincosine< -0.1){
+    plot_values <- TRUE
+    cos_sim_matrix.m$Cosine.sim <- abs(cos_sim_matrix.m$Cosine.sim)
+    mincosine <- min(cos_sim_matrix.m$Cosine.sim)
+    cos_sim_matrix.m$coslab <- if_else(cos_sim_matrix.m$coslab>0,"","-")
+  }
   mincosine <- if_else(mincosine<0.1,0,mincosine)
   maxcosine <- if_else(maxcosine>0.9,1,maxcosine)
+  
+  
+  ## define the length of x and y
+  leng0 <- 2.5
+  leng_ratio <-  0.2
+  xleng <- leng_ratio*length(unique(cos_sim_matrix.m$Signature))+leng0+2.5
+  yleng <- leng_ratio*length(unique(cos_sim_matrix.m$Sample))+leng0
+  
   heatmap = ggplot(cos_sim_matrix.m, aes(x = Signature, y = Sample,  fill = Cosine.sim, order = Sample)) + 
     geom_tile(color = "white") + 
-    scale_fill_viridis_c(name = "Cosine similarity\n", limits = c(mincosine, maxcosine))+
+    scale_fill_viridis_c(name = "Cosine similarity\n", limits = c(mincosine, maxcosine),breaks=scales::pretty_breaks())+
     # scale_fill_distiller(palette = "YlGnBu", direction = 1,name = "Cosine similarity", limits = c(0, 1)) + 
     theme_ipsum_rc(grid = FALSE,ticks = T)+
     theme(axis.text.x = element_text(angle = 90,hjust = 1,vjust = 0.5)) +
     labs(x = NULL, y = NULL)+
     scale_y_discrete(expand = c(0,0))+
     scale_x_discrete(expand = c(0,0))+
-    theme(legend.position = "top",legend.key.width = unit(2,"cm"))
+    theme(legend.position = "top",legend.key.width = unit(1.5,"cm"),legend.key.height = unit(0.3,"cm"))
   if (plot_values) {
-    heatmap = heatmap + geom_text(aes(label = round(Cosine.sim, 2)), size = 3,col="red")
+    heatmap = heatmap + geom_text(aes(label = coslab), size = 3,col="red")
   }
   if (cluster_rows == TRUE) {
     dhc = as.dendrogram(hc.sample)
     ddata = ggdendro::dendro_data(dhc, type = "rectangle")
     dendrogram = ggplot(ggdendro::segment(ddata)) + geom_segment(aes(x = x, y = y, xend = xend, yend = yend)) + coord_flip() + 
       scale_y_reverse(expand = c(0.1, 0)) + scale_x_continuous(expand = expansion(add=0.5)) + ggdendro::theme_dendro()
-    plot_final = plot_grid(dendrogram+theme(plot.margin = margin(r = -0.2,unit = "cm")), heatmap+theme(plot.margin = margin(l = -0.2,r=0.5,unit = "cm")), align = "h",axis = "tb",rel_widths = c(0.3, 1))
+    plot_final = plot_grid(dendrogram+theme(plot.margin = margin(r = -0.2,unit = "cm")), heatmap+theme(plot.margin = margin(l = -0.2,r=0.5,unit = "cm")), align = "h",axis = "tb",rel_widths = c(0.15, 1))
   } else {
     plot_final = heatmap + ylim(rev(levels(factor(cos_sim_matrix.m$Sample))))
   }
-  return(plot_final)
+  
+  
+  if(is.null(output_plot)){
+    return(plot_final)
+  }else{
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    
+    ggsave(filename = output_plot,plot = plot_final,width = plot_width,height = plot_height)
+  }
+  
 }
 
 
 
 
 # Plot two profile difference for SBS96, ID83 and DBS78 ---------------------------------------------
-plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL, profile_ymax = NULL, diff_ylim = NULL, colors = NULL, condensed = FALSE) 
+plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL, profile_ymax = NULL, diff_ylim = NULL, colors = NULL, condensed = FALSE,output_plot = NULL,plot_width=NULL, plot_height=NULL) 
 {
   ## profile 1 and profile 2 will be the dataframe with two columns: MutationType and value
   
   COLORS6 = c("#03BCEE", "#010101", "#E32926", "#CAC9C9", "#A1CE63", "#EBC6C4")
   COLORS10 = c("#03BCEE", "#0366CB", "#A1CE63", "#016601", "#FE9898", "#E32926", "#FEB166", "#FE8001", "#CB98FE", "#4C0198")
   COLORS16=c("#FCBD6F", "#FE8002", "#AFDC8A", "#36A02E", "#FCC9B4", "#FB896A", "#F04432", "#BB191A", "#CFE0F1", "#93C3DE", "#4A97C8", "#1764AA", "#E1E1EE", "#B5B5D7", "#8582BC", "#62409A")
-
+  
   ## make sure the order profile 1 and profile 2 are the same order
   profile1 <- profile_format_df(profile1,factortype = TRUE) 
   profile2 <- profile_format_df(profile2,factortype = TRUE)
@@ -973,8 +999,89 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
       theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5))+
       panel_border(color = gray(0.5),size = 0.3)
   }
+  if(is.null(output_plot)){
+    return(plot)
+  }else{
+    xleng <- 18
+    yleng <- 8
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    
+    ggsave(filename = output_plot,plot = plot,width = plot_width,height = plot_height)
+  }
+  
+}
+
+
+plot_compare_profiles_diff_strand <- function (profile1, profile2, profile_names = NULL, profile_ymax = NULL, diff_ylim = NULL, colors = NULL, condensed = FALSE) 
+{
+  
+  ## check format: MutationType Strand Type  SubType value
+  ## profile 1 and profile 2 will be the dataframe with two columns: MutationType and value
+  
+  ## make sure the order profile 1 and profile 2 are the same order
+  profile1 <- profile1 %>% arrange(MutationType)
+  profile2 <- profile2 %>% arrange(MutationType)
+  
+  profile1[,5] <- profile1[,5]/sum(profile1[,5])  
+  profile2[,5] <- profile2[,5]/sum(profile2[,5]) 
+  diff = profile1[[5]] - profile2[[5]]
+  RSS = sum(diff^2)
+  RSS = format(RSS, scientific = TRUE, digits = 3)
+  cosine_sim = cos_sim(profile1[[5]], profile2[[5]])
+  cosine_sim = round(cosine_sim, 3)
+  df <-  profile1 %>% left_join(profile2) %>% mutate(Difference=diff)
+  if(is.null(profile_names)){
+    profile_names <- colnames(df)[5:6]
+  }
+  colnames(df)[5:6] <- profile_names
+  df <- df %>% pivot_longer(cols = -c(1,2,3,4)) %>% mutate(name=factor(name,levels = c(profile_names,"Difference")))
+  
+  if(is.null(profile_ymax)){
+    profile_ymax <- max(c(profile1[[5]],profile2[[5]]))*1.1
+  }
+  
+  if(is.null(diff_ylim)){
+    diff_ylim <- range(diff)*1.1
+  }
+  dftmp = tibble(Type = rep(levels(as.factor(profile1$Type))[1], 4), SubType = rep(levels(as.factor(profile1$SubType))[1], 4), name = c(profile_names, "Difference", "Difference"), value = c(profile_ymax, profile_ymax, diff_ylim[1], diff_ylim[2])) %>% mutate(Strand="T")%>% mutate(name=factor(name,levels = c(profile_names,"Difference")))
+  
+  if (condensed) {
+    plot = ggplot(data = df, aes(x = SubType, y = value,fill=Strand,group=Strand, width = 1)) + 
+      geom_col(position = "dodge2")+
+      #geom_bar(stat = "identity", position = "identity", colour = "black", size = 0.2) + 
+      geom_point(data = dftmp, aes(x = SubType, y = value), alpha = 0,size=0) + 
+      scale_fill_manual(values = rev(pal_nejm()(2)))+
+      facet_grid(name ~ Type, scales = "free") +
+      ylab("Relative contribution") +
+      guides(fill = FALSE) + 
+      labs(x="")+
+      #scale_y_continuous(expand = c(0,0))+
+      theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
+      ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5))+
+      panel_border(color = gray(0.5),size = 0.3)
+  }
+  else {
+    plot = ggplot(data = df, aes(x = SubType, y = value, fill=Strand,group=Strand, width = 0.7)) + 
+      #geom_bar(stat = "identity", position = "identity", colour = "black", size = 0) + 
+      geom_col(position = "dodge2")+
+      geom_point(data = dftmp, aes(x = SubType, y = value), alpha = 0,size=0) + 
+      scale_fill_manual(values = rev(pal_nejm()(2)))+
+      facet_grid(name ~ Type, scales = "free") +
+      ylab("Relative contribution") +
+      guides(fill = FALSE) + 
+      labs(x="")+
+      #scale_y_continuous(expand = c(0,0))+
+      theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
+      ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5))+
+      panel_border(color = gray(0.5),size = 0.3)
+  }
   return(plot)
 }
+
+
 
 
 # signature_sum_operation  --------------------------------------------------------------
@@ -1033,7 +1140,7 @@ sigsetcolor <- c(
 
 # Signature pie chart -----------------------------------------------------
 
-signature_piechart <- function(data,colset){
+signature_piechart <- function(data,colset, output_plot = NULL,plot_width=NULL, plot_height=NULL){
   
   # convert nsig_data to another format for the piechart
   nsig_data_pie <- data %>%
@@ -1067,7 +1174,16 @@ signature_piechart <- function(data,colset){
     theme_ipsum_rc(axis = FALSE, grid = FALSE)+
     theme(axis.text.y = element_blank(),axis.text.x = element_blank(),strip.text = element_text(size = 14,hjust = 0.5,face = "bold"))
   
-  return(p)
+  if(is.null(output_plot)){
+    return(p)
+  }else{
+    xleng <- 16
+    yleng <- 7
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    
+    ggsave(filename = output_plot,plot = p,width = plot_width,height = plot_height)
+  }
   
 } 
 

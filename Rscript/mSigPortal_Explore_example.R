@@ -28,7 +28,7 @@ nsig_data <- nsig_data %>% left_join(
 
 
 # put the follow piechart on website 
-signature_piechart(nsig_data,sigsetcolor)
+signature_piechart(nsig_data,sigsetcolor,output_plot = 'tmp.svg')
 
 
 # add signature SVG plots for all the signatures and put on line
@@ -43,7 +43,7 @@ signaturename <- "SBS5"
 # cosine similarity heatmap between two signatures sets -------------------
 # The parameters will be “Matrix Size”, “Reference Signature Set1” and “Reference Signature Set2”. 
 matrixsize <- "SBS96" # profile type
-signaturesetname1 <- "Other published signatures (SBS)"
+signaturesetname1 <- "Environmental Mutagen Signatures (SBS)" 
 signaturesetname2 <- "COSMIC v3 Signatures (SBS)"
 
 # the availabe options for signaturesetname1 and signaturesetname2 will be:
@@ -63,7 +63,7 @@ sigrefset2 <- signature_refsets %>%
 cos_sim_res=cos_sim_df(sigrefset1,sigrefset2) 
 
 # put this heatmap on the web
-plot_cosine_heatmap_df(cos_sim_res,cluster_rows = TRUE,plot_values = FALSE)
+plot_cosine_heatmap_df(cos_sim_res,cluster_rows = TRUE,plot_values = FALSE,output_plot = 'tmp.svg')
 # add a link bellow the heatmap
 cos_sim_res %>% write_delim('signature_cos_sim_res.txt',delim = '\t',col_names = T)
 
@@ -99,7 +99,7 @@ profile2 <- signature_refsets %>%
   select(MutationType,one_of(signaturename2))
 
 # put this plot on the web:
-plot_compare_profiles_diff(profile1,profile2,condensed = FALSE)
+plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,output_plot = 'tmp.svg')
 
 
 
