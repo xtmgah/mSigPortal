@@ -26,7 +26,7 @@ Update:		(1) Generate seqInfo for downloading (seqInfo=True)
 		(14) Improve the output file: matrix_files_list.txt
 '''
 
-
+ 
 ########################################################################
 ###################### 0 Define Basic Function #########################
 ########################################################################
