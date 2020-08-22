@@ -8,17 +8,22 @@ from zipfile import ZipFile
 '''
 Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
-Version:	1.26
-Date:		August-12-2020
-Update:	
-			(1) Fix the “True” bug when using collapse option (-c True).
-			(2) Generate seqInfo for downloading (seqInfo=True).
-			(3) Generate Compressed Dir: DBS.tar.gz; ID.tar.gz; plots.tar.gz; SBS.tar.gz; vcf_files.tar.gz for downloading.
-			(4) Generate Matrix_List.txt file to give a list of output matrix such as DBS2400.all, ID83.all, et al.
-			(5) Generate Statistics.txt file
-			(6) Fix the bug in Catalog format with -c function
-			(7) Add -b option for filtration with bed file
-			(8) Fix the bug of wrong path listed in Matrix_List.txt 
+Version:	1.27
+Date:		August-22-2020
+Update:		(1) Generate seqInfo for downloading (seqInfo=True)
+			(2) Generate Compressed Dir: DBS.tar.gz;ID.tar.gz;plots.tar.gz;SBS.tar.gz;vcf_files.tar.gz;
+			(3) Generate Statistics.txt (need to update: github:SigProfilerMatrixGenerator-master/SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py)
+			(4) Solve the 'True' bug for Collpase Option 
+			(5) Fix the bug in Catalog format with -c function
+			(6) Generate Matrix_List.txt
+			(7) Solve the problem "The header is incorrectly displayed in the CSV/TSV File"
+			(8) Fix the bug of -F function in CSV/TSV format
+			(9) Filter the line of ALT with ","
+			(10) Improve the function of -F with "-" in CSV, TSV and VCF format 
+			(11) Improve the function of Collpase [The All_Samples@Filter]
+			(12) Fix the bug of "rm -rf /tmp"!
+			(13) Improve the output file: svg_files_list.txt
+			(14) Improve the output file: matrix_files_list.txt
 '''
 
 
@@ -54,6 +59,8 @@ def If_Compressed():
 	
 	####### 获取输入文件所在的当前路径 ####### 
 	Input_Dir = os.path.dirname(Input_Path)
+	if Input_Dir == "":
+		Input_Dir = "."
 	Input_Dir_tmp = "%s/tmp" % (Input_Dir)
 	
 	if os.path.exists(Input_Dir_tmp):
@@ -177,12 +184,12 @@ def Parse_Options():
 			print(String)
 			sys.exit()
 
-
 		###### Note Default of an option is None,not ''
 		if Collapse == "True":
 			catalog_tsv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse)
 		else:
 			catalog_tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
+
 
 
 	elif Input_Format == "catalog_csv":
@@ -204,6 +211,7 @@ def Parse_Options():
 			catalog_csv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse)
 		else:
 			catalog_csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
+
 
 
 	elif Input_Format == "vcf":
@@ -281,6 +289,7 @@ def csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 		if len(ss) == 7:
 			String_File += line
 		else:
+			print(ss)
 			print("Error 233: The CSV option requires each line in input file should include 7 Item: SAMPLE,CHROM,START,END,REF,ALT,FILTER.\nHowever, the %d line contains %d items!" % (Count,len(ss)))
 			sys.exit()
 			Count += 1
@@ -302,12 +311,16 @@ def csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 				End = ss[3]
 				REF = ss[4]
 				ALT = ss[5]
-				if len(REF) == len(ALT):
-					Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-					mSigPortal_Format_SNV_File.write(Output_String)
+				
+				if "," in ALT:
+					pass
 				else:
-					Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-					mSigPortal_Format_INDEL_File.write(Output_String)
+					if len(REF) == len(ALT):
+						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						mSigPortal_Format_SNV_File.write(Output_String)
+					else:
+						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						mSigPortal_Format_INDEL_File.write(Output_String)
 	Input_File.close()
 
 
@@ -345,6 +358,11 @@ def csv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Typ
 
 	####### 01-6-3 Generate Result
 	ff = String_File.split("\n")
+	
+	####### 如果filter中有“-”用csv_Filter_tmp_arr_SNV和csv_Filter_tmp_arr_INDEL来存储这句话，并去重复
+	csv_Filter_tmp_arr_SNV = []
+	csv_Filter_tmp_arr_INDEL = []
+	
 	for f in ff:
 		if re.match(r'SAMPLE',f):
 			pass
@@ -357,26 +375,45 @@ def csv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Typ
 				End = ss[3]
 				REF = ss[4]
 				ALT = ss[5]
-				###### 首先，不管有木有filter，都要先输出不filter时的样本名称
-				if len(REF) == len(ALT):
-					Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-					mSigPortal_Format_SNV_File.write(Output_String)
-				else:
-					Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-					mSigPortal_Format_INDEL_File.write(Output_String)
 				
-				###### 其次，进行filter
 				Filter_arr = ss[6].strip().split(";")
-				for Filter in option_Filter_Arr:
-					if Filter in Filter_arr:
-						Sample_ID = "%s@%s" % (Sample_ID,Filter)
-						if len(REF) == len(ALT):
-							Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-							mSigPortal_Format_SNV_File.write(Output_String)
-						else:
-							Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-							mSigPortal_Format_INDEL_File.write(Output_String)
 
+				###### 首先，不管有木有filter，如果filter中有“-”，都要先输出不filter时的样本名称
+				if "-" in option_Filter_Arr:
+					
+					
+					if len(REF) == len(ALT):
+						Output_String = "%s	All_Samples	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						csv_Filter_tmp_arr_SNV.append(Output_String)
+						#mSigPortal_Format_SNV_File.write(Output_String)
+					else:
+						Output_String = "%s	All_Samples	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						csv_Filter_tmp_arr_INDEL.append(Output_String)
+						#mSigPortal_Format_INDEL_File.write(Output_String)
+
+
+				###### 其次，进行filter
+				if "," in ALT:
+					pass
+				else:
+					for Filter in option_Filter_Arr:
+						if Filter in Filter_arr:
+							Sample_ID = "%s@%s" % (Sample_ID,Filter)
+							if len(REF) == len(ALT):
+								Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+								mSigPortal_Format_SNV_File.write(Output_String)
+							else:
+								Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+								mSigPortal_Format_INDEL_File.write(Output_String)
+
+	for i in set(csv_Filter_tmp_arr_SNV):
+		mSigPortal_Format_SNV_File.write(i)
+	for i in set(csv_Filter_tmp_arr_INDEL):
+		mSigPortal_Format_INDEL_File.write(i)
+	
+	mSigPortal_Format_SNV_File.close()
+	mSigPortal_Format_INDEL_File.close()
+	
 	Input_File.close()
 
 
@@ -428,24 +465,28 @@ def csv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type
 				REF = ss[4]
 				ALT = ss[5]
 				Filter_arr = ss[6].strip().split(";")
-				
-				###### 首先，不管有木有filter，都要先输出不filter时的样本名称
-				if len(REF) == len(ALT):
-					Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-					mSigPortal_Format_SNV_File.write(Output_String)
-				else:
-					Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-					mSigPortal_Format_INDEL_File.write(Output_String)
 
-				###### 其次，进行Filter
-				for Filter in Filter_arr:
-					Sample_ID_Final = "%s@%s" % (Sample_ID,Filter)
+				if "," in ALT:
+					pass
+				else:
+					
+					###### 首先，不管有木有filter，都要先输出不filter时的样本名称
 					if len(REF) == len(ALT):
-						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Final,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
 						mSigPortal_Format_SNV_File.write(Output_String)
 					else:
-						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Final,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
 						mSigPortal_Format_INDEL_File.write(Output_String)
+
+					###### 其次，进行Filter
+					for Filter in Filter_arr:
+						Sample_ID_Final = "%s@%s" % (Sample_ID,Filter)
+						if len(REF) == len(ALT):
+							Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Final,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+							mSigPortal_Format_SNV_File.write(Output_String)
+						else:
+							Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Final,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+							mSigPortal_Format_INDEL_File.write(Output_String)
 	Input_File.close()
 
 
@@ -475,7 +516,8 @@ def tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 		if len(ss) == 7:
 			String_File += line
 		else:
-			print("Error 233: The TSV format requires each line in input file should include 7 Item: Sample_ID	Chrom	Start	End	Ref	Alt	Filter.\nHowever, the %d line contains %d items!" % (Count,len(ss)))
+			print("Error 233: The TSV format requires each line in input file should include 7 Item: SAMPLE	CHROM	START	END	REF	ALT	FILTER.\nHowever, the following line contains %d items!" % (len(ss)))
+			print(ss)
 			sys.exit()
 			Count += 1
 	if Header not in String_File:
@@ -496,12 +538,15 @@ def tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 				End = ss[3]
 				REF = ss[4]
 				ALT = ss[5].strip()
-				if len(REF) == len(ALT):
-					Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-					mSigPortal_Format_SNV_File.write(Output_String)
+				if "," in ALT:
+					pass
 				else:
-					Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-					mSigPortal_Format_INDEL_File.write(Output_String)
+					if len(REF) == len(ALT):
+						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						mSigPortal_Format_SNV_File.write(Output_String)
+					else:
+						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						mSigPortal_Format_INDEL_File.write(Output_String)
 
 	Input_File.close()
 
@@ -541,6 +586,11 @@ def tsv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Typ
 
 	####### 01-6-3 Generate Result
 	ff = String_File.split("\n")
+	
+	####### 如果filter中有“-”用csv_Filter_tmp_arr_SNV和csv_Filter_tmp_arr_INDEL来存储这句话，并去重复
+	csv_Filter_tmp_arr_SNV = []
+	csv_Filter_tmp_arr_INDEL = []
+
 	for f in ff:
 		if re.match(r'SAMPLE',f):
 			pass
@@ -555,26 +605,40 @@ def tsv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Typ
 				ALT = ss[5]
 				Filter_arr = ss[6].strip().split(";")
 				
-				###### 首先，不管有木有filter，都要先输出不filter时的样本名称
-				if len(REF) == len(ALT):
-					Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-					mSigPortal_Format_SNV_File.write(Output_String)
-				else:
-					Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-					mSigPortal_Format_INDEL_File.write(Output_String)
+				###### 首先，不管有木有filter，如果filter中有“-”，都要先输出不filter时的样本名称
+				if "-" in option_Filter_Arr:
+					if len(REF) == len(ALT):
+						Output_String = "%s	All_Samples	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						csv_Filter_tmp_arr_SNV.append(Output_String)
+						#mSigPortal_Format_SNV_File.write(Output_String)
+					else:
+						Output_String = "%s	All_Samples	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						csv_Filter_tmp_arr_INDEL.append(Output_String)
+						#mSigPortal_Format_INDEL_File.write(Output_String)
 
 				###### 其次，filter
-				for Filter in option_Filter_Arr:
-					if Filter in Filter_arr:
-						Sample_ID = "%s@%s" % (Sample_ID,Filter)
-						if len(REF) == len(ALT):
-							Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-							mSigPortal_Format_SNV_File.write(Output_String)
-						else:
-							Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-							mSigPortal_Format_INDEL_File.write(Output_String)
-	Input_File.close()
+				if "," in ALT:
+					pass
+				else:
+					for Filter in option_Filter_Arr:
+						if Filter in Filter_arr:
+							Sample_ID = "%s@%s" % (Sample_ID,Filter)
+							if len(REF) == len(ALT):
+								Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+								mSigPortal_Format_SNV_File.write(Output_String)
+							else:
+								Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+								mSigPortal_Format_INDEL_File.write(Output_String)
 
+	for i in set(csv_Filter_tmp_arr_SNV):
+		mSigPortal_Format_SNV_File.write(i)
+	for i in set(csv_Filter_tmp_arr_INDEL):
+		mSigPortal_Format_INDEL_File.write(i)
+	
+	mSigPortal_Format_SNV_File.close()
+	mSigPortal_Format_INDEL_File.close()
+
+	Input_File.close()
 
 
 
@@ -610,7 +674,7 @@ def tsv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type
 	####### 01-6-3 Generate Result
 	ff = String_File.split("\n")
 	for f in ff:
-		if re.match(r'Sample_ID',f):
+		if re.match(r'SAMPLE',f):
 			pass
 		else:
 			ss = f.split("	")
@@ -623,25 +687,28 @@ def tsv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type
 				ALT = ss[5]
 				Filter_arr = ss[6].strip().split(";")
 
-				###### 首先，不管有木有filter，都要先输出不filter时的样本名称
-				if len(REF) == len(ALT):
-					Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-					mSigPortal_Format_SNV_File.write(Output_String)
+				if "," in ALT:
+					pass
 				else:
-					Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-					mSigPortal_Format_INDEL_File.write(Output_String)
-
-
-				for Filter in Filter_arr:
-					Sample_ID_Final = "%s@%s" % (Sample_ID,Filter)
-					#print(Sample_ID)
+					###### 首先，不管有木有filter，都要先输出不filter时的样本名称
 					if len(REF) == len(ALT):
-						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Final,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-						#print(Output_String)
+						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
 						mSigPortal_Format_SNV_File.write(Output_String)
 					else:
-						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Final,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
 						mSigPortal_Format_INDEL_File.write(Output_String)
+
+
+					for Filter in Filter_arr:
+						Sample_ID_Final = "%s@%s" % (Sample_ID,Filter)
+						#print(Sample_ID)
+						if len(REF) == len(ALT):
+							Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Final,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+							#print(Output_String)
+							mSigPortal_Format_SNV_File.write(Output_String)
+						else:
+							Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Final,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+							mSigPortal_Format_INDEL_File.write(Output_String)
 	Input_File.close()
 
 
@@ -692,28 +759,34 @@ def vcf_Multiple_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_T
 			Chr = ss[0]
 			Start = ss[1]
 			
-			####### 对每个样本 Sample_ID_arr中的成员进行便利，判断是否有基因型信息
-			for i in range(0,len(Sample_ID_arr)):
-				Genotype_String = ss[9+i]
-				gg = Genotype_String.split(":")[0]
-				if re.search(r'1',gg):
-					#print i,Sample_ID_arr[i]
-					Sample_ID = Sample_ID_arr[i]
-					
-					if len(REF) == len(ALT):
-						End = ss[1]
-						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-						mSigPortal_Format_SNV_File.write(Output_String)
-						#print(Output_String)
-					else:
-						if len(REF) == 1:
-							Start = ss[1]
+			
+			####### Sometimes, if there is a "," in ALT, then pass
+			if "," in ALT:
+				pass
+			else:
+				
+				####### 对每个样本 Sample_ID_arr中的成员进行便利，判断是否有基因型信息
+				for i in range(0,len(Sample_ID_arr)):
+					Genotype_String = ss[9+i]
+					gg = Genotype_String.split(":")[0]
+					if re.search(r'1',gg):
+						#print i,Sample_ID_arr[i]
+						Sample_ID = Sample_ID_arr[i]
+						
+						if len(REF) == len(ALT):
 							End = ss[1]
+							Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+							mSigPortal_Format_SNV_File.write(Output_String)
+							#print(Output_String)
 						else:
-							Start = ss[1]
-							End = int(Start) + len(REF) - 1
-						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-						mSigPortal_Format_INDEL_File.write(Output_String)
+							if len(REF) == 1:
+								Start = ss[1]
+								End = ss[1]
+							else:
+								Start = ss[1]
+								End = int(Start) + len(REF) - 1
+							Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+							mSigPortal_Format_INDEL_File.write(Output_String)
 	
 	print(Sample_ID_arr)
 	mSigPortal_Format_INDEL_File.close()
@@ -767,42 +840,26 @@ def vcf_Multiple_Convert_Split_All_Filter(Input_Path,Project_ID,Output_Dir,Genom
 			Start = ss[1]
 			Filter_arr = ss[6].split(";")
 			
-			####### 对每个样本 Sample_ID_arr中的成员进行便利，判断是否有基因型信息
-			for i in range(0,len(Sample_ID_arr)):
-				Genotype_String = ss[9+i]
-				gg = Genotype_String.split(":")[0]
-				if re.search(r'1',gg):
-					#print i,Sample_ID_arr[i]
-					Sample_ID = Sample_ID_arr[i]
-					
-					
-					####### 在 Filter之前先打印所有样本未filter的信息 #######
-					if len(REF) == len(ALT):
-						End = ss[1]
-						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-						mSigPortal_Format_SNV_File.write(Output_String)
-							#print(Output_String)
-					else:
-						if len(REF) == 1:
-							Start = ss[1]
-							End = ss[1]
-						else:
-							Start = ss[1]
-							End = int(Start) + len(REF) - 1
-						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-						mSigPortal_Format_INDEL_File.write(Output_String)
-					
-					
-					
-					####### 对每个sample 进行filter #######
-					for i in Filter_arr:
-						Sample_ID_Filter = "%s@%s" % (Sample_ID,i)
+			####### Sometimes, if there is a "," in ALT, then pass
+			if "," in ALT:
+				pass
+			else:
+			
+				####### 对每个样本 Sample_ID_arr中的成员进行便利，判断是否有基因型信息
+				for i in range(0,len(Sample_ID_arr)):
+					Genotype_String = ss[9+i]
+					gg = Genotype_String.split(":")[0]
+					if re.search(r'1',gg):
+						#print i,Sample_ID_arr[i]
+						Sample_ID = Sample_ID_arr[i]
 						
+						
+						####### 在 Filter之前先打印所有样本未filter的信息 #######
 						if len(REF) == len(ALT):
 							End = ss[1]
-							Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Filter,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+							Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
 							mSigPortal_Format_SNV_File.write(Output_String)
-							#print(Output_String)
+								#print(Output_String)
 						else:
 							if len(REF) == 1:
 								Start = ss[1]
@@ -810,8 +867,29 @@ def vcf_Multiple_Convert_Split_All_Filter(Input_Path,Project_ID,Output_Dir,Genom
 							else:
 								Start = ss[1]
 								End = int(Start) + len(REF) - 1
-							Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Filter,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+							Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
 							mSigPortal_Format_INDEL_File.write(Output_String)
+						
+						
+						
+						####### 对每个sample 进行filter #######
+						for i in Filter_arr:
+							Sample_ID_Filter = "%s@%s" % (Sample_ID,i)
+							
+							if len(REF) == len(ALT):
+								End = ss[1]
+								Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Filter,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+								mSigPortal_Format_SNV_File.write(Output_String)
+								#print(Output_String)
+							else:
+								if len(REF) == 1:
+									Start = ss[1]
+									End = ss[1]
+								else:
+									Start = ss[1]
+									End = int(Start) + len(REF) - 1
+								Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Filter,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+								mSigPortal_Format_INDEL_File.write(Output_String)
 	
 	print(Sample_ID_arr)
 	mSigPortal_Format_INDEL_File.close()
@@ -1048,41 +1126,17 @@ def vcf_Multiple_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building
 			
 			vcf_Filter_arr = ss[6].split(";")
 
+			####### Sometimes, if there is a "," in ALT, then pass
+			if "," in ALT:
+				pass
+			else:
 
-			### Pay attention to option "-"
-			if "-" in option_Filter_Arr:
-				if len(REF) == len(ALT):
-					End = ss[1]
-					Output_String = "%s	All_Samples	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-					mSigPortal_Format_SNV_File.write(Output_String)
-				else:
-					if len(REF) == 1:
-						Start = ss[1]
-						End = ss[1]
-					else:
-						Start = ss[1]
-						End = int(Start) + len(REF) - 1
-					Output_String = "%s	All_Samples	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-					mSigPortal_Format_INDEL_File.write(Output_String)
-
-
-			####### 对每个样本 Sample_ID_arr中的成员进行便利，判断是否有基因型信息
-			for i in range(0,len(Sample_ID_arr)):
-				Genotype_String = ss[9+i]
-				gg = Genotype_String.split(":")[0]
-				if re.search(r'1',gg):
-					#print i,Sample_ID_arr[i]
-					Sample_ID = Sample_ID_arr[i]
-					
+				### Pay attention to option "-"
+				if "-" in option_Filter_Arr:
 					if len(REF) == len(ALT):
 						End = ss[1]
-						
-						for x in vcf_Filter_arr:
-							if x in option_Filter_Arr:
-								Sample_ID_Final = "%s@%s" % (Sample_ID,x)
-								Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Final,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-								mSigPortal_Format_SNV_File.write(Output_String)
-
+						Output_String = "%s	All_Samples	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						mSigPortal_Format_SNV_File.write(Output_String)
 					else:
 						if len(REF) == 1:
 							Start = ss[1]
@@ -1090,13 +1144,41 @@ def vcf_Multiple_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building
 						else:
 							Start = ss[1]
 							End = int(Start) + len(REF) - 1
+						Output_String = "%s	All_Samples	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						mSigPortal_Format_INDEL_File.write(Output_String)
 
-						for x in vcf_Filter_arr:
-							if x in option_Filter_Arr:
-								Sample_ID_Final = "%s@%s" % (Sample_ID,x)
-								Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Final,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
-								mSigPortal_Format_INDEL_File.write(Output_String)
-	
+
+				####### 对每个样本 Sample_ID_arr中的成员进行便利，判断是否有基因型信息
+				for i in range(0,len(Sample_ID_arr)):
+					Genotype_String = ss[9+i]
+					gg = Genotype_String.split(":")[0]
+					if re.search(r'1',gg):
+						#print i,Sample_ID_arr[i]
+						Sample_ID = Sample_ID_arr[i]
+						
+						if len(REF) == len(ALT):
+							End = ss[1]
+							
+							for x in vcf_Filter_arr:
+								if x in option_Filter_Arr:
+									Sample_ID_Final = "%s@%s" % (Sample_ID,x)
+									Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Final,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+									mSigPortal_Format_SNV_File.write(Output_String)
+
+						else:
+							if len(REF) == 1:
+								Start = ss[1]
+								End = ss[1]
+							else:
+								Start = ss[1]
+								End = int(Start) + len(REF) - 1
+
+							for x in vcf_Filter_arr:
+								if x in option_Filter_Arr:
+									Sample_ID_Final = "%s@%s" % (Sample_ID,x)
+									Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID_Final,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+									mSigPortal_Format_INDEL_File.write(Output_String)
+		
 	print(Sample_ID_arr)
 	mSigPortal_Format_INDEL_File.close()
 	mSigPortal_Format_SNV_File.close()
@@ -1136,9 +1218,19 @@ def Convert_Collapse(Output_Dir,Collapse,Project_ID):
 		mSigPortal_Format_SNV_File = open(mSigPortal_Format_SNV_Path)
 		for line in mSigPortal_Format_SNV_File:
 			ss = line.strip().split("	")
+			
+			###### 要判断 sample后面是否有filter
+			Sample_and_Filter_arr = ss[1].split("@")
 			Sample_Name = ss[1].split("@")[0]
+			
+			Collapse_Sample_Name = "All_Samples"
+			if len(Sample_and_Filter_arr) == 2:
+				####### 这就说明是带了filter的比如 SC00101@PASS
+				Collpase_Filter = Sample_and_Filter_arr[1]
+				Collapse_Sample_Name = "All_Samples@%s" % Collpase_Filter
+				
 			String_1 = "%s	%s	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],ss[1],ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
-			String_2 = "%s	All_Samples	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
+			String_2 = "%s	%s	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],Collapse_Sample_Name,ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
 			mSigPortal_Format_SNV_Collapse_File.write(String_1)
 			
 			collapse_String_arr.append(String_2)
@@ -1178,9 +1270,20 @@ def Convert_Collapse(Output_Dir,Collapse,Project_ID):
 		mSigPortal_Format_INDEL_File = open(mSigPortal_Format_INDEL_Path)
 		for line in mSigPortal_Format_INDEL_File:
 			ss = line.strip().split("	")
+			
+			###### 要判断 sample后面是否有filter
+			Sample_and_Filter_arr = ss[1].split("@")
+			Sample_Name = ss[1].split("@")[0]
+			
+			Collapse_Sample_Name = "All_Samples"
+			if len(Sample_and_Filter_arr) == 2:
+				####### 这就说明是带了filter的比如 SC00101@PASS
+				Collpase_Filter = Sample_and_Filter_arr[1]
+				Collapse_Sample_Name = "All_Samples@%s" % Collpase_Filter
+
 			Sample_Name = ss[1].split("@")[0]
 			String_1 = "%s	%s	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],ss[1],ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
-			String_2 = "%s	All_Samples	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
+			String_2 = "%s	%s	%s	%s	%s	%s	%s	%s	%s	%s	%s\n" % (ss[0],Collapse_Sample_Name,ss[2],ss[3],ss[4],ss[5],ss[6],ss[7],ss[8],ss[9],ss[10])
 			mSigPortal_Format_INDEL_Collapse_File.write(String_1)
 
 			collapse_String_arr.append(String_2)
@@ -1213,9 +1316,7 @@ def gzip_Output(Output_Dir):
 
 ####### 01-17 sigProfilerPlotting
 def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
-	
-	print(Bed)
-	
+
 	Input_Format_arr_1 = ['vcf', 'csv', 'tsv']
 	Input_Format_arr_2 = ['catalog_csv', 'catalog_tsv']
 	
@@ -1226,21 +1327,16 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 	
 	Input_Path_arr = ["mSigPortal_SNV.txt","mSigPortal_INDEL.txt","mSigPortal_SNV_Collapse.txt","mSigPortal_INDEL_Collapse.txt","mSigPortal_catalog_csv.txt","mSigPortal_catalog_tsv.txt"]
 
-	####### Only in Mac System, unzip zip file will cause a bug __MACOSX:
-	for item in os.listdir(Output_Dir):
-		if re.match(r'__MACOSX',item):
-			cmd_String = "rm -rf %s/%s" % (Output_Dir,item)
-			os.system(cmd_String)
-	
+
 	# ####### Which format is the input file
 	if Input_Format in Input_Format_arr_1:
 		#print("CCCCCCCC")
 		matrices = matGen.SigProfilerMatrixGeneratorFunc(Project_ID, Genome_Building, Output_Dir, exome=False, bed_file=Bed, chrom_based=False, plot=True, tsb_stat=False, seqInfo=True)
 		
 		####### Generate Summary File
-		summary_Path = "%s/Summary.txt" % (Output_Dir)
+		summary_Path = "%s/svg_files_list.txt" % (Output_Dir)
 		summary_File = open(summary_Path,'w')
-		Header = "Sample_Name,Profile_Type,Matrix,Tag,Location\n"
+		Header = "Sample_Name,Profile_Type,Matrix_Size,Filter,Path\n"
 		summary_File.write(Header)
 		SVG_Ouput_Dir = "%s/output/plots/svg" % (Output_Dir)
 		#print(SVG_Ouput_Dir)
@@ -1248,7 +1344,7 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 		os.system("mv %s %s" % (SVG_Ouput_Dir,SVG_New_Output_Dir))
 
 		####### Generate Download File and Matrix_List_File #######
-		Matrix_List_Path = "%s/Matrix_List.txt" % (Output_Dir)
+		Matrix_List_Path = "%s/matrix_files_list.txt" % (Output_Dir)
 		
 		DBS_Path = "%s/output/DBS" % (Output_Dir)
 		ID_Path = "%s/output/ID" % (Output_Dir)
@@ -1257,27 +1353,29 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 		Matrix_Path = "%s/output/vcf_files" % (Output_Dir)
 
 		Matrix_List_File = open(Matrix_List_Path,'w')
-		Header = "Catalog,Type,FileName,Path\n"
+		Header = "Profile_Type,Matrix_Size,Path\n"
 		Matrix_List_File.write(Header)
 
 		if os.path.exists(DBS_Path):
 			os.system("tar -zcvf %s.tar.gz %s" % (DBS_Path,DBS_Path))
 
-			Catagory = "DBS"
+			Catalog = "DBS"
 			for ii in os.listdir(DBS_Path):
-				Type = ii.split(".")[1]
+				Type = ii.split(".")[1].split("DBS")[1]
 				Path = "%s/%s" % (DBS_Path,ii)
-				Final_String = "%s,%s,%s,%s\n" % (Catagory,Type,ii,Path)
+				Path = os.path.abspath(Path)
+				Final_String = "%s,%s,%s\n" % (Catalog,Type,Path)
 				Matrix_List_File.write(Final_String)
 
 		if os.path.exists(ID_Path):
 			os.system("tar -zcvf %s.tar.gz %s" % (ID_Path,ID_Path))
 
-			Catagory = "ID"
+			Catalog = "ID"
 			for ii in os.listdir(ID_Path):
-				Type = ii.split(".")[1]
+				Type = ii.split(".")[1].split("ID")[1]
 				Path = "%s/%s" % (ID_Path,ii)
-				Final_String = "%s,%s,%s,%s\n" % (Catagory,Type,ii,Path)
+				Path = os.path.abspath(Path)
+				Final_String = "%s,%s,%s\n" % (Catalog,Type,Path)
 				Matrix_List_File.write(Final_String)
 
 		if os.path.exists(PDF_Path):
@@ -1285,11 +1383,12 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 
 		if os.path.exists(SBS_Path):
 			os.system("tar -zcvf %s.tar.gz %s" % (SBS_Path,SBS_Path))
-			Catagory = "SBS"
+			Catalog = "SBS"
 			for ii in os.listdir(SBS_Path):
-				Type = ii.split(".")[1]
+				Type = ii.split(".")[1].split("SBS")[1]
 				Path = "%s/%s" % (SBS_Path,ii)
-				Final_String = "%s,%s,%s,%s\n" % (Catagory,Type,ii,Path)
+				Path = os.path.abspath(Path)
+				Final_String = "%s,%s,%s\n" % (Catalog,Type,Path)
 				Matrix_List_File.write(Final_String)
 
 		if os.path.exists(Matrix_Path):
@@ -1305,7 +1404,7 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 				#print(svg)
 				Type = svg.split("_plots_")[0]
 				Profile_Type = Type.split("_")[0]
-				Matrix = "%s-%s" % (Type.split("_")[0],Type.split("_")[1])
+				Matrix = "%s" % (Type.split("_")[1])
 
 				Tag = "NA"
 				sample_Name = ""
@@ -1319,7 +1418,8 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 					pass
 				else:
 					svg_Location = "%s/%s" % (SVG_New_Output_Dir,svg)
-					String = "%s,%s,%s,%s,%s\n" % (sample_Name,Profile_Type,Matrix,Tag,svg_Location)
+					abs_path = os.path.abspath(svg_Location)
+					String = "%s,%s,%s,%s,%s\n" % (sample_Name,Profile_Type,Matrix,Tag,abs_path)
 					summary_File.write(String)
 		summary_File.close()
 
@@ -1360,9 +1460,9 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 		print("Finisheh !!!!!!!!!!!!!!!!!!!!!!!!!!")
 		print(Final_Type)
 		####### Generate Summary File
-		summary_Path = "%s/Summary.txt" % (Output_Dir)
+		summary_Path = "%s/svg_files_list.txt" % (Output_Dir)
 		summary_File = open(summary_Path,'w')
-		Header = "Sample_Name,Profile_Type,Matrix,Tag,Location\n"
+		Header = "Sample_Name,Profile_Type,Matrix_Size,Filter,Path\n"
 		summary_File.write(Header)
 		SVG_Ouput_Dir = "%s/svg" % (Output_Dir)
 
@@ -1371,7 +1471,7 @@ def sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed):
 				#print(svg)
 				Type = svg.split("_plots_")[0]
 				Profile_Type = Type.split("_")[0]
-				Matrix = "%s-%s" % (Type.split("_")[0],Type.split("_")[1])
+				Matrix = "%s" % (Type.split("_")[1])
 				
 				Tag = "NA"
 				sample_Name = ""
@@ -1423,7 +1523,7 @@ if __name__ == "__main__":
 # python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output -g GRCh37 -t WGS
 
 ### Usage for tsv
-# python mSigPortal_Profiler_Extraction.py -f tsv -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output -g GRCh37 -t WGS -c True
+# python mSigPortal_Profiler_Extraction.py -f tsv -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output -g GRCh37 -t WGS
 
 ### Usage for catalog_csv
 # python mSigPortal_Profiler_Extraction.py -f catalog_csv -i Demo_input/demo_input_catalog.csv -p Project -o Test_Output -g GRCh37 -t WGS
@@ -1435,7 +1535,6 @@ if __name__ == "__main__":
 # python mSigPortal_Profiler_Extraction.py -f tsv -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output -g GRCh37 -t WGS -c True
 # python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output -g GRCh37 -t WGS -c True
 # python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS -c True
-
 
 ### Usage for vcf
 # python mSigPortal_Profiler_Extraction.py -f vcf -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS
@@ -1457,7 +1556,7 @@ if __name__ == "__main__":
 # python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf.tar.gz -p Project -o Test_Output -g GRCh37 -t WGS
 # python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf.zip -p Project -o Test_Output -g GRCh37 -t WGS
 # python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf.tar -p Project -o Test_Output-6-22 -g GRCh37 -t WGS
-# python mSigPortal_Profiler_Extraction.py -f catalog_tsv -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_catalog.tsv.zip -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv.zip -p Project -o Test_Output -g GRCh37 -t WGS
 # python mSigPortal_Profiler_Extraction.py -f vcf -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf.tar -p Project -o Test_Output -g GRCh37 -t WGS
 # python mSigPortal_Profiler_Extraction.py -f catalog_csv -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_catalog.csv.zip -p Project -o Test_Output -g GRCh37 -t WGS
 # python mSigPortal_Profiler_Extraction.py -f catalog_tsv -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_catalog.tsv.zip -p Project -o Test_Output -g GRCh37 -t WGS
@@ -1470,8 +1569,8 @@ if __name__ == "__main__":
 # python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output -g GRCh37 -t WGS -s True
 
 
-### Usage for -b option
-# python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output -g GRCh37 -t WGS -b Demo_input/demo_input_bed.bed
-# python mSigPortal_Profiler_Extraction.py -f vcf -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf -p Project -o Test_Output -g GRCh37 -t WGS -b Demo_input/demo_input_bed.bed
-# python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_multi.vcf.gz -p Project -o Test_Output -g GRCh37 -t WGS -b Demo_input/demo_input_bed.bed
 
+
+### Final 
+# time python mSigPortal_Profiler_Extraction_v27.py -f tsv -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output -g GRCh37 -t WGS -c True
+# time python mSigPortal_Profiler_Extraction_v27.py -f vcf -F PASS@alt_allele_in_normal -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS -c True
