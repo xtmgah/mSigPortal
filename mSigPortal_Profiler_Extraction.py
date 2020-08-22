@@ -11,19 +11,19 @@ Function:	Generate Input File for mSigPortal
 Version:	1.27
 Date:		August-22-2020
 Update:		(1) Generate seqInfo for downloading (seqInfo=True)
-			(2) Generate Compressed Dir: DBS.tar.gz;ID.tar.gz;plots.tar.gz;SBS.tar.gz;vcf_files.tar.gz;
-			(3) Generate Statistics.txt (need to update: github:SigProfilerMatrixGenerator-master/SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py)
-			(4) Solve the 'True' bug for Collpase Option 
-			(5) Fix the bug in Catalog format with -c function
-			(6) Generate Matrix_List.txt
-			(7) Solve the problem "The header is incorrectly displayed in the CSV/TSV File"
-			(8) Fix the bug of -F function in CSV/TSV format
-			(9) Filter the line of ALT with ","
-			(10) Improve the function of -F with "-" in CSV, TSV and VCF format 
-			(11) Improve the function of Collpase [The All_Samples@Filter]
-			(12) Fix the bug of "rm -rf /tmp"!
-			(13) Improve the output file: svg_files_list.txt
-			(14) Improve the output file: matrix_files_list.txt
+		(2) Generate Compressed Dir: DBS.tar.gz;ID.tar.gz;plots.tar.gz;SBS.tar.gz;vcf_files.tar.gz;
+		(3) Generate Statistics.txt (need to update: github:SigProfilerMatrixGenerator-master/SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py)
+		(4) Solve the 'True' bug for Collpase Option 
+		(5) Fix the bug in Catalog format with -c function
+		(6) Generate Matrix_List.txt
+		(7) Solve the problem "The header is incorrectly displayed in the CSV/TSV File"
+		(8) Fix the bug of -F function in CSV/TSV format
+		(9) Filter the line of ALT with ","
+		(10) Improve the function of -F with "-" in CSV, TSV and VCF format 
+		(11) Improve the function of Collpase [The All_Samples@Filter]
+		(12) Fix the bug of "rm -rf /tmp"!
+		(13) Improve the output file: svg_files_list.txt
+		(14) Improve the output file: matrix_files_list.txt
 '''
 
 
