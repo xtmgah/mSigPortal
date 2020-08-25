@@ -13,16 +13,7 @@ source('Sigvisualfunc.R')
 
 
 # define Data_Source  -----------------------------------------------------
-if(Data_Source != "Public_Data"){
-  ## read matrix summary list 
-  foldername <- "example_results/" 
-  matrixfiles <- read_csv(paste0(foldername,'matrix_files_list.txt'),col_names = T) 
-  ## list of profile type and matrix size
-  matrixfiles %>% select(Profile_Type,Matrix_Size)
-  svgfiles <- read_csv(paste0(foldername,'/svg_files_list.txt'),col_names = T) 
-  ### svgfiles and matrixfiles used as input data
-  
-}else{
+if(Data_Source == "Public_Data"){
   #parameters for the public data 
   # list for the public data
   load('Data/seqmatrix_refdata_info.RData')
@@ -39,6 +30,15 @@ if(Data_Source != "Public_Data"){
   load('Data/seqmatrix_refdata.RData')
   seqmatrix_refdata_public <- seqmatrix_refdata %>% filter(Study == study, Cancer_Type==cancer_type,Dataset == experimental_strategy)
   ### svgfiles_public and seqmatrix_refdata_public used as input data 
+  
+}else{
+  ## read matrix summary list 
+  foldername <- "example_results/" 
+  matrixfiles <- read_csv(paste0(foldername,'matrix_files_list.txt'),col_names = T) 
+  ## list of profile type and matrix size
+  matrixfiles %>% select(Profile_Type,Matrix_Size)
+  svgfiles <- read_csv(paste0(foldername,'/svg_files_list.txt'),col_names = T) 
+  ### svgfiles and matrixfiles used as input data
 }
 
 
@@ -245,7 +245,7 @@ if(str_detect(user_input,";")){
   profile_names = c("Original","Reconstructed")
 }else {
   profile2 <- sigref_data %>% select(MutationType,one_of(user_input))
-  profile_names = c(colnames(profile1)[2],colnames(profile2)[2])
+  
 }
 
 if(Data_Source != "Public_Data"){
@@ -255,6 +255,7 @@ if(Data_Source != "Public_Data"){
   data_input <- read_delim(matrixfile_selected,delim = '\t')
   data_input <- data_input %>% select_if(~ !is.numeric(.)|| sum(.)>0)
   profile1 <- data_input %>% select(MutationType,one_of(sample_name_input))
+  profile_names = c(colnames(profile1)[2],colnames(profile2)[2])
   
   plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,profile_names = profile_names,output_plot = 'tmp.svg')
 }else {
@@ -263,6 +264,7 @@ if(Data_Source != "Public_Data"){
     select(MutationType,Sample,Mutations) %>% 
     filter(Sample %in% c(sample_name_input)) %>% 
     pivot_wider(id_cols = MutationType,names_from=Sample,values_from=Mutations)
+  profile_names = c(colnames(profile1)[2],colnames(profile2)[2])
   
   plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,profile_names = profile_names,output_plot = 'tmp.svg')
 }
