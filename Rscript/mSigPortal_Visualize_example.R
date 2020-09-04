@@ -10,8 +10,6 @@ library(factoextra)
 # Source msigportal function ----------------------------------------------
 source('Sigvisualfunc.R')
 
-
-
 # define Data_Source  -----------------------------------------------------
 if(Data_Source == "Public_Data"){
   #parameters for the public data 
@@ -40,7 +38,6 @@ if(Data_Source == "Public_Data"){
   svgfiles <- read_csv(paste0(foldername,'/svg_files_list.txt'),col_names = T) 
   ### svgfiles and matrixfiles used as input data
 }
-
 
 
 # Mutational Profiles -----------------------------------------------------
@@ -271,12 +268,6 @@ if(Data_Source != "Public_Data"){
 
 
 
-
-
-
-
-
-
 # section 3: Profile Comparison to Public data ----------------------------
 if(Data_Source != "Public_Data"){
   # find the common profile between data and seqmatrix
@@ -306,11 +297,78 @@ if(Data_Source != "Public_Data"){
 
 
 
+
+# Motif analysis ----------------------------------------------------------
+###parameters:
+Proportion_input <- 0.8
+pattern_input <- 'NCG>NTG'
+
+if(Data_Source != "Public_Data"){
+  matrixfile_selected <- matrixfiles %>% filter(Profile_Type=="SBS",Matrix_Size=="96") %>% pull(Path)
+  data_input <- read_delim(matrixfile_selected,delim = '\t')
+  data_input <- data_input %>% select_if(~ !is.numeric(.)|| sum(.)>0)
+  
+  data_input <- data_input %>%
+    pivot_longer(cols = -MutationType) %>% 
+    mutate(Study="Input") %>% 
+    select(Study,Sample=name,MutationType,Mutations=value) %>% 
+    mutate(Type=str_sub(MutationType,3,5),SubType1=str_sub(MutationType,1,1),SubType2=str_sub(str_sub(MutationType,7,7))) %>% 
+    select(Study,Sample,MutationType,Type,SubType1,SubType2,Mutations)
+  
+  content_all_tmp <- content_extraction(data_input)
+  data_tmp <- content_all_tmp %>% 
+    filter(N1>Proportion_input,str_detect(Study,paste0("^",study,"@"))) %>% 
+    count(Pattern,sort=T) %>% 
+    mutate(Type="Frequency of Mutational Pattern") %>% select(Type,Pattern,n)
+  
+  if(dim(data_tmp)>0){
+    barchart_plot2(data=data_tmp,plot_width = 16,plot_height = 5,output_plot = 'tmp.svg')
+  }else{
+    print(paste0('No mutational pattern with proportion of mutations large than',Proportion_input))
+  }
+  
+  context_plot(data = data_input,pattern = pattern_input,output_plot = 'tmp.svg')
+  context_plot(data = data_input,pattern = pattern_input,data_return = TRUE) %>% 
+    arrange(desc(N1)) %>% write_delim('tmp.txt',delim = '\t',col_names = T)
+  
+}else{
+  
+  #study <- "TCGA"  ## based on the left panel
+  
+  # content_data_all <- content_extraction(data_input)
+  # content_data_all <- content_data_all %>% filter(Total>200,N1>0.1)
+  # save(content_data_all,file='Data/content_data_all.RData',version = 2)
+  load('Data/content_data_all.RData')
+  data_tmp <- content_data_all %>% 
+    filter(N1>0.8,str_detect(Study,paste0("^",study,"@"))) %>% 
+    count(Pattern,sort=T) %>% 
+    mutate(Type="Frequency of Mutational Pattern") %>% select(Type,Pattern,n)
+  
+  barchart_plot2(data=data_tmp,plot_width = 16,plot_height = 5,output_plot = 'tmp.svg')
+  
+  # type_input <- 'C>T'
+  # subtype1_input <- 'N'
+  # subtype2_input <- 'G'
+  pattern_input <- 'NCG>NTG'
+  # if slower, we could use seqmatrix_refdata_sbs96
+  data_input <- seqmatrix_refdata %>% filter(Study==study) %>% 
+    filter(Profile == "SBS96") %>% 
+    mutate(Study=paste0(Study,"@",Cancer_Type)) %>% 
+    select(Study,Sample,MutationType,Mutations) %>% 
+    mutate(Type=str_sub(MutationType,3,5),SubType1=str_sub(MutationType,1,1),SubType2=str_sub(str_sub(MutationType,7,7))) %>% 
+    select(Study,Sample,MutationType,Type,SubType1,SubType2,Mutations)
+  
+  context_plot(data = data_input,pattern = pattern_input,output_plot = 'tmp.svg')
+  context_plot(data = data_input,pattern = pattern_input,data_return = TRUE) %>% 
+    arrange(desc(N1)) %>% write_delim('tmp.txt',delim = '\t',col_names = T)
+}
+
+
+
+
 # “Principal Component Analysis” ------------------------------------------
 
 # section 1 PCA within sample  --------------------------------------------
-
-
 # parameters need: Profile Type, Matrix_Size,
 # Profile Type can be any profile but compared to signature only support common types
 profile_type_input <- "DBS"

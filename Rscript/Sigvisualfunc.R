@@ -200,6 +200,12 @@ Subscolor <- c(
   'Signature Subs-others'='#cececa'
 )
 
+
+tmpcolor <- c('#9e0142','#d53e4f','#f46d43','#fdae61','#fee08b','#e6f598','#abdda4','#66c2a5','#3288bd','#5e4fa2','#40004b','#762a83','#9970ab','#c2a5cf','#e7d4e8','#d9f0d3','#a6dba0','#5aae61','#1b7837','#00441b')
+names(tmpcolor) <- c('Signature Subs-11','Signature Subs-23','Signature Subs-27','Signature Subs-29','Signature Subs-34','Signature Subs-37','Signature Subs-38','Signature Subs-43','Signature Subs-45','Signature Subs-48','Signature Subs-49','Signature Subs-50','Signature Subs-51','Signature Subs-52','Signature Subs-53','Signature Subs-55','Signature Subs-57','Signature Subs-58','Signature Subs-59','Signature Subs-60')
+
+Subscolor <- c(Subscolor,tmpcolor)
+
 SBScolor <- Subscolor
 names(SBScolor) <- Subs2SBS[names(SBScolor)]
 
@@ -222,7 +228,6 @@ color12 <- rev(c(
 
 ### SBS cluster funciton ####
 # p4 proportion bar
-
 
 SBS96_Clustering <- function(sigdata,studydata=NULL,cosinedata,cosine_cutoff=0,sigcolor=NULL,studycolor=NULL,puritydata=NULL,puritydata_cat=FALSE, puritycol=NULL,purity_cutoff=0,clustern,highlight=NULL,legendnrow=3,sampletext_size=6, filename='SBS96_clustering.pdf',height=10,width=20,hc_func='hclust',hc_metric = 'euclidean',hc_method = 'ward.D2',stand=TRUE){
   
@@ -388,8 +393,10 @@ calculate_similarities <- function(orignal_genomes, signature, signature_activat
                                       "Cosine_similarity"=cosine_sim_list,
                                       "L1_Norm"=l1_norm_list,
                                       `L1_Norm_%`=relative_l1_list,
+                                      `100-L1_Norm_%`=100-relative_l1_list,
                                       "L2_Norm"=l2_norm_list,
                                       `L2_Norm_%`=relative_l2_list,
+                                      `100-L2_Norm_%`=100-relative_l2_list,
                                       "KL_Divergence"= kl_divergence_list,check.names = F)
   #write.csv(similarities_dataframe, file="MyData.csv")
   #write.table(similarities_dataframe, file="MyData.txt", sep="\t", row.names = FALSE)
@@ -981,8 +988,8 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
       #scale_y_continuous(expand = c(0,0))+
       theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
       ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
-      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5))+
-      panel_border(color = gray(0.5),size = 0.3)
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.x = element_line(colour = 'black',size = 0.25),axis.line.y = element_line(colour = 'black',size = 0.25))
+    #panel_border(color = gray(0.5),size = 0.3)
   }
   else {
     plot = ggplot(data = df, aes(x = SubType, y = value,  fill = Type, width = 0.7)) + 
@@ -996,8 +1003,8 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
       #scale_y_continuous(expand = c(0,0))+
       theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
       ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
-      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5))+
-      panel_border(color = gray(0.5),size = 0.3)
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.x = element_line(colour = 'black',size = 0.25),axis.line.y = element_line(colour = 'black',size = 0.25))
+    #     panel_border(color = gray(0.5),size = 0.3)
   }
   if(is.null(output_plot)){
     return(plot)
@@ -1059,8 +1066,8 @@ plot_compare_profiles_diff_strand <- function (profile1, profile2, profile_names
       #scale_y_continuous(expand = c(0,0))+
       theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
       ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
-      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5))+
-      panel_border(color = gray(0.5),size = 0.3)
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.x = element_line(colour = 'black',size = 0.25),axis.line.y = element_line(colour = 'black',size = 0.25))
+    #      panel_border(color = gray(0.5),size = 0.3)
   }
   else {
     plot = ggplot(data = df, aes(x = SubType, y = value, fill=Strand,group=Strand, width = 0.7)) + 
@@ -1075,8 +1082,8 @@ plot_compare_profiles_diff_strand <- function (profile1, profile2, profile_names
       #scale_y_continuous(expand = c(0,0))+
       theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
       ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
-      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5))+
-      panel_border(color = gray(0.5),size = 0.3)
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.x = element_line(colour = 'black',size = 0.25),axis.line.y = element_line(colour = 'black',size = 0.25))
+    # panel_border(color = gray(0.5),size = 0.3)
   }
   return(plot)
 }
@@ -1186,4 +1193,558 @@ signature_piechart <- function(data,colset, output_plot = NULL,plot_width=NULL, 
   }
   
 } 
+
+
+
+## TMB plot ###
+TMBplot <- function(data,output_plot = NULL,plot_width=NULL, plot_height=NULL,addnote= NULL){
+  # Cancer_Type,     Sample,   Burden
+  # group Cancer Type
+  data <- data %>% mutate(Burden=if_else(is.infinite(Burden),NA_real_,Burden))
+  mdata <- suppressMessages(data %>% group_by(Cancer_Type) %>% summarise(median=median(Burden,na.rm = TRUE),total=n(),nsample=sum(!is.na(Burden),na.rm=TRUE)) %>% arrange(median) %>% mutate(Seq=seq_along(Cancer_Type)*10-10))
+  ## remove na cancer type
+  natype <- mdata %>% filter(is.na(median)) %>% pull(Cancer_Type)
+  mdata <- mdata %>% filter(!is.na(median))
+  data <- data %>% filter(!(Cancer_Type %in% natype))
+  
+  data <- suppressMessages(data %>% mutate(Cancer_Type=factor(Cancer_Type,levels = mdata$Cancer_Type)) %>% arrange(Cancer_Type,Burden) %>% left_join(mdata))
+  
+  data <- data %>% filter(!is.na(Burden))%>% group_by(Cancer_Type) %>% mutate(Subseq=seq_along(Sample)) %>% ungroup() %>% mutate(score=Seq+1+8*Subseq/nsample)
+  mdata <- mdata %>% mutate(Seq2=Seq+10) %>% mutate(score=(Seq+Seq2)/2) %>% 
+    mutate(Burden=median,Type=if_else(seq_along(Cancer_Type) %% 2 ==0,"A","B"),Label=paste0(nsample,'<br /> - <br />',total)) %>% 
+    mutate(Label_col = glue::glue("<span style='color:#377eb8'>{nsample}</span><br />\u2015<br /><span style='color:#4daf4a'>{total}</span>"))
+  # "<span style='color:#377eb8'>{nsample}</span><br />\u2501<br /><span style='color:#4daf4a'>{total}</span>"
+  f <- function(y) seq(floor(min(y,na.rm = TRUE)), ceiling(max(y,na.rm = TRUE)))
+  
+  ymint <- floor(min(data$Burden,na.rm = TRUE))
+  ymint <- if_else(is.infinite(ymint),-4,ymint)
+  ymaxt <- ceiling(max(data$Burden,na.rm = TRUE))
+  p <-  data %>% filter(!is.na(Burden)) %>% 
+    ggplot(aes(score,(Burden),group=Cancer_Type))+
+    geom_rect(data=mdata,aes(xmin=Seq,xmax=Seq2,ymin=-Inf,ymax=Inf,fill=Type),alpha=0.5)+
+    geom_point(pch=21,size=1,stroke=0.5)+
+    geom_segment(data=mdata,aes(x=Seq+1,y=(median),xend=Seq2-1,yend=(median)),col="#e41a1c")+
+    scale_fill_manual(values=c('#F2F2F2','#D4D4D4'))+
+    scale_x_continuous(limits = c(min(mdata$Seq),max(mdata$Seq2)),expand = c(0,0),breaks = mdata$score,labels = mdata$Label_col,sec.axis = dup_axis(labels = mdata$Cancer_Type))+
+    scale_y_continuous(limits = c(ymint,ymaxt),expand = c(0,0),breaks = f)+
+    labs(x="",y="Number of Mutations per Megabase\n(log10)")+
+    theme_ipsum_rc(axis_title_just = 'm',axis_title_size = 14,axis_text_size = 12,grid = "Y",ticks = FALSE)+
+    theme(legend.position = "None",axis.text.x.top = element_text(size = 11,angle = -45,hjust = 1,vjust = 0),axis.text.x.bottom = element_markdown(size = 12),panel.border = element_rect(colour = "black",fill = NA))+
+    coord_cartesian(clip = 'off')
+  
+  if(!is.null(addnote)){
+    p <- p+annotate("text",x=-Inf, y = Inf, label = addnote, vjust=2, hjust=-0.2,size=7)
+  }
+  
+  
+  if(is.null(output_plot)){
+    return(p)
+  }else{
+    xleng <- 2.5+length(unique(mdata$Cancer_Type))*0.5
+    xleng <- if_else(xleng>18,18,xleng)
+    yleng <- 6
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    ggsave(filename = output_plot,plot = p,width = plot_width,height = plot_height)
+  }
+  
+}
+
+
+
+
+
+decompsite_distribution <- function(decompsite,output_plot = NULL,plot_width=NULL, plot_height=NULL){
+  #Cancer_Type   Sample Total_Mutations Cosine_similarity .... 
+  decompsite2 <- decompsite %>% select(Cancer_Type,Sample,Cosine_similarity,`100-L1_Norm_%`,`100-L2_Norm_%`,KL_Divergence) %>% pivot_longer(cols = -c(Cancer_Type,Sample))
+  mtmp <- decompsite %>% group_by(Cancer_Type) %>% summarise(m=median(Cosine_similarity,na.rm = TRUE)) 
+  mtmp2 <- decompsite2 %>% group_by(Cancer_Type,name) %>% summarise(m=median(value,na.rm = TRUE)) %>% ungroup() %>% mutate(m=if_else(name=="KL_Divergence",1-m,m))%>% group_by(name) %>% arrange(desc(m)) %>% mutate(Seq=seq_along(Cancer_Type)) %>% ungroup()
+  ntmp <- decompsite %>% count(Cancer_Type) %>% mutate(Caner_type2=paste0(Cancer_Type," (",n,")")) %>% left_join(mtmp) %>% arrange(m)
+  
+  library(ggridges)
+  library(scales)
+  p <- decompsite2 %>% 
+    left_join(mtmp2) %>% 
+    left_join(ntmp) %>% 
+    mutate(Cancer_Type=factor(Cancer_Type,levels = ntmp$Cancer_Type,labels =ntmp$Caner_type2 )) %>% 
+    mutate(name=factor(name,levels = c('Cosine_similarity','100-L1_Norm_%','100-L2_Norm_%','KL_Divergence'))) %>% 
+    ggplot(aes(value,y=Cancer_Type,fill=Seq))+
+    geom_density_ridges(color="black")+
+    facet_wrap(~name,scales = 'free_x',nrow = 1)+
+    theme_ipsum_rc(axis_title_just = "m",axis_title_size = 14,axis = "X",ticks = TRUE,base_size = 14,grid = FALSE)+
+    scale_x_continuous(name="",expand = c(0,0),breaks = pretty_breaks())+
+    scale_y_discrete(name = "",expand = c(0,0))+
+    scale_fill_viridis_c(direction = -1)+
+    theme(strip.text.x = element_text(hjust = 0.5),legend.position = "none",panel.grid.major.x = element_line(colour = gray(0.85),size = 0.5,linetype = 2),panel.spacing = unit(0.8, "lines"),strip.background = element_rect(colour = '#cccccc',fill = c('#a1d99b')))+
+    #panel_border(color = "black",size = 0.8)+
+    guides(fill=guide_legend(title = "",nrow = 4))
+  
+  if(is.null(output_plot)){
+    return(p)
+  }else{
+    yleng <- 2.5+length(unique(ntmp$Cancer_Type))*0.5
+    yleng <- if_else(yleng>12,12,yleng)
+    xleng <- 16
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    ggsave(filename = output_plot,plot = p,width = plot_width,height = plot_height)
+  }
+  
+  
+}
+
+
+
+
+### Landscape of mutational signature cluster function ####
+Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_cat = TRUE, studycolor=NULL,study_cutoff = -Inf,studyname = NULL,puritydata=NULL,puritydata_cat=FALSE,puritycol=NULL,purity_cutoff=-Inf,purityname = NULL,cosinedata,cosine_cutoff=0,highlight=NULL,legendnrow=NULL,sampletext_size=6,output_plot=NULL,plot_height=NULL,plot_width=NULL,clustern,hc_func='hclust',hc_metric = 'euclidean',hc_method = 'ward.D2',stand=TRUE){
+  require(tidyverse)
+  require(scales)
+  require(janitor)
+  require(ggsci)
+  require(ggpubr)
+  require(factoextra)
+  require(cowplot)
+  
+  colnames(sigdata)[1] <- 'Samples'
+  
+  ## define color for signature
+  if(is.null(sigcolor)){
+    uvalues <- sort(colnames(sigdata)[-1])
+    if((uvalues %in% names(Subscolor)) == TRUE && length(uvalues %in% names(Subscolor)) == 1){
+      sigcolorindex <- as.character(Subscolor[uvalues])
+      names(sigcolorindex) <- uvalues
+    } else if((uvalues %in% names(SBScolor)) == TRUE && length(uvalues %in% names(SBScolor)) == 1){
+      sigcolorindex <- as.character(SBScolor[uvalues])
+      names(sigcolorindex) <- uvalues
+    } else {
+      sigcolorindex <- as.character(SBScolor[1:length(uvalues)])
+      names(sigcolorindex) <- uvalues
+    }
+  }else{
+    sigcolorindex <- sigcolor
+  }
+  
+  # cluster data
+  tmp=sigdata %>% adorn_percentages('row') 
+  mdata=as.matrix(tmp[,-1])
+  rownames(mdata) <- tmp$Samples
+  
+  #fviz_nbclust(mdata, kmeans, method = "gap_stat")
+  kcolors <- pal_d3("category20")(clustern)
+  res <- hcut(mdata,k = clustern,hc_func = hc_func,hc_metric = hc_metric,hc_method = hc_method,stand=stand)
+  
+  # p_cluster
+  p_cluster <- fviz_dend(res, rect = TRUE, cex = 0.5,k_colors = kcolors,lwd = 0.5,show_labels = F)+scale_x_discrete(expand = c(0,0))+ theme(plot.margin=margin(b=-0.7,unit="cm"),title = element_blank())
+  #plot.margin=margin(b=-1,unit="cm")
+  
+  ## p_mutation
+  p_mutation <- sigdata %>% gather(Signature,Weight,-Samples) %>% mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% ggplot(aes(Samples,(Weight),fill=factor(Signature,levels = names(sigcolorindex))))+geom_bar(stat="identity",col="gray95",width=1,size=0.1)+theme_ipsum_rc(axis_title_just = "m",axis_title_size = 12,axis = "xy")+theme(legend.title = element_blank(),axis.ticks.x = element_blank(), axis.text.x = element_blank(),panel.grid.major.x=element_blank(),legend.position = "none",legend.box.spacing = unit(0,"cm"),plot.margin=margin(b=-1,t = 1,unit="cm"))+scale_y_continuous(expand = c(0, 0),breaks = pretty_breaks(),labels = comma)+scale_fill_manual(values = sigcolorindex,drop=FALSE)+guides(fill=guide_legend(nrow=2,byrow=TRUE))+xlab("")+ylab("Number of mutations \n")
+  #+theme(plot.margin=margin(b=4,unit="pt"))
+  
+  # p_proportion plot
+  if(is.null(legendnrow)){
+    nsize <- dim(sigdata)[2]-1
+    if(nsize > 15){
+      legendnrow <- 2
+    }else {
+      legendnrow <- 1
+    }
+  }
+  
+  p_proportion <- sigdata %>% gather(Signature,Weight,-Samples) %>% mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% ggplot(aes(Samples,Weight,fill=factor(Signature,levels = names(sigcolorindex))))+geom_bar(stat="identity",position="fill",col="gray95",width = 1,size=0.1)+theme_ipsum_rc(axis_title_just = "m",axis_title_size = 12)+theme(axis.ticks.x = element_blank(), axis.text.x = element_text(size = sampletext_size, angle = 90, vjust = 0.5, hjust = 1),panel.grid.major=element_line(),legend.position = "bottom",legend.box.background = element_blank(),legend.box.spacing = unit(-0.5,"cm"),legend.key = element_rect(size = 0),axis.ticks.y = element_line(colour = "black"),legend.key.size = unit(0.25, "cm"),legend.key.width =unit(1, "cm"))+scale_y_continuous(expand = c(0, 0),breaks = pretty_breaks())+xlab("")+scale_fill_manual("Mutational sigantures\n",values = sigcolorindex,drop=FALSE)+guides(fill=guide_legend(nrow=legendnrow,byrow=TRUE,label.position = "bottom"))+ylab("Signature contribution\n")
+  #+theme(plot.margin=margin(t=4,unit="pt"))
+  #legend.title = element_blank(),
+  
+  p_proportion_legend <- as_ggplot(get_legend(p_proportion))
+  #p_proportion_legend <- p_proportion_legend+theme(plot.margin = margin(b = 0))
+  p_proportion <- p_proportion + theme(legend.position = "none")
+  
+  if(!is.null(highlight)){
+    samhigh <- sigdata %>% mutate(Samples_high=if_else(Samples %in% highlight,paste0("*",Samples),Samples))
+    p_proportion <-  p_proportion+scale_x_discrete(breaks=samhigh$Samples,labels=samhigh$Samples_high)
+  }
+  
+  
+  #p3 <- flush_ticks(p3,flush = "Y",plot = FALSE)
+  #p4 <- flush_ticks(p4,flush = "Y",plot = FALSE)
+  
+  # cosine similarity bar
+  p_cosine <- cosinedata %>%  mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% mutate(Similarity=if_else(Similarity<cosine_cutoff,NA_real_,Similarity)) %>% ggplot(aes(Samples,1,fill=Similarity))+geom_tile(col="black")+scale_fill_viridis_c("Cosine similarity\n",na.value = "#cccccc",option = 'C',limits = c(0.6, 1), oob = scales::squish)+theme_minimal()+theme(legend.position = "bottom",legend.key.width =unit(2,"cm"),legend.key.height = unit(0.3,"cm"), panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+ylim(c(0,2))
+  #+theme(title = element_blank())
+  ## p_cosine_legend = cosine similarity bar (legend)
+  p_cosine_legend <- as_ggplot(get_legend(p_cosine))
+  #p_cosine_legend <- p_cosine_legend+theme(plot.margin = margin(b = 0))
+  p_cosine <- cosinedata %>%  mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% mutate(Similarity=if_else(Similarity<cosine_cutoff,NA_real_,Similarity)) %>% ggplot(aes(Samples,1,fill=Similarity))+geom_tile(col="black")+scale_fill_viridis_c(na.value = "#cccccc",option = 'C',limits = c(0.6, 1), oob = scales::squish)+theme_minimal()+theme(legend.position = "none", panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1.2,t = 0.5,unit="cm"))+ylim(c(0,2))
+  #,title = element_blank()
+  
+  
+  # study color bar
+  if(!is.null(studydata)){
+    colnames(studydata) <- c('Samples','Study')
+    studydata <- studydata %>% filter(Samples %in% res$labels) %>% mutate(Samples=factor(Samples,levels=res$labels[res$order])) 
+    studyname <- if_else(is.null(studyname),"",studyname)
+    if(!studydata_cat) {
+      studyname <- paste0(studyname,"\n")
+      studydata <- studydata %>% mutate(Study=if_else(Study<study_cutoff,NA_real_,Study))
+      p_study <- studydata  %>% ggplot(aes(Samples,1,fill=Study))+geom_tile(col="black")+scale_fill_viridis_c(studyname,na.value = "#cccccc",option = 'D',breaks=pretty_breaks(5))+theme_minimal()+theme(legend.position = "bottom",legend.key.width =unit(2, "cm"),legend.key.height = unit(0.3,"cm"), panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+ylim(c(0,2))
+      p_study_legend <- as_ggplot(get_legend(p_study))
+      #p_study_legend <- p_study_legend+theme(plot.margin = margin(b = 0))
+      p_study <- studydata %>% ggplot(aes(Samples,1,fill=Study))+geom_tile(col="black")+scale_fill_viridis_c(studyname,na.value = "#cccccc",option = 'D',breaks=pretty_breaks(5))+theme_minimal()+theme(legend.position = "none", panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t = 0.5,unit="cm"))+ylim(c(0,2))
+      
+    }else { 
+      if(is.null(studycolor)){
+        studycolor <-  pal_npg()(n=length(unique(studydata$Study)))
+        names(studycolor) <- unique(studydata$Study)
+      }
+      p_study <- studydata %>% ggplot(aes(Samples,1,fill=factor(Study,levels = names(studycolor))))+geom_tile(col="black")+scale_fill_manual(studyname,values =studycolor)+theme_minimal()+theme(legend.position = "bottom",panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t=0.5,unit="cm"))+ylim(c(0,2))
+      p_study_legend <- as_ggplot(get_legend(p_study))
+      #p_study_legend <- p_study_legend+theme(plot.margin = margin(b = 0))
+      p_study <- studydata %>% ggplot(aes(Samples,1,fill=factor(Study,levels = names(studycolor))))+geom_tile(col="black")+scale_fill_manual(studyname,values =studycolor)+theme_minimal()+theme(legend.position = "none",panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t=0.5,unit="cm"))+ylim(c(0,2))
+    }
+  }else {
+    p_study <- NULL
+    p_study_legend <- NULL
+  }
+  
+  # purity color bar
+  # if(is.null(purityname)){
+  #   purityname <-  "              "
+  # }
+  
+  if(!is.null(puritydata)){
+    colnames(puritydata) <- c('Samples','Purity')
+    puritydata <- puritydata %>% filter(Samples %in% res$labels) %>% mutate(Samples=factor(Samples,levels=res$labels[res$order])) 
+    purityname <- if_else(is.null(purityname),"",purityname)
+    if(!puritydata_cat) {
+      purityname <-  paste0(purityname,"\n")
+      puritydata <- puritydata %>% mutate(Purity=if_else(Purity<purity_cutoff,NA_real_,Purity))
+      p_purity <- puritydata  %>% ggplot(aes(Samples,1,fill=Purity))+geom_tile(col="black")+scale_fill_viridis_c(purityname,na.value = "#cccccc",option = 'D',breaks=pretty_breaks(5))+theme_minimal()+theme(legend.position = "bottom",legend.key.width =unit(2, "cm"),legend.key.height = unit(0.3,"cm"), panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+ylim(c(0,2))
+      p_purity_legend <- as_ggplot(get_legend(p_purity))
+      #p_purity_legend <- p_purity_legend+theme(plot.margin = margin(b = 0))
+      p_purity <- puritydata %>% ggplot(aes(Samples,1,fill=Purity))+geom_tile(col="black")+scale_fill_viridis_c(purityname,na.value = "#cccccc",option = 'D',breaks=pretty_breaks(5))+theme_minimal()+theme(legend.position = "none", panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t = 0.5,unit="cm"))+ylim(c(0,2))
+    }else { 
+      if(is.null(puritycol)){
+        puritycol <-  pal_npg()(n=length(unique(puritydata$Purity)))
+        names(puritycol) <- unique(puritydata$Purity)
+      }
+      p_purity <- puritydata %>% ggplot(aes(Samples,1,fill=factor(Purity,levels = names(puritycol))))+geom_tile(col="black")+scale_fill_manual(values =puritycol)+theme_minimal()+theme(legend.position = "bottom",panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t=0.5,unit="cm"))+ylim(c(0,2))
+      p_purity_legend <- as_ggplot(get_legend(p_purity))
+      #p_purity_legend <- p_purity_legend+theme(plot.margin = margin(b = 0))
+      p_purity <- puritydata %>% ggplot(aes(Samples,1,fill=factor(Purity,levels = names(puritycol))))+geom_tile(col="black")+scale_fill_manual(purityname,values =puritycol)+theme_minimal()+theme(legend.position = "none",panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t=0.5,unit="cm"))+ylim(c(0,2))
+    }
+  }else {
+    p_purity <- NULL
+    p_purity_legend <- NULL
+  }
+  
+  h_study <- if_else(is.null(p_study),0,0.14)
+  h_purity <- if_else(is.null(p_study),0,0.11)
+  
+  p_legends <- plot_grid(p_study_legend+theme(plot.margin = margin(b = -2,t=0,unit = 'cm')), p_purity_legend+theme(plot.margin = margin(b = -2,t=0,unit = 'cm')), p_proportion_legend+theme(plot.margin = margin(t = -1,b=-0.5,unit = 'cm')), p_cosine_legend+theme(plot.margin = margin(t = -1,b=-0.5,unit = 'cm')),nrow = 2,ncol = 2)
+  
+  if(!is.null(p_purity) & !is.null(p_study) ){
+    pall <- plot_grid(p_cluster,p_study,p_purity,p_mutation,p_cosine,p_proportion,p_legends+theme(plot.margin = margin(t=-3,unit = 'cm')),align = 'v',axis = 'lr',ncol = 1,rel_heights = c(2,h_study,h_purity,4,0.05,7,1))
+  }else if(is.null(p_purity) & is.null(p_study)){
+    p_legends <- plot_grid(p_proportion_legend+theme(plot.margin = margin(t = 2,b=-0.5,unit = 'cm')), p_cosine_legend+theme(plot.margin = margin(t = -1,b=-0.5,unit = 'cm')),nrow=2,ncol = 1)
+    pall <- plot_grid(p_cluster,p_mutation,p_cosine,p_proportion,p_legends+theme(plot.margin = margin(t=-3,unit = 'cm')),align = 'v',axis = 'lr',ncol = 1,rel_heights = c(2,4,0.05,7,1))
+  } else if(is.null(p_purity)){
+    pall <- plot_grid(p_cluster,p_study,p_mutation,p_cosine,p_proportion,p_legends+theme(plot.margin = margin(t=-3,unit = 'cm')),align = 'v',axis = 'lr',ncol = 1,rel_heights = c(2,h_study,4,0.05,7,1))
+  }else{
+    pall <- plot_grid(p_cluster,p_purity,p_mutation,p_cosine,p_proportion,p_legends+theme(plot.margin = margin(t=-3,unit = 'cm')),align = 'v',axis = 'lr',ncol = 1,rel_heights = c(2,h_purity,4,0.05,7,1))
+  }
+  
+  if(is.null(output_plot)){
+    return(pall)
+  }else{
+    xleng <- 2.5+dim(sigdata)[1]*0.1
+    xleng <- if_else(xleng>20,20,xleng)
+    yleng <- 12
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    ggsave(filename = output_plot,plot = pall,width = plot_width,height = plot_height)
+  }
+  
+}
+
+
+
+
+## piechar common
+
+piechart_plot <- function(data,colset=NULL,keep_legend = TRUE,legend_name=NULL, output_plot = NULL,plot_width=NULL, plot_height=NULL){
+  
+  ## data format: Type,Catelogy,Freq,Label
+  colnames(data) <- c("Type","Catelogy",'Frequency','Label')
+  
+  if(is.null(colset)){
+    uvalues <- sort(unique(data$Catelogy))
+    if((uvalues %in% names(Subscolor)) == TRUE && length(uvalues %in% names(Subscolor)) == 1){
+      sigcolorindex <- as.character(Subscolor[uvalues])
+      names(sigcolorindex) <- uvalues
+    } else if((uvalues %in% names(SBScolor)) == TRUE && length(uvalues %in% names(SBScolor)) == 1){
+      sigcolorindex <- as.character(SBScolor[uvalues])
+      names(sigcolorindex) <- uvalues
+    } else {
+      sigcolorindex <- as.character(SBScolor[1:length(uvalues)])
+      names(sigcolorindex) <- uvalues
+    }
+  }else{
+    sigcolorindex <- colset
+  }
+  
+  
+  # convert nsig_data to another format for the piechart
+  data_pie <- data %>%
+    group_by(Type) %>% 
+    arrange(Frequency) %>%
+    mutate(
+      end_angle = 2*pi*cumsum(Frequency)/sum(Frequency),   # ending angle for each pie slice
+      start_angle = lag(end_angle, default = 0),   # starting angle for each pie slice
+      mid_angle = 0.5*(start_angle + end_angle),   # middle of each pie slice, for the text label
+      # horizontal and vertical justifications depend on whether we're to the left/right
+      # or top/bottom of the pie
+      hjust = ifelse(mid_angle > pi, 1, 0),
+      vjust = ifelse(mid_angle < pi/2 | mid_angle > 3*pi/2, 0, 1)
+    ) %>% 
+    ungroup()
+  
+  # radius of the pie and radius for outside and inside labels
+  rpie <- 1
+  rlabel_out <- 1.05 * rpie
+  rlabel_in <- 0.6 * rpie
+  legend_name <- if_else(is.null(legend_name),'',legend_name)
+  
+  p <- ggplot(data_pie) +
+    geom_arc_bar(aes(x0 = 0, y0 = 0, r0 = 0, r = rpie, start = start_angle, end = end_angle, fill = Catelogy)) +
+    geom_text(aes(x = rlabel_in * sin(mid_angle), y = rlabel_in * cos(mid_angle), label = Label ), size = 4)+
+    facet_wrap(~Type,nrow = 2)+
+    coord_fixed()+
+    labs(x="",y="")+
+    scale_fill_manual(legend_name,values = sigcolorindex)+
+    theme_ipsum_rc(axis = FALSE, grid = FALSE)+
+    theme(axis.text.y = element_blank(),axis.text.x = element_blank(),strip.text = element_text(size = 14,hjust = 0.5,face = "bold"))
+  
+  if(!(keep_legend)){
+    p <- p+theme(legend.position = 'none')
+  }
+  
+  if(is.null(output_plot)){
+    return(p)
+  }else{
+    xleng <- 7
+    yleng <- 7
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    ggsave(filename = output_plot,plot = p,width = plot_width,height = plot_height)
+  }
+  
+} 
+
+
+
+## bar plot 
+barchart_plot <- function(data,colset=NULL,keep_legend = TRUE,legend_name=NULL, output_plot = NULL,plot_width=NULL, plot_height=NULL){
+  
+  ## data format: Type,Catelogy,Freq,Label
+  colnames(data) <- c("Type","Catelogy",'Frequency')
+  
+  if(is.null(colset)){
+    uvalues <- sort(unique(data$Catelogy))
+    if((uvalues %in% names(Subscolor)) == TRUE && length(uvalues %in% names(Subscolor)) == 1){
+      sigcolorindex <- as.character(Subscolor[uvalues])
+      names(sigcolorindex) <- uvalues
+    } else if((uvalues %in% names(SBScolor)) == TRUE && length(uvalues %in% names(SBScolor)) == 1){
+      sigcolorindex <- as.character(SBScolor[uvalues])
+      names(sigcolorindex) <- uvalues
+    } else {
+      sigcolorindex <- as.character(SBScolor[1:length(uvalues)])
+      names(sigcolorindex) <- uvalues
+    }
+  }else{
+    sigcolorindex <- colset
+  }
+  legend_name <- if_else(is.null(legend_name),'',legend_name)
+  
+  p <- data %>% 
+    mutate(Catelogy=fct_reorder(Catelogy,Frequency,.desc = TRUE)) %>% 
+    ggplot(aes(Catelogy,Frequency,fill=Catelogy))+
+    geom_col(width = 0.8)+
+    geom_text(aes(label = percent(Frequency,accuracy = 0.1)), vjust = -.5,size=3.5)+
+    facet_wrap(~Type,nrow = 2)+
+    labs(x="",y="Frequency (%)")+
+    scale_y_percent(breaks = pretty_breaks(),limits = c(0,1))+
+    scale_fill_manual(legend_name,values = sigcolorindex,breaks = names(sigcolorindex))+
+    theme_ipsum_rc(axis_title_size = 12,axis_title_just = "m",axis = TRUE, grid = "Yy")+
+    theme(axis.text.x = element_text(angle = 90,vjust = 0.5,hjust = 1),strip.text = element_text(size = 14,hjust = 0.5,face = "bold"),axis.line.x = element_line(colour = 'black',size = 0.25),axis.line.y = element_line(colour = 'black',size = 0.25),legend.position = 'top')+
+    guides(fill=guide_legend(nrow=1,byrow=TRUE))
+  
+  
+  if(!(keep_legend)){
+    p <- p+theme(legend.position = 'none')
+  }
+  
+  if(is.null(output_plot)){
+    return(p)
+  }else{
+    xleng <- 2.5+length(uvalues)*0.5
+    xleng <- if_else(xleng>15,15,xleng)
+    yleng <- 7
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    ggsave(filename = output_plot,plot = p,width = plot_width,height = plot_height)
+  }
+  
+} 
+
+barchart_plot2 <- function(data, output_plot = NULL,plot_width=NULL, plot_height=NULL){
+  
+  ## data format: Type,Catelogy,Freq,Label
+  colnames(data) <- c("Type","Catelogy",'Frequency')
+  
+  p <- data %>% 
+    mutate(Catelogy=fct_reorder(Catelogy,Frequency,.desc = TRUE)) %>% 
+    ggplot(aes(Catelogy,Frequency,fill=Frequency))+
+    geom_col(width = 0.8)+
+    #geom_text(aes(label = percent(Frequency,accuracy = 0.1)), vjust = -.5,size=3.5)+
+    facet_wrap(~Type,nrow = 2)+
+    labs(x="",y="Frequency")+
+    scale_y_continuous(breaks = pretty_breaks(),expand = expansion(mult = c(0,0.1)))+
+    #scale_fill_manual(legend_name,values = sigcolorindex,breaks = names(sigcolorindex))+
+    theme_ipsum_rc(axis_title_size = 12,axis_title_just = "m",axis = TRUE, grid = "Yy",)+
+    theme(axis.text.x = element_text(angle = 90,vjust = 0.5,hjust = 1,size = 8),strip.text = element_text(size = 14,hjust = 0.5,face = "bold"),axis.line.x = element_line(colour = 'black',size = 0.25),axis.line.y = element_line(colour = 'black',size = 0.25),legend.position = 'none')
+  #    guides(fill=guide_legend(nrow=1,byrow=TRUE))
+  
+   if(is.null(output_plot)){
+    return(p)
+  }else{
+    xleng <- 2.5+length(uvalues)*0.5
+    xleng <- if_else(xleng>15,15,xleng)
+    yleng <- 4
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    ggsave(filename = output_plot,plot = p,width = plot_width,height = plot_height)
+  }
+  
+} 
+
+
+
+prevalence_plot <- function(sigdata,nmutation = 0, legend_name="Sigantures", output_plot = NULL,plot_width=NULL, plot_height=NULL){
+  pie_input <- sigdata %>% 
+    summarise(across(where(is.numeric),~sum(.x,na.rm=TRUE))) %>% 
+    mutate(Type="Prevalence by mutations") %>%
+    select(Type,everything()) %>%
+    adorn_percentages(denominator = 'row') %>% 
+    pivot_longer(cols = -Type) %>% 
+    mutate(lab=if_else(value>0.03,percent(value,accuracy = 0.1),''))
+  
+  bar_input <- sigdata %>% pivot_longer(cols=-Samples) %>%
+    filter(value>nmutation) %>%
+    count(name) %>%
+    mutate(value=n/dim(sigdata)[1]) %>% 
+    mutate(Type="Prevalence by samples") %>% 
+    select(Type,Catelogy=name,Frequency=value)
+  
+  p_piechart <- piechart_plot(data = pie_input1,keep_legend = FALSE)
+  p_barchart <- barchart_plot(data = bar_input,legend_name = legend_name)
+  pall <- plot_grid(p_piechart+theme(plot.margin = margin(r = -2)),p_barchart,align = 'h',nrow = 1,rel_widths = c(1,4))
+  
+  if(is.null(output_plot)){
+    return(pall)
+  }else{
+    xleng <- 6+length(uvalues)*0.5
+    xleng <- if_else(xleng>15,15,xleng)
+    yleng <- 5
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    ggsave(filename = output_plot,plot = pall,width = plot_width,height = plot_height)
+  }
+  
+}
+
+
+
+iupac <- function(base){
+  base2 <- NA_character_
+  if(base == "A"){base2 = "A"}
+  if(base == "T"){base2 = "T"}
+  if(base == "C"){base2 = "C"}
+  if(base == "G"){base2 = "G"}
+  if(base == "R"){base2 = c("A","G")}
+  if(base == "Y"){base2 = c("C", "T")}
+  if(base == "S"){base2 = c("G","C")}
+  if(base == "W"){base2 = c("A","T")}
+  if(base == "K"){base2 = c("G","T")}
+  if(base == "M"){base2 = c("A","C")}
+  if(base == "B"){base2 = c("C","G","T")}
+  if(base == "D"){base2 = c("A","G","T")}
+  if(base == "H"){base2 = c("A","C","T")}
+  if(base == "V"){base2 = c("A","C","G")}
+  if(base == "N"){base2 = c("A","T","C","G")}
+  return(base2)
+}
+
+iupac_list <- c('A','T','C','G','R','Y','S','W','K','M','B','D','H','V','N')
+
+context_plot <- function(data,pattern,data_return = FALSE,output_plot = NULL,plot_width=18, plot_height=12){
+  # type <- 'C>T'
+  # subtype1 <- 'N'
+  # subtype2 <- 'G'
+  #pattern <- paste0(subtype1,str_sub(type,1,1),subtype2,">",subtype1,str_sub(type,3,3),subtype2)
+  type <- paste0(str_sub(pattern,2,2),str_sub(pattern,4,4),str_sub(pattern,6,6))
+  subtype1 <- str_sub(pattern,1,1)
+  subtype2 <- str_sub(pattern,3,3)
+  pattern1 <- paste0("\n",subtype1,str_sub(type,1,1),subtype2,">",subtype1,str_sub(type,3,3),subtype2," context")
+  pattern2 <- paste0(type," other contexts\n")
+  
+  tmpdata0 <- suppressMessages(data %>% group_by(Study,Sample) %>% summarise(Total=sum(Mutations,na.rm = TRUE)) %>% ungroup())
+  tmpdata1 <- suppressMessages(data %>% filter(Type == type) %>% group_by(Study,Sample,Type) %>% summarise(N0=sum(Mutations,na.rm = TRUE)) %>% ungroup())
+  tmpdata2 <- suppressMessages(data %>% filter(Type == type,SubType1 %in% iupac(subtype1),SubType2 %in% iupac(subtype2)) %>% group_by(Study,Sample,Type) %>% summarise(N1=sum(Mutations,na.rm = TRUE)) %>% ungroup())
+  
+  data <- suppressMessages(left_join(tmpdata0,tmpdata1) %>% 
+                             left_join(tmpdata2) %>% 
+                             mutate(N2=N0-N1) %>% 
+                             mutate(N1=N1/Total,N2=N2/Total,Type=pattern) %>% 
+                             rename(Pattern=Type) %>% 
+                             filter(Total>200))
+  
+  if(data_return){
+    return(data)
+  }
+  p <- data %>% 
+    ggplot(aes(N1,N2,size=(Total),fill=Study))+
+    geom_point(pch=21,stroke=0.25,col="black")+
+    labs(x=pattern1,y=pattern2,size="Number of mutations")+
+    #guides(fill=FALSE)+
+    guides(fill = guide_legend(override.aes = list(size=4)))+
+    xlim(c(0,1))+
+    ylim(c(0,1))+
+    scale_fill_manual(values = as.character(SBScolor))+
+    theme_ipsum_rc(axis_title_size = 14,axis_title_just = "m",axis = TRUE, grid = "XxYy")+
+    theme(axis.line.x = element_line(colour = 'black',size = 0),axis.line.y = element_line(colour = 'black',size = 0),legend.position = 'right')+
+    scale_size_continuous(trans = "log10",labels = comma_format())
+  
+  if(is.null(output_plot)){
+    return(p)
+  }else{
+    ggsave(filename = output_plot,plot = p,width = plot_width,height = plot_height)
+  }
+}
+
+
+content_extraction <- function(data){
+  content_data_all <- tibble(Study=character(),Sample=character(),Total=numeric(),Pattern=character(),N0=numeric(),N1=numeric(),N2=numeric())
+  for(i in c("C>A", "C>G", "C>T", "T>A", "T>C", "T>G")){
+    for(j1 in iupac_list){
+      for(j2 in iupac_list){
+        if(j1 == j2 & j1== "N"){ next }
+        pattern <- paste0(j1,str_sub(i,1,1),j2,">",j1,str_sub(i,3,3),j2)
+        tmp <- context_plot(data = data,pattern = pattern,data_return = TRUE)
+        content_data_all <- bind_rows(content_data_all,tmp)
+      }
+    }
+  }
+  return(content_data_all)
+}
 
