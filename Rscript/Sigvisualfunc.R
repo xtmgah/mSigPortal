@@ -743,6 +743,62 @@ plot_dbs_78_profile <- function(data,samplename=NULL,samplename_plot=TRUE, filen
 
 
 
+
+
+# Heatmap of profiles -----------------------------------------------------
+
+profile_heatmap_plot <- function(data,output_plot = NULL,plot_width=NULL, plot_height=NULL){
+  
+  # data format: Sample  Profile Mutations
+  
+  profile_tmp <- data %>% group_by(Profile) %>% summarise(mean=mean(Mutations)) %>% arrange(desc(mean))
+  samleve_tmp <- data %>% filter(Profile==profile_tmp$Profile[1]) %>% arrange(Mutations) %>% pull(Sample)
+  
+  # typedata_tmp <- seqmatrix_refdata_public %>% group_by(Profile,MutationType) %>% summarise(mean=mean(Mutations,na.rm = TRUE)) %>% ungroup() %>% arrange(desc(mean)) %>% group_by(Profile) %>% slice(1:5) %>% mutate(Seq2=6-seq_along(MutationType)) %>% ungroup() %>% left_join(profile_tmp %>% select(-mean)) %>% mutate(Seq3=Seq+0.1666667*Seq2)
+  # 
+  # data2 <- seqmatrix_refdata_public %>% 
+  #   left_join(typedata_tmp %>% select(Profile,MutationType,Seq,Seq2)) %>% 
+  #   filter(!is.na(Seq)) %>% 
+  #   left_join(
+  #     seqmatrix_refdata_public %>% group_by(Sample,Profile) %>% summarise(total=sum(Mutations))
+  #   ) %>% 
+  #   mutate(Ratio=Mutations/total)
+  # 
+  # max_tmp <- data2 %>% group_by(Profile) %>% summarise(max=max(Ratio))
+  # 
+  # data2 <- data2 %>% left_join(max_tmp) %>% mutate(value=Ratio/max+Seq)
+  
+  plot_final <- data %>% left_join(profile_tmp) %>% 
+    mutate(Sample=factor(Sample,levels = samleve_tmp),Profile=factor(Profile,levels = profile_tmp$Profile)) %>% 
+    ggplot(aes(Sample,Profile,fill=(Mutations)))+
+    geom_tile(col="white")+
+    scale_fill_viridis_c(trans = "log10",label=comma_format(),na.value = 'black')+
+    labs(x="",y="",fill="Number of mutations\n")+
+    theme_ipsum_rc(grid = FALSE,ticks = FALSE,axis = FALSE)+
+    theme(axis.text.x = element_text(angle = 90,hjust = 1,vjust = 0.5),legend.key.width =unit(2, "cm"),legend.position = "top")
+  
+  
+  ## define the length of x and y
+  leng0 <- 2.5
+  leng_ratio <-  0.2
+  xleng <- leng_ratio*(length(unique(data$Sample)))+leng0+2.5
+  
+  xleng <- if_else(xleng>15,15,xleng)
+  yleng <- leng_ratio*max(str_length(unique(data_input$Sample)))+2.5+leng0
+  
+  if(is.null(output_plot)){
+    return(plot_final)
+  }else{
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    
+    ggsave(filename = output_plot,plot = plot_final,width = plot_width,height = plot_height)
+  }
+  
+}
+
+
+
 # Mutational Patten funcitons ---------------------------------------------
 
 profile_format_df <- function(data,factortype=FALSE){
@@ -1615,7 +1671,7 @@ barchart_plot2 <- function(data, output_plot = NULL,plot_width=NULL, plot_height
     theme(axis.text.x = element_text(angle = 90,vjust = 0.5,hjust = 1,size = 8),strip.text = element_text(size = 14,hjust = 0.5,face = "bold"),axis.line.x = element_line(colour = 'black',size = 0.25),axis.line.y = element_line(colour = 'black',size = 0.25),legend.position = 'none')
   #    guides(fill=guide_legend(nrow=1,byrow=TRUE))
   
-   if(is.null(output_plot)){
+  if(is.null(output_plot)){
     return(p)
   }else{
     xleng <- 2.5+length(uvalues)*0.5

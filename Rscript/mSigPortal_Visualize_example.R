@@ -5,6 +5,7 @@ library(hrbrthemes)
 library(ggsci)
 library(ggrepel)
 library(factoextra)
+library(scales)
 
 
 # Source msigportal function ----------------------------------------------
@@ -38,6 +39,39 @@ if(Data_Source == "Public_Data"){
   svgfiles <- read_csv(paste0(foldername,'/svg_files_list.txt'),col_names = T) 
   ### svgfiles and matrixfiles used as input data
 }
+
+
+
+
+# Tumor Mutation Burden ---------------------------------------------------
+if(Data_Source != "Public_Data"){
+  
+  data_input <- tibble()
+  for(i in 1:dim(matrixfiles)[1]){
+    matrixfile_selected <- matrixfiles$Path[i]
+    if(dim(data_input_tmp)[1]>0){
+      data_input_tmp <- read_delim(matrixfile_selected,delim = '\t')
+      #data_input_tmp <- data_input_tmp %>% select_if(~ !is.numeric(.)|| sum(.)>0)
+      data_input_tmp <- data_input_tmp %>% pivot_longer(cols = -MutationType) %>% 
+        group_by(name) %>% 
+        summarise(Mutations=sum(value,na.rm = TRUE)) %>% 
+        mutate(Profile=paste0(matrixfiles$Profile_Type[i],matrixfiles$Matrix_Size[i])) %>% 
+        select(Sample=name,Profile,Mutations)
+      data_input <- bind_rows(data_input,data_input_tmp)
+    }
+  }
+  
+}else {
+  
+  data_input <- seqmatrix_refdata_public %>% 
+    group_by(Sample,Profile) %>% 
+    summarise(Mutations=sum(Mutations,na.rm = TRUE)) %>% 
+    ungroup() 
+  
+}
+
+profile_heatmap_plot(data = data_input,output_plot = 'tmp.svg')
+
 
 
 # Mutational Profiles -----------------------------------------------------
