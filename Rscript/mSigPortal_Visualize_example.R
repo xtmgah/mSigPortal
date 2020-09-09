@@ -351,7 +351,7 @@ if(Data_Source != "Public_Data"){
   
   content_all_tmp <- content_extraction(data_input)
   data_tmp <- content_all_tmp %>% 
-    filter(N1>Proportion_input,str_detect(Study,paste0("^",study,"@"))) %>% 
+    filter(N1>Proportion_input) %>% 
     count(Pattern,sort=T) %>% 
     mutate(Type="Frequency of Mutational Pattern") %>% select(Type,Pattern,n)
   

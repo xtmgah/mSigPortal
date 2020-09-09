@@ -1535,10 +1535,10 @@ piechart_plot <- function(data,colset=NULL,keep_legend = TRUE,legend_name=NULL, 
   
   if(is.null(colset)){
     uvalues <- sort(unique(data$Catelogy))
-    if((uvalues %in% names(Subscolor)) == TRUE && length(uvalues %in% names(Subscolor)) == 1){
+    if((unique(uvalues %in% names(Subscolor))) == TRUE && length(unique(uvalues %in% names(Subscolor))) == 1){
       sigcolorindex <- as.character(Subscolor[uvalues])
       names(sigcolorindex) <- uvalues
-    } else if((uvalues %in% names(SBScolor)) == TRUE && length(uvalues %in% names(SBScolor)) == 1){
+    } else if((unique(uvalues %in% names(SBScolor))) == TRUE && length(unique(uvalues %in% names(SBScolor))) == 1){
       sigcolorindex <- as.character(SBScolor[uvalues])
       names(sigcolorindex) <- uvalues
     } else {
@@ -1607,10 +1607,10 @@ barchart_plot <- function(data,colset=NULL,keep_legend = TRUE,legend_name=NULL, 
   
   if(is.null(colset)){
     uvalues <- sort(unique(data$Catelogy))
-    if((uvalues %in% names(Subscolor)) == TRUE && length(uvalues %in% names(Subscolor)) == 1){
+    if((unique(uvalues %in% names(Subscolor))) == TRUE && length(unique(uvalues %in% names(Subscolor))) == 1){
       sigcolorindex <- as.character(Subscolor[uvalues])
       names(sigcolorindex) <- uvalues
-    } else if((uvalues %in% names(SBScolor)) == TRUE && length(uvalues %in% names(SBScolor)) == 1){
+    } else if((unique(uvalues %in% names(SBScolor))) == TRUE && length(unique(uvalues %in% names(SBScolor))) == 1){
       sigcolorindex <- as.character(SBScolor[uvalues])
       names(sigcolorindex) <- uvalues
     } else {
@@ -1629,7 +1629,7 @@ barchart_plot <- function(data,colset=NULL,keep_legend = TRUE,legend_name=NULL, 
     geom_text(aes(label = percent(Frequency,accuracy = 0.1)), vjust = -.5,size=3.5)+
     facet_wrap(~Type,nrow = 2)+
     labs(x="",y="Frequency (%)")+
-    scale_y_percent(breaks = pretty_breaks(),limits = c(0,1))+
+    scale_y_percent(breaks = pretty_breaks(),limits = c(0,1),expand = expand_scale(mult = 0.1))+
     scale_fill_manual(legend_name,values = sigcolorindex,breaks = names(sigcolorindex))+
     theme_ipsum_rc(axis_title_size = 12,axis_title_just = "m",axis = TRUE, grid = "Yy")+
     theme(axis.text.x = element_text(angle = 90,vjust = 0.5,hjust = 1),strip.text = element_text(size = 14,hjust = 0.5,face = "bold"),axis.line.x = element_line(colour = 'black',size = 0.25),axis.line.y = element_line(colour = 'black',size = 0.25),legend.position = 'top')+
@@ -1657,7 +1657,7 @@ barchart_plot2 <- function(data, output_plot = NULL,plot_width=NULL, plot_height
   
   ## data format: Type,Catelogy,Freq,Label
   colnames(data) <- c("Type","Catelogy",'Frequency')
-  
+  uvalues <- sort(unique(data$Catelogy))
   p <- data %>% 
     mutate(Catelogy=fct_reorder(Catelogy,Frequency,.desc = TRUE)) %>% 
     ggplot(aes(Catelogy,Frequency,fill=Frequency))+
@@ -1693,7 +1693,7 @@ prevalence_plot <- function(sigdata,nmutation = 0, legend_name="Sigantures", out
     select(Type,everything()) %>%
     adorn_percentages(denominator = 'row') %>% 
     pivot_longer(cols = -Type) %>% 
-    mutate(lab=if_else(value>0.03,percent(value,accuracy = 0.1),''))
+    mutate(lab=if_else(value>0.05,percent(value,accuracy = 0.1),''))
   
   bar_input <- sigdata %>% pivot_longer(cols=-Samples) %>%
     filter(value>nmutation) %>%
@@ -1701,14 +1701,14 @@ prevalence_plot <- function(sigdata,nmutation = 0, legend_name="Sigantures", out
     mutate(value=n/dim(sigdata)[1]) %>% 
     mutate(Type="Prevalence by samples") %>% 
     select(Type,Catelogy=name,Frequency=value)
-  
-  p_piechart <- piechart_plot(data = pie_input1,keep_legend = FALSE)
+  p_piechart <- piechart_plot(data = pie_input,keep_legend = FALSE)
   p_barchart <- barchart_plot(data = bar_input,legend_name = legend_name)
   pall <- plot_grid(p_piechart+theme(plot.margin = margin(r = -2)),p_barchart,align = 'h',nrow = 1,rel_widths = c(1,4))
   
   if(is.null(output_plot)){
     return(pall)
   }else{
+    uvalues <- sort(unique(bar_input$Catelogy))
     xleng <- 6+length(uvalues)*0.5
     xleng <- if_else(xleng>15,15,xleng)
     yleng <- 5
