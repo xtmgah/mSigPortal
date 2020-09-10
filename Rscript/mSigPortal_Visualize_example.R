@@ -49,8 +49,8 @@ if(Data_Source != "Public_Data"){
   data_input <- tibble()
   for(i in 1:dim(matrixfiles)[1]){
     matrixfile_selected <- matrixfiles$Path[i]
+    data_input_tmp <- read_delim(matrixfile_selected,delim = '\t')
     if(dim(data_input_tmp)[1]>0){
-      data_input_tmp <- read_delim(matrixfile_selected,delim = '\t')
       #data_input_tmp <- data_input_tmp %>% select_if(~ !is.numeric(.)|| sum(.)>0)
       data_input_tmp <- data_input_tmp %>% pivot_longer(cols = -MutationType) %>% 
         group_by(name) %>% 
@@ -374,7 +374,7 @@ if(Data_Source != "Public_Data"){
   # save(content_data_all,file='Data/content_data_all.RData',version = 2)
   load('Data/content_data_all.RData')
   data_tmp <- content_data_all %>% 
-    filter(N1>0.8,str_detect(Study,paste0("^",study,"@"))) %>% 
+    filter(N1>Proportion_input,str_detect(Study,paste0("^",study,"@"))) %>% 
     count(Pattern,sort=T) %>% 
     mutate(Type="Frequency of Mutational Pattern") %>% select(Type,Pattern,n)
   

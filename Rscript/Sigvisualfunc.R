@@ -784,7 +784,7 @@ profile_heatmap_plot <- function(data,output_plot = NULL,plot_width=NULL, plot_h
   xleng <- leng_ratio*(length(unique(data$Sample)))+leng0+2.5
   
   xleng <- if_else(xleng>15,15,xleng)
-  yleng <- leng_ratio*max(str_length(unique(data_input$Sample)))+2.5+leng0
+  yleng <- leng_ratio*max(str_length(unique(data$Sample)))+2.5+leng0
   
   if(is.null(output_plot)){
     return(plot_final)
