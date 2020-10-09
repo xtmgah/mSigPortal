@@ -1,4 +1,6 @@
-library(tidyverse)
+require(tidyverse)
+require(ggtext)
+require(ggforce)
 
 ### reformat the signature name ###
 signames <- 
@@ -775,7 +777,7 @@ profile_heatmap_plot <- function(data,output_plot = NULL,plot_width=NULL, plot_h
     scale_fill_viridis_c(trans = "log10",label=comma_format(),na.value = 'black')+
     labs(x="",y="",fill="Number of mutations\n")+
     theme_ipsum_rc(grid = FALSE,ticks = FALSE,axis = FALSE)+
-    theme(axis.text.x = element_text(angle = 90,hjust = 1,vjust = 0.5),legend.key.width =unit(2, "cm"),legend.position = "top")
+    theme(axis.text.x = element_text(angle = 90,hjust = 1,vjust = 0.5,size = 10),legend.key.width =unit(2, "cm"),legend.position = "top")
   
   
   ## define the length of x and y
@@ -830,6 +832,8 @@ profile_format_df <- function(data,factortype=FALSE){
   
 }
 
+
+## need to define profile_format_df2 ## 
 
 
 
@@ -945,8 +949,10 @@ plot_cosine_heatmap_df <- function (cos_sim_df, col_order, cluster_rows = TRUE, 
   ## define the length of x and y
   leng0 <- 2.5
   leng_ratio <-  0.2
-  xleng <- leng_ratio*length(unique(cos_sim_matrix.m$Signature))+leng0+2.5
-  yleng <- leng_ratio*length(unique(cos_sim_matrix.m$Sample))+leng0
+  lenx <- str_length(unique(cos_sim_matrix.m$Signature))*0.5
+  leny <- str_length(unique(cos_sim_matrix.m$Sample))*0.5
+  xleng <- leng_ratio*length(unique(cos_sim_matrix.m$Signature))+leng0+2.5+leny
+  yleng <- leng_ratio*length(unique(cos_sim_matrix.m$Sample))+leng0+4+lenx
   
   heatmap = ggplot(cos_sim_matrix.m, aes(x = Signature, y = Sample,  fill = Cosine.sim, order = Sample)) + 
     geom_tile(color = "white") + 
@@ -1044,7 +1050,7 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
       #scale_y_continuous(expand = c(0,0))+
       theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
       ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
-      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.x = element_line(colour = 'black',size = 0.25),axis.line.y = element_line(colour = 'black',size = 0.25))
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5)#axis.line.x = element_line(colour = 'black',size = 0.25),
     #panel_border(color = gray(0.5),size = 0.3)
   }
   else {
@@ -1059,7 +1065,7 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
       #scale_y_continuous(expand = c(0,0))+
       theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
       ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
-      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.x = element_line(colour = 'black',size = 0.25),axis.line.y = element_line(colour = 'black',size = 0.25))
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5) #,axis.line.x = element_line(colour = 'black',size = 0.25)
     #     panel_border(color = gray(0.5),size = 0.3)
   }
   if(is.null(output_plot)){
@@ -1324,10 +1330,11 @@ decompsite_distribution <- function(decompsite,output_plot = NULL,plot_width=NUL
     left_join(ntmp) %>% 
     mutate(Cancer_Type=factor(Cancer_Type,levels = ntmp$Cancer_Type,labels =ntmp$Caner_type2 )) %>% 
     mutate(name=factor(name,levels = c('Cosine_similarity','100-L1_Norm_%','100-L2_Norm_%','KL_Divergence'))) %>% 
-    ggplot(aes(value,y=Cancer_Type,fill=Seq))+
+    mutate(value=if_else(value<0,0,value)) %>% 
+    ggplot(aes(value,y=Cancer_Type,fill=Seq,height = ..ndensity..))+
     geom_density_ridges(color="black")+
     facet_wrap(~name,scales = 'free_x',nrow = 1)+
-    theme_ipsum_rc(axis_title_just = "m",axis_title_size = 14,axis = "X",ticks = TRUE,base_size = 14,grid = FALSE)+
+    theme_ipsum_rc(axis_title_just = "m",axis_title_size = 12,axis = "X",ticks = TRUE,base_size = 12,grid = FALSE,strip_text_size = 12)+
     scale_x_continuous(name="",expand = c(0,0),breaks = pretty_breaks())+
     scale_y_discrete(name = "",expand = c(0,0))+
     scale_fill_viridis_c(direction = -1)+
@@ -1366,11 +1373,11 @@ Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_c
   
   ## define color for signature
   if(is.null(sigcolor)){
-    uvalues <- sort(colnames(sigdata)[-1])
-    if((uvalues %in% names(Subscolor)) == TRUE && length(uvalues %in% names(Subscolor)) == 1){
+    uvalues <- colnames(sigdata)[-1] #sort
+    if(unique(uvalues %in% names(Subscolor)) == TRUE && length(unique(uvalues %in% names(Subscolor))) == 1){
       sigcolorindex <- as.character(Subscolor[uvalues])
       names(sigcolorindex) <- uvalues
-    } else if((uvalues %in% names(SBScolor)) == TRUE && length(uvalues %in% names(SBScolor)) == 1){
+    } else if(unique(uvalues %in% names(SBScolor)) == TRUE && length(unique(uvalues %in% names(SBScolor))) == 1){
       sigcolorindex <- as.character(SBScolor[uvalues])
       names(sigcolorindex) <- uvalues
     } else {
@@ -1534,7 +1541,7 @@ piechart_plot <- function(data,colset=NULL,keep_legend = TRUE,legend_name=NULL, 
   colnames(data) <- c("Type","Catelogy",'Frequency','Label')
   
   if(is.null(colset)){
-    uvalues <- sort(unique(data$Catelogy))
+    uvalues <- unique(data$Catelogy)
     if((unique(uvalues %in% names(Subscolor))) == TRUE && length(unique(uvalues %in% names(Subscolor))) == 1){
       sigcolorindex <- as.character(Subscolor[uvalues])
       names(sigcolorindex) <- uvalues
@@ -1606,7 +1613,7 @@ barchart_plot <- function(data,colset=NULL,keep_legend = TRUE,legend_name=NULL, 
   colnames(data) <- c("Type","Catelogy",'Frequency')
   
   if(is.null(colset)){
-    uvalues <- sort(unique(data$Catelogy))
+    uvalues <- unique(data$Catelogy)
     if((unique(uvalues %in% names(Subscolor))) == TRUE && length(unique(uvalues %in% names(Subscolor))) == 1){
       sigcolorindex <- as.character(Subscolor[uvalues])
       names(sigcolorindex) <- uvalues
@@ -1632,7 +1639,7 @@ barchart_plot <- function(data,colset=NULL,keep_legend = TRUE,legend_name=NULL, 
     scale_y_percent(breaks = pretty_breaks(),limits = c(0,1),expand = expand_scale(mult = 0.1))+
     scale_fill_manual(legend_name,values = sigcolorindex,breaks = names(sigcolorindex))+
     theme_ipsum_rc(axis_title_size = 12,axis_title_just = "m",axis = TRUE, grid = "Yy")+
-    theme(axis.text.x = element_text(angle = 90,vjust = 0.5,hjust = 1),strip.text = element_text(size = 14,hjust = 0.5,face = "bold"),axis.line.x = element_line(colour = 'black',size = 0.25),axis.line.y = element_line(colour = 'black',size = 0.25),legend.position = 'top')+
+    theme(axis.text.x = element_text(angle = 90,vjust = 0.5,hjust = 1),strip.text = element_text(size = 14,hjust = 0.5,face = "bold"),axis.line.x = element_line(colour = 'black',size = 0.25),axis.line.y = element_line(colour = 'black',size = 0.25),legend.position = 'bottom')+
     guides(fill=guide_legend(nrow=1,byrow=TRUE))
   
   
@@ -1695,14 +1702,18 @@ prevalence_plot <- function(sigdata,nmutation = 0, legend_name="Sigantures", out
     pivot_longer(cols = -Type) %>% 
     mutate(lab=if_else(value>0.05,percent(value,accuracy = 0.1),''))
   
-  bar_input <- sigdata %>% pivot_longer(cols=-Samples) %>%
+  bar_input <- sigdata %>% pivot_longer(cols=-Samples) %>% #,names_transform = list(key = forcats::fct_inorder)
     filter(value>nmutation) %>%
     count(name) %>%
     mutate(value=n/dim(sigdata)[1]) %>% 
     mutate(Type="Prevalence by samples") %>% 
-    select(Type,Catelogy=name,Frequency=value)
+    select(Type,Catelogy=name,Frequency=value) %>% 
+    mutate(Catelogy=factor(Catelogy,levels = c(colnames(sigdata)[-1]))) %>% 
+    arrange(Catelogy) %>% 
+    mutate(Catelogy=as.character(Catelogy))
+  
   p_piechart <- piechart_plot(data = pie_input,keep_legend = FALSE)
-  p_barchart <- barchart_plot(data = bar_input,legend_name = legend_name)
+  p_barchart <- barchart_plot(data = bar_input,legend_name = legend_name,keep_legend = FALSE)
   pall <- plot_grid(p_piechart+theme(plot.margin = margin(r = -2)),p_barchart,align = 'h',nrow = 1,rel_widths = c(1,4))
   
   if(is.null(output_plot)){
@@ -1803,4 +1814,50 @@ content_extraction <- function(data){
   }
   return(content_data_all)
 }
+
+
+
+signature_association <- function(data,cancer_type_input=NULL,signature_both=FALSE,output_plot = NULL,plot_width=10, plot_height=10){
+  if(!is.null(cancer_type_input)){
+    data <- data %>% filter(Cancer_Type==cancer_type_input)
+  }
+  
+  if(signature_both){
+    data <- data %>% filter(Exposure1>0,Exposure2>0)
+  }
+  
+  # data %>% 
+  #   ggplot(aes(log10(Exposure1+1),log10(Exposure2+1)))+
+  #   geom_point()+
+  #   geom_smooth(method = "lm",se = TRUE)+
+  #   labs(x=paste0('Nubmer of mutations in ',signature_name_input1, ' (log10)'),y=paste0('Nubmer of mutations in ',signature_name_input2,' (log10)'))+
+  #   theme_ipsum_rc(axis_title_size = 12,axis_title_just = 'm',axis_col = 'black',ticks = T)
+  #   
+  
+  p <- ggstatsplot::ggscatterstats(
+    data=data %>% mutate(Exposure1=log10(Exposure1+1),Exposure2=log10(Exposure2+1)),
+    x=Exposure1,
+    y=Exposure2,
+    xlab=paste0('Nubmer of mutations in ',signature_name_input1, ' (log10)'),
+    ylab=paste0('Nubmer of mutations in ',signature_name_input2,' (log10)'),
+    marginal.type = "density",
+    messages=FALSE,
+  )
+  
+  if(is.null(output_plot)){
+    return(p)
+  }else{
+    ggsave(filename = output_plot,plot = p,width = plot_width,height = plot_height)
+  }
+  
+  
+  
+}
+
+
+
+
+
+
+
 

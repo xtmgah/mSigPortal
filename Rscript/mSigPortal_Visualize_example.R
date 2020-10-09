@@ -358,7 +358,7 @@ if(Data_Source != "Public_Data"){
   if(dim(data_tmp)>0){
     barchart_plot2(data=data_tmp,plot_width = 16,plot_height = 5,output_plot = 'tmp.svg')
   }else{
-    print(paste0('No mutational pattern with proportion of mutations large than',Proportion_input))
+    print(paste0('No mutational pattern with proportion of mutations large than ',Proportion_input))
   }
   
   context_plot(data = data_input,pattern = pattern_input,output_plot = 'tmp.svg')
