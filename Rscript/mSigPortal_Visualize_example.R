@@ -15,7 +15,7 @@ source('Sigvisualfunc.R')
 if(Data_Source == "Public_Data"){
   #parameters for the public data 
   # list for the public data
-  load('Data/seqmatrix_refdata_info.RData')
+  load('../Database/Seqmatrix/seqmatrix_refdata_info.RData')
   seqmatrix_refdata_info2
   foldername <- "~/NIH-Work/MutationSignature/mSigPortal/CBIIT/Reference_paper_data/The repertoire of mutational signatures in human cancer/SampleMatrix/Matrix/" 
   ## read svg summary list from public data
@@ -26,7 +26,7 @@ if(Data_Source == "Public_Data"){
   cancer_type <-  'Uterus-AdenoCA'
   experimental_strategy <- 'WGS'
   svgfiles_public <- svgfiles %>% filter(Study == study, Cancer_Type==cancer_type,Dataset == experimental_strategy)
-  load('Data/seqmatrix_refdata.RData')
+  load('../Database/Seqmatrix/seqmatrix_refdata.RData')
   seqmatrix_refdata_public <- seqmatrix_refdata %>% filter(Study == study, Cancer_Type==cancer_type,Dataset == experimental_strategy)
   ### svgfiles_public and seqmatrix_refdata_public used as input data 
   
