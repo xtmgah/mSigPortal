@@ -142,7 +142,6 @@ plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,output_plot = 'tm
 
 # Exposure Exploring ------------------------------------------------------
 
-
 if(Data_Source == "Public_Data"){
   
   # load exposure data files
@@ -155,8 +154,13 @@ if(Data_Source == "Public_Data"){
   dataset_input <- "WGS"
   signature_set_name_input <- "COSMIC v3 Signatures (SBS)" 
   exposure_refdata_selected <- exposure_refdata %>% filter(Study==study_input,Dataset==dataset_input,Signature_set_name==signature_set_name_input)
-  
-  genomesize <- 3101.976562
+
+  genome <- case_when(
+    study_input == "PCAWG" ~ "GRCh37",
+    study_input == "TCGA" ~ "GRCh37",
+    TRUE ~ NA_character_
+  )
+  genomesize <-  genome2size(genome)
   
   ## reduce the data for signature and profile
   #signature_refsets %>% select(Profile,Signature_set_name) %>% unique()
@@ -169,11 +173,24 @@ if(Data_Source == "Public_Data"){
   ## four parameters need: 
   ## Exposure File, Matrix File, Signature File, Genome Size, 
   exposure_refdata_selected <- read_delim('../Example_data/Sherlock_SBS96_exposure.txt',delim = '\t',col_names = T)
-  signature_refsets_selected <- read_delim('../Example_data/Sherlock_SBS96_siganture.txt',delim = '\t',col_names = T)
   seqmatrix_refdata_selected <- read_delim('../Example_data/Sherlock_SBS96_matrix.txt',delim = '\t',col_names = T)
-  genomesize <- 3101.976562
-  cancer_type_user <- "Input" 
+ 
+  # Phillip, two option for this: select know signature or upload a file
+  signature_file_input <-  '../Example_data/Sherlock_SBS96_siganture.txt'
+  if(file.exists(signature_file_input)){
+    signature_refsets_selected <- read_delim(signature_file_input,delim = '\t',col_names = T)
+  }else {
+    # or select from know signature
+    signature_set_name_input <- "COSMIC v3 Signatures (SBS)" 
+    signature_refsets_selected <- signature_refsets %>% 
+      filter(Signature_set_name==signature_set_name_input) %>% 
+      select(MutationType,Signature_name,Contribution) %>%
+      pivot_wider(names_from = Signature_name,values_from = Contribution)
+  }
   
+  genome <- "GRCh37"
+  genomesize <-  genome2size(genome)
+  cancer_type_user <- "Input" 
   
   ## format the input as suggest by the public dataset ##
   colnames(exposure_refdata_selected)[1] <- "Sample"
@@ -187,6 +204,9 @@ if(Data_Source == "Public_Data"){
   seqmatrix_refdata_selected <- seqmatrix_refdata_selected%>% select(-Type,-SubType) %>% pivot_longer(cols = -MutationType,names_to="Sample",values_to="Mutations") %>% mutate(Cancer_Type=cancer_type_user)
   
 }
+
+
+
 
 ## Tumor Overall Mutational Burden
 data_input <- exposure_refdata_selected %>% 

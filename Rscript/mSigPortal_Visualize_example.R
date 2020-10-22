@@ -32,14 +32,13 @@ if(Data_Source == "Public_Data"){
   
 }else{
   ## read matrix summary list 
-  foldername <- "example_results/" 
+  foldername <- "../Example_data/example_results/" 
   matrixfiles <- read_csv(paste0(foldername,'matrix_files_list.txt'),col_names = T) 
   ## list of profile type and matrix size
   matrixfiles %>% select(Profile_Type,Matrix_Size)
   svgfiles <- read_csv(paste0(foldername,'/svg_files_list.txt'),col_names = T) 
   ### svgfiles and matrixfiles used as input data
 }
-
 
 
 
@@ -372,7 +371,7 @@ if(Data_Source != "Public_Data"){
   # content_data_all <- content_extraction(data_input)
   # content_data_all <- content_data_all %>% filter(Total>200,N1>0.1)
   # save(content_data_all,file='Data/content_data_all.RData',version = 2)
-  load('Data/content_data_all.RData')
+  load('../Database/Others/content_data_all.RData')
   data_tmp <- content_data_all %>% 
     filter(N1>Proportion_input,str_detect(Study,paste0("^",study,"@"))) %>% 
     count(Pattern,sort=T) %>% 
@@ -385,7 +384,14 @@ if(Data_Source != "Public_Data"){
   # subtype2_input <- 'G'
   pattern_input <- 'NCG>NTG'
   # if slower, we could use seqmatrix_refdata_sbs96
-  data_input <- seqmatrix_refdata %>% filter(Study==study) %>% 
+  
+  if(cancer_type == "PanCancer"){
+    seqmatrix_input <- seqmatrix_refdata %>% filter(Study==study)
+  }else{
+    seqmatrix_input <- seqmatrix_refdata_public
+  }
+  
+  data_input <- seqmatrix_input %>% 
     filter(Profile == "SBS96") %>% 
     mutate(Study=paste0(Study,"@",Cancer_Type)) %>% 
     select(Study,Sample,MutationType,Mutations) %>% 
@@ -547,8 +553,6 @@ if(Data_Source != "Public_Data"){
   res.pca$rotation %>% as.data.frame() %>% rownames_to_column(var = 'Sample') %>% write_delim('PCA4.txt',delim = '\t',col_names = T)
   
 }
-
-
 
 
 
