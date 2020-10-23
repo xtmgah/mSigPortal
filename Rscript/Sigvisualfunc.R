@@ -773,7 +773,7 @@ profile_heatmap_plot <- function(data,output_plot = NULL,plot_width=NULL, plot_h
   name_len <- length(unique(data$Sample))
   angle_max <- if_else(name_max < 15, 90, 30)
   vjust_max <- if_else(name_max < 15, 0.5, 1)
-
+  
   plot_final <- data %>% left_join(profile_tmp) %>% 
     mutate(Sample=factor(Sample,levels = samleve_tmp),Profile=factor(Profile,levels = profile_tmp$Profile)) %>% 
     ggplot(aes(Sample,Profile,fill=(Mutations)))+
@@ -851,7 +851,7 @@ profile_format_df <- function(data,factortype=FALSE){
 
 
 # Calculate cosine similarity between two signature in dataframe format --------
-cos_sim_df <- function (mut_df1, mut_df2, output_matrix=FALSE) 
+cos_sim_df_old <- function (mut_df1, mut_df2, output_matrix=FALSE) 
 {
   colnames(mut_df1)[1] <- "MutationType"
   colnames(mut_df2)[1] <- "MutationType"
@@ -889,9 +889,54 @@ cos_sim_df <- function (mut_df1, mut_df2, output_matrix=FALSE)
 }
 
 
+# Calculate cosine similarity between two signature in dataframe format using coop package --------
+cos_sim_df <- function (mut_df1, mut_df2, output_matrix=FALSE) 
+{
+  require(coop)
+  
+  colnames(mut_df1)[1] <- "MutationType"
+  colnames(mut_df2)[1] <- "MutationType"
+  
+  if(identical(mut_df1,mut_df2)){
+    # two identical matrix/df
+    mut_matrix1 <- mut_df1 %>% 
+      arrange(MutationType) %>% 
+      select(-MutationType) %>% 
+      as.matrix()
+    res_matrix <- coop::cosine(mut_matrix1) 
+    
+  }else{
+    # two differnt matrix/df
+    df_name1 <- colnames(mut_df1)[-1]
+    df_name2 <- colnames(mut_df2)[-1]
+    new_df_name1 <- paste0("N1_",seq_along(df_name1))
+    new_df_name2 <- paste0("N2_",seq_along(df_name2))
+    colnames(mut_df1)[-1] <- new_df_name1
+    colnames(mut_df2)[-1] <- new_df_name2  
+    mut_df <- left_join(mut_df1,mut_df2)
+    mut_matrix <- mut_df %>% 
+      arrange(MutationType) %>% 
+      select(-MutationType) %>% 
+      as.matrix()
+    
+    res_matrix <- coop::cosine(mut_matrix) 
+    res_matrix <- res_matrix[new_df_name1,new_df_name2]
+    rownames(res_matrix) <- df_name1
+    colnames(res_matrix) <- df_name2
+  }
+  
+  if(output_matrix){
+    return(res_matrix)
+  }else {
+    res_matrix %>% as.data.frame() %>% rownames_to_column() %>% as_tibble()
+  }
+  
+}
+
+
 
 # Heatmap of cosine similairty  -------------------------------------------
-plot_cosine_heatmap_df <- function (cos_sim_df, col_order, cluster_rows = TRUE, method = "complete", plot_values = FALSE,output_plot = NULL,plot_width=NULL, plot_height=NULL) 
+plot_cosine_heatmap_df <- function (cos_sim_df, col_order, cluster_rows = TRUE, method = "complete", nmax = 200L, plot_values = FALSE,output_plot = NULL,plot_width=NULL, plot_height=NULL) 
 {
   colnames(cos_sim_df)[1] <- "Sample"
   # if (class(cos_sim_matrix) != "matrix") {
@@ -904,6 +949,15 @@ plot_cosine_heatmap_df <- function (cos_sim_df, col_order, cluster_rows = TRUE, 
     stop("cos_sim_df is missing rownames")
   }
   
+  # limited to max row/col 
+  
+  if(dim(cos_sim_df)[1] > nmax | dim(cos_sim_df)[2] > (nmax+1)){
+    nrow <- if_else(dim(cos_sim_df)[1]>nmax, nmax, dim(cos_sim_df)[1])
+    ncol <- if_else(dim(cos_sim_df)[2]>nmax+1L, nmax+1L, dim(cos_sim_df)[2])
+    cos_sim_df <- cos_sim_df[1:nrow,1:ncol]
+  }
+  
+
   # covert to matrix
   cos_sim_matrix <- as.matrix(cos_sim_df[,-1])
   rownames(cos_sim_matrix) <- cos_sim_df[[1]]
@@ -970,7 +1024,7 @@ plot_cosine_heatmap_df <- function (cos_sim_df, col_order, cluster_rows = TRUE, 
   lenx <- name_max_x*0.4
   leny <- name_max_y*0.4
   xleng <- leng_ratio*name_len_x+leng0+3+leny
-  yleng <- leng_ratio*name_len_y+leng0+4+lenx
+  yleng <- leng_ratio*name_len_y+leng0+1+lenx
   
   xleng <- if_else(xleng>30,30,xleng)
   yleng <- if_else(yleng>25,25,yleng)
@@ -1852,7 +1906,7 @@ content_extraction <- function(data){
 
 
 
-signature_association <- function(data,cancer_type_input=NULL,signature_both=FALSE,output_plot = NULL,plot_width=10, plot_height=10){
+signature_association <- function(data,cancer_type_input=NULL,signature_name_input1="Siganture 1",signature_name_input2="Siganture 2", signature_both=FALSE,output_plot = NULL,plot_width=10, plot_height=10){
   if(!is.null(cancer_type_input)){
     data <- data %>% filter(Cancer_Type==cancer_type_input)
   }

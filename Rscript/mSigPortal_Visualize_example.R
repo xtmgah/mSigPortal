@@ -26,8 +26,11 @@ if(Data_Source == "Public_Data"){
   cancer_type <-  'Uterus-AdenoCA'
   experimental_strategy <- 'WGS'
   svgfiles_public <- svgfiles %>% filter(Study == study, Cancer_Type==cancer_type,Dataset == experimental_strategy)
-  load('../Database/Seqmatrix/seqmatrix_refdata.RData')
-  seqmatrix_refdata_public <- seqmatrix_refdata %>% filter(Study == study, Cancer_Type==cancer_type,Dataset == experimental_strategy)
+  seqmatrix_rfile <- paste0('../Database/Seqmatrix/seqmatrix_refdata/',study,"_",experimental_strategy,"_",cancer_type,".RData")
+  load(seqmatrix_rfile)
+  #load('../Database/Seqmatrix/seqmatrix_refdata/PCAWG_WGS_PanCancer.RData')
+  seqmatrix_refdata_public <- seqmatrix_refdata_subset 
+  #%>% filter(Study == study, Cancer_Type==cancer_type,Dataset == experimental_strategy)
   ### svgfiles_public and seqmatrix_refdata_public used as input data 
   
 }else{
@@ -133,7 +136,7 @@ if(Data_Source != "Public_Data"){
     pivot_wider(id_cols = MutationType,names_from=Sample,values_from=Mutations)
   
   data_input <- data_input %>% select_if(~ !is.numeric(.)|| sum(.)>0)
-  cos_sim_res1=cos_sim_df(data_input,data_input) 
+  cos_sim_res1=cos_sim_df(data_input,data_input) # need to optimaize this to fasta calculate
   plot_cosine_heatmap_df(cos_sim_res1,cluster_rows = TRUE,plot_values = FALSE,output_plot = 'tmp.svg')
   cos_sim_res1 %>% write_delim('cos_sim_res1.txt',delim = '\t',col_names = T)
   

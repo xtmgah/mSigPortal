@@ -247,7 +247,7 @@ data_input <- left_join(
     select(-Signature_name)
 )
 
-signature_association(data = data_input,cancer_type_input = cancer_type_input,signature_both = signature_both,output_plot = 'tmp.svg')
+signature_association(data = data_input,cancer_type_input = cancer_type_input,signature_name_input1 = signature_name_input1, signature_name_input2 = signature_name_input2, signature_both = signature_both,output_plot = 'tmp.svg')
 
 
 # Evaluating the Performance of Mutational Signature Decomposition --------
