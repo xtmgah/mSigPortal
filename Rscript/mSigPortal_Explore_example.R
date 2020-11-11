@@ -206,8 +206,6 @@ if(Data_Source == "Public_Data"){
 }
 
 
-
-
 ## Tumor Overall Mutational Burden
 data_input <- exposure_refdata_selected %>% 
   group_by(Cancer_Type,Sample) %>% 
@@ -217,7 +215,26 @@ data_input <- exposure_refdata_selected %>%
 TMBplot(data_input,output_plot = 'tmp.svg')
 
 
-# Mutational Signature Activity
+# Tumor Mutational Burden separated by signatures
+if(Data_Source == "Public_Data"){
+  cancer_type_input <- 'Skin-Melanoma'
+}else {
+  ## for input data, it will alwyas be "cancer_type_user" 
+  cancer_type_input <- cancer_type_user
+}
+
+
+data_input <- exposure_refdata_selected %>% 
+  filter(Cancer_Type==cancer_type_input) %>% 
+  mutate(Burden=log10((Exposure)/genomesize)) %>% 
+  select(-Cancer_Type) %>% 
+  rename(Cancer_Type=Signature_name)
+# put this barplot on the web
+TMBplot(data_input,output_plot = 'tmp.svg',addnote = signature_name_input)
+
+
+
+# Mutational signature burden across cancer types
 signature_name_input <- 'SBS4'
 
 data_input <- exposure_refdata_selected %>% 
@@ -227,6 +244,9 @@ data_input <- exposure_refdata_selected %>%
   ungroup() 
 # put this barplot on the web
 TMBplot(data_input,output_plot = 'tmp.svg',addnote = signature_name_input)
+
+
+
 
 # Mutational Signature Assocaition
 signature_name_input1 <- 'SBS2'

@@ -813,7 +813,7 @@ profile_heatmap_plot <- function(data,output_plot = NULL,plot_width=NULL, plot_h
 
 # Mutational Patten funcitons ---------------------------------------------
 
-profile_format_df <- function(data,factortype=FALSE){
+profile_format_df <- function(data,factortype=FALSE,indel_short=FALSE){
   # format, sorting and factor the signature dataframe for SBS96,DBS78 and ID83
   
   if(dim(data)[1]==96){
@@ -825,13 +825,30 @@ profile_format_df <- function(data,factortype=FALSE){
   }
   
   if(dim(data)[1]==83){
-    idtypeorder <- c("1:Del:C","1:Del:T","1:Ins:C","1:Ins:T","2:Del:R","3:Del:R","4:Del:R","5:Del:R","1:Ins:R","2:Ins:R","3:Ins:R","4:Ins:R","5:Ins:R","2:Del:M","3:Del:M","4:Del:M","5:Del:M")
+    idtypeorder <- c("1:Del:C","1:Del:T","1:Ins:C","1:Ins:T","2:Del:R","3:Del:R","4:Del:R","5:Del:R","2:Ins:R","3:Ins:R","4:Ins:R","5:Ins:R","2:Del:M","3:Del:M","4:Del:M","5:Del:M")
     data <- data %>% mutate(Type=str_sub(MutationType,1,7),SubType=str_sub(MutationType,9,9)) %>% select(Type,SubType,MutationType,everything()) %>% mutate(Type=factor(Type,levels = idtypeorder)) %>% arrange(Type,SubType) %>% mutate(Type=as.character(Type))
   }
   
   if(factortype){
-    tmplev <- unique(data$Type)
-    data <- data %>% mutate(Type=factor(Type,levels = tmplev))
+    
+    if(dim(data)[1]==83){
+      tmplev <- idtypeorder
+      tmplab <- str_replace(tmplev,"5","5+")
+      
+      if(indel_short){
+        tmplab = if_else(tmplab %in% c('2:Del:M','3:Del:M','4:Del:M'),str_remove(tmplab,":.*"),tmplab)
+      }
+      
+      data <- data %>% 
+        mutate(Type=factor(Type,levels = tmplev,labels = tmplab)) %>% 
+        mutate(SubType = if_else(str_detect(Type,'Del') & !str_detect(Type,"M"),as.character(as.integer(SubType)+1L),SubType)) %>% 
+        mutate(SubType = if_else(str_detect(Type,'Del') & !str_detect(Type,"M"), str_replace(SubType,"6","6+"),str_replace(SubType,"5","5+")))
+    }else {
+      tmplev <- unique(data$Type)
+      data <- data %>% mutate(Type=factor(Type,levels = tmplev))
+    }
+    
+    
     #tmplev <- unique(data$SubType)
     #data <- data %>% mutate(SubType=factor(SubType,levels = tmplev))
     tmplev <- unique(data$MutationType)
@@ -957,7 +974,7 @@ plot_cosine_heatmap_df <- function (cos_sim_df, col_order, cluster_rows = TRUE, 
     cos_sim_df <- cos_sim_df[1:nrow,1:ncol]
   }
   
-
+  
   # covert to matrix
   cos_sim_matrix <- as.matrix(cos_sim_df[,-1])
   rownames(cos_sim_matrix) <- cos_sim_df[[1]]
@@ -1090,16 +1107,21 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
   COLORS10 = c("#03BCEE", "#0366CB", "#A1CE63", "#016601", "#FE9898", "#E32926", "#FEB166", "#FE8001", "#CB98FE", "#4C0198")
   COLORS16=c("#FCBD6F", "#FE8002", "#AFDC8A", "#36A02E", "#FCC9B4", "#FB896A", "#F04432", "#BB191A", "#CFE0F1", "#93C3DE", "#4A97C8", "#1764AA", "#E1E1EE", "#B5B5D7", "#8582BC", "#62409A")
   
-  ## make sure the order profile 1 and profile 2 are the same order
-  profile1 <- profile_format_df(profile1,factortype = TRUE) 
-  profile2 <- profile_format_df(profile2,factortype = TRUE)
-  
-  typelength = length(levels(profile1$Type))
+  typelength = dim(profile1)[1]
   if (is.null(colors)) {
-    if(typelength == 6){colors = COLORS6}
-    if(typelength == 10){colors = COLORS10}
-    if(typelength == 16){colors = COLORS16}
+    if(typelength == 96){colors = COLORS6; }
+    if(typelength == 78){colors = COLORS10;}
+    if(typelength == 83){colors = COLORS16;}
   }
+  
+  ## make sure the order profile 1 and profile 2 are the same order
+  
+  indel_short <-  FALSE
+  if(typelength == 83) {indel_short = TRUE}
+  profile1 <- profile_format_df(profile1,factortype = TRUE,indel_short = indel_short) 
+  profile2 <- profile_format_df(profile2,factortype = TRUE,indel_short = indel_short)
+  
+  
   names(colors) <- levels(profile1$Type)
   
   #print(colors)
@@ -1116,7 +1138,7 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
     profile_names <- colnames(df)[4:5]
   }
   colnames(df)[4:5] <- profile_names
-  df <- df %>% pivot_longer(cols = -c(1,2,3)) %>% mutate(name=factor(name,levels = c(profile_names,"Difference")))
+  df <- df %>% pivot_longer(cols = -c(1,2,3)) %>% mutate(name=factor(name,levels = c(profile_names,"Difference"))) %>% mutate(Type=factor(Type,levels = names(colors)))
   
   if(is.null(profile_ymax)){
     profile_ymax <- max(c(profile1[[4]],profile2[[4]]))*1.1
@@ -1125,21 +1147,22 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
   if(is.null(diff_ylim)){
     diff_ylim <- range(diff)*1.1
   }
-  dftmp = tibble(Type = rep(levels(profile1$Type)[1], 4), SubType = rep((profile1$SubType)[1], 4), name = c(profile_names, "Difference", "Difference"), value = c(profile_ymax, profile_ymax, diff_ylim[1], diff_ylim[2])) %>% mutate(name=factor(name,levels = c(profile_names,"Difference")))
+  dftmp = tibble(Type = rep(levels(profile1$Type)[1], 4), SubType = rep((profile1$SubType)[1], 4), name = c(profile_names, "Difference", "Difference"), value = c(profile_ymax, profile_ymax, diff_ylim[1], diff_ylim[2])) %>% mutate(name=factor(name,levels = c(profile_names,"Difference"))) %>% mutate(Type=factor(Type,levels = names(colors)))
+  
   
   if (condensed) {
     plot = ggplot(data = df, aes(x = SubType, y = value,  fill = Type, width = 1)) + 
       geom_bar(stat = "identity", position = "identity", colour = "black", size = 0.2) + 
       geom_point(data = dftmp, aes(x = SubType, y = value), alpha = 0,size=0) + 
       scale_fill_manual(values = colors) + 
-      facet_grid(name ~ Type, scales = "free_y") +
+      facet_grid(name ~ Type, scales = "free",space = "free_x") +
       ylab("Relative contribution") +
       guides(fill = FALSE) + 
       labs(x="")+
       #scale_y_continuous(expand = c(0,0))+
       theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
       ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
-      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5)+geom_vline(xintercept = Inf,colour = 'black',size = 0.5)#axis.line.x = element_line(colour = 'black',size = 0.25),
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 12,hjust = 0.5,colour = "white", margin = margin()), strip.text.y = element_text(size = 12,hjust = 0.5, margin = margin()),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5)+geom_vline(xintercept = Inf,colour = 'black',size = 0.5)#axis.line.x = element_line(colour = 'black',size = 0.25),
     #panel_border(color = gray(0.5),size = 0.3)
   }
   else {
@@ -1147,21 +1170,38 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
       geom_bar(stat = "identity", position = "identity", colour = "black", size = 0) + 
       geom_point(data = dftmp, aes(x = SubType, y = value), alpha = 0,size=0) + 
       scale_fill_manual(values = colors) + 
-      facet_grid(name ~ Type, scales = "free_y") +
+      facet_grid(name ~ Type, scales = "free",space = "free_x") +
       ylab("Relative contribution") +
       guides(fill = FALSE) + 
       labs(x="")+
       #scale_y_continuous(expand = c(0,0))+
       theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
       ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
-      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5) +geom_vline(xintercept = Inf,colour = 'black',size = 0.5) #,axis.line.x = element_line(colour = 'black',size = 0.25)
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 12,hjust = 0.5,colour = "white", margin = margin()), strip.text.y = element_text(size = 12,hjust = 0.5, margin = margin()),strip.background = element_rect(fill = "#f0f0f0",), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5) +geom_vline(xintercept = Inf,colour = 'black',size = 0.5) #,axis.line.x = element_line(colour = 'black',size = 0.25)
     #     panel_border(color = gray(0.5),size = 0.3)
   }
+  
+  
+  ## add background color for strip
+  require(grid)
+  g <- ggplot_gtable(ggplot_build(plot))
+  strip_top <- which(grepl('strip-t', g$layout$name))
+  fills <- colors
+  k <- 1
+  for (i in strip_top) {
+    j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+    g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+    k <- k+1
+  }
+  plot <- as_ggplot(g)
+  
+  
+  
   if(is.null(output_plot)){
     return(plot)
   }else{
-    xleng <- 18
-    yleng <- 8
+    xleng <- 14
+    yleng <- 7
     if(is.null(plot_width)){ plot_width <-  xleng}
     if(is.null(plot_height)){ plot_height <-  yleng}
     
@@ -1217,7 +1257,7 @@ plot_compare_profiles_diff_strand <- function (profile1, profile2, profile_names
       #scale_y_continuous(expand = c(0,0))+
       theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
       ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
-      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.x = element_line(colour = 'black',size = 0.25),axis.line.y = element_line(colour = 'black',size = 0.25))+geom_vline(xintercept = Inf,colour = 'black',size = 0.5)
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 12,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.x = element_line(colour = 'black',size = 0.25),axis.line.y = element_line(colour = 'black',size = 0.25))+geom_vline(xintercept = Inf,colour = 'black',size = 0.5)
     #      panel_border(color = gray(0.5),size = 0.3)
   }
   else {
@@ -1233,7 +1273,7 @@ plot_compare_profiles_diff_strand <- function (profile1, profile2, profile_names
       #scale_y_continuous(expand = c(0,0))+
       theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
       ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
-      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.x = element_line(colour = 'black',size = 0.25),axis.line.y = element_line(colour = 'black',size = 0.25))+geom_vline(xintercept = Inf,colour = 'black',size = 0.5)
+      theme(axis.title.y = element_text(size = 12, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.x = element_line(colour = 'black',size = 0.25),axis.line.y = element_line(colour = 'black',size = 0.25))+geom_vline(xintercept = Inf,colour = 'black',size = 0.5)
     # panel_border(color = gray(0.5),size = 0.3)
   }
   return(plot)
@@ -1407,7 +1447,8 @@ TMBplot <- function(data,output_plot = NULL,plot_width=NULL, plot_height=NULL,ad
 
 decompsite_distribution <- function(decompsite,output_plot = NULL,plot_width=NULL, plot_height=NULL){
   #Cancer_Type   Sample Total_Mutations Cosine_similarity .... 
-  decompsite2 <- decompsite %>% select(Cancer_Type,Sample,Cosine_similarity,`100-L1_Norm_%`,`100-L2_Norm_%`,KL_Divergence) %>% pivot_longer(cols = -c(Cancer_Type,Sample))
+  fealist <- c('Cancer_Type','Sample','Cosine_similarity','100-L1_Norm_%','100-L2_Norm_%','KL_Divergence','Correlation')
+  decompsite2 <- decompsite %>% select(one_of(fealist)) %>% pivot_longer(cols = -c(Cancer_Type,Sample))
   mtmp <- decompsite %>% group_by(Cancer_Type) %>% summarise(m=median(Cosine_similarity,na.rm = TRUE)) 
   mtmp2 <- decompsite2 %>% group_by(Cancer_Type,name) %>% summarise(m=median(value,na.rm = TRUE)) %>% ungroup() %>% mutate(m=if_else(name=="KL_Divergence",1-m,m))%>% group_by(name) %>% arrange(desc(m)) %>% mutate(Seq=seq_along(Cancer_Type)) %>% ungroup()
   ntmp <- decompsite %>% count(Cancer_Type) %>% mutate(Caner_type2=paste0(Cancer_Type," (",n,")")) %>% left_join(mtmp) %>% arrange(m)
@@ -1418,7 +1459,7 @@ decompsite_distribution <- function(decompsite,output_plot = NULL,plot_width=NUL
     left_join(mtmp2) %>% 
     left_join(ntmp) %>% 
     mutate(Cancer_Type=factor(Cancer_Type,levels = ntmp$Cancer_Type,labels =ntmp$Caner_type2 )) %>% 
-    mutate(name=factor(name,levels = c('Cosine_similarity','100-L1_Norm_%','100-L2_Norm_%','KL_Divergence'))) %>% 
+    mutate(name=factor(name,levels = c('Cosine_similarity','100-L1_Norm_%','100-L2_Norm_%','KL_Divergence','Correlation'))) %>% 
     mutate(value=if_else(value<0,0,value)) %>% 
     ggplot(aes(value,y=Cancer_Type,fill=Seq,height = ..ndensity..))+
     geom_density_ridges(color="black")+
@@ -1457,6 +1498,10 @@ Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_c
   require(ggpubr)
   require(factoextra)
   require(cowplot)
+  
+  # define color for categoly variable
+  colset <- c(pal_npg()(10),pal_jama()(7),pal_igv()(51))
+  #colset <- pal_igv()(51)
   
   colnames(sigdata)[1] <- 'Samples'
   
@@ -1504,7 +1549,7 @@ Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_c
     }
   }
   
-  p_proportion <- sigdata %>% gather(Signature,Weight,-Samples) %>% mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% ggplot(aes(Samples,Weight,fill=factor(Signature,levels = names(sigcolorindex))))+geom_bar(stat="identity",position="fill",col="gray95",width = 1,size=0.1)+theme_ipsum_rc(axis_title_just = "m",axis_title_size = 12)+theme(axis.ticks.x = element_blank(), axis.text.x = element_text(size = sampletext_size, angle = 90, vjust = 0.5, hjust = 1),panel.grid.major=element_line(),legend.position = "bottom",legend.box.background = element_blank(),legend.box.spacing = unit(-0.5,"cm"),legend.key = element_rect(size = 0),axis.ticks.y = element_line(colour = "black"),legend.key.size = unit(0.25, "cm"),legend.key.width =unit(1, "cm"))+scale_y_continuous(expand = c(0, 0),breaks = pretty_breaks())+xlab("")+scale_fill_manual("Mutational sigantures\n",values = sigcolorindex,drop=FALSE)+guides(fill=guide_legend(nrow=legendnrow,byrow=TRUE,label.position = "bottom"))+ylab("Signature contribution\n")
+  p_proportion <- sigdata %>% gather(Signature,Weight,-Samples) %>% mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% ggplot(aes(Samples,Weight,fill=factor(Signature,levels = names(sigcolorindex))))+geom_bar(stat="identity",position="fill",col="gray95",width = 1,size=0.1)+theme_ipsum_rc(axis_title_just = "m",axis_title_size = 12,grid = FALSE)+theme(panel.background = element_blank(),axis.ticks.x = element_blank(), axis.text.x = element_text(size = sampletext_size, angle = 90, vjust = 0.5, hjust = 1),panel.grid.major=element_line(),legend.position = "bottom",legend.box.background = element_blank(),legend.box.spacing = unit(-0.5,"cm"),legend.key = element_rect(size = 0),axis.ticks.y = element_line(colour = "black"),legend.key.size = unit(0.25, "cm"),legend.key.width =unit(1, "cm"))+scale_y_continuous(expand = c(0, 0),breaks = pretty_breaks())+xlab("")+scale_fill_manual("Mutational sigantures\n",values = sigcolorindex,drop=FALSE)+guides(fill=guide_legend(nrow=legendnrow,byrow=TRUE,label.position = "bottom"))+ylab("Signature contribution\n")
   #+theme(plot.margin=margin(t=4,unit="pt"))
   #legend.title = element_blank(),
   
@@ -1530,6 +1575,8 @@ Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_c
   p_cosine <- cosinedata %>%  mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% mutate(Similarity=if_else(Similarity<cosine_cutoff,NA_real_,Similarity)) %>% ggplot(aes(Samples,1,fill=Similarity))+geom_tile(col="black")+scale_fill_viridis_c(na.value = "#cccccc",option = 'C',limits = c(0.6, 1), oob = scales::squish)+theme_minimal()+theme(legend.position = "none", panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1.2,t = 0.5,unit="cm"))+ylim(c(0,2))
   #,title = element_blank()
   
+  legend_size <- theme(legend.position = "bottom",legend.direction = "horizontal", legend.box.background = element_blank(),legend.key = element_rect(size = 0),legend.key.size = unit(0.25, "cm"),legend.key.width =unit(0.6, "cm"))
+  #legend.box.spacing = unit(-0.5,"cm"),
   
   # study color bar
   if(!is.null(studydata)){
@@ -1540,17 +1587,17 @@ Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_c
       studyname <- paste0(studyname,"\n")
       studydata <- studydata %>% mutate(Study=if_else(Study<study_cutoff,NA_real_,Study))
       p_study <- studydata  %>% ggplot(aes(Samples,1,fill=Study))+geom_tile(col="black")+scale_fill_viridis_c(studyname,na.value = "#cccccc",option = 'D',breaks=pretty_breaks(5))+theme_minimal()+theme(legend.position = "bottom",legend.key.width =unit(2, "cm"),legend.key.height = unit(0.3,"cm"), panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+ylim(c(0,2))
-      p_study_legend <- as_ggplot(get_legend(p_study))
+      p_study_legend <- as_ggplot(get_legend(p_study+legend_size))
       #p_study_legend <- p_study_legend+theme(plot.margin = margin(b = 0))
       p_study <- studydata %>% ggplot(aes(Samples,1,fill=Study))+geom_tile(col="black")+scale_fill_viridis_c(studyname,na.value = "#cccccc",option = 'D',breaks=pretty_breaks(5))+theme_minimal()+theme(legend.position = "none", panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t = 0.5,unit="cm"))+ylim(c(0,2))
       
     }else { 
       if(is.null(studycolor)){
-        studycolor <-  pal_npg()(n=length(unique(studydata$Study)))
+        studycolor <-  colset[1:length(unique(studydata$Study))]
         names(studycolor) <- unique(studydata$Study)
       }
-      p_study <- studydata %>% ggplot(aes(Samples,1,fill=factor(Study,levels = names(studycolor))))+geom_tile(col="black")+scale_fill_manual(studyname,values =studycolor)+theme_minimal()+theme(legend.position = "bottom",panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t=0.5,unit="cm"))+ylim(c(0,2))
-      p_study_legend <- as_ggplot(get_legend(p_study))
+      p_study <- studydata %>% ggplot(aes(Samples,1,fill=factor(Study,levels = names(studycolor))))+geom_tile(col="black")+scale_fill_manual(studyname,values =studycolor)+theme_minimal()+theme(legend.position = "bottom",panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t=0.5,unit="cm"))+ylim(c(0,2))+guides(fill = guide_legend(nrow = 1))
+      p_study_legend <- as_ggplot(get_legend(p_study+legend_size))
       #p_study_legend <- p_study_legend+theme(plot.margin = margin(b = 0))
       p_study <- studydata %>% ggplot(aes(Samples,1,fill=factor(Study,levels = names(studycolor))))+geom_tile(col="black")+scale_fill_manual(studyname,values =studycolor)+theme_minimal()+theme(legend.position = "none",panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t=0.5,unit="cm"))+ylim(c(0,2))
     }
@@ -1572,16 +1619,16 @@ Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_c
       purityname <-  paste0(purityname,"\n")
       puritydata <- puritydata %>% mutate(Purity=if_else(Purity<purity_cutoff,NA_real_,Purity))
       p_purity <- puritydata  %>% ggplot(aes(Samples,1,fill=Purity))+geom_tile(col="black")+scale_fill_viridis_c(purityname,na.value = "#cccccc",option = 'D',breaks=pretty_breaks(5))+theme_minimal()+theme(legend.position = "bottom",legend.key.width =unit(2, "cm"),legend.key.height = unit(0.3,"cm"), panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+ylim(c(0,2))
-      p_purity_legend <- as_ggplot(get_legend(p_purity))
+      p_purity_legend <- as_ggplot(get_legend(p_purity+legend_size))
       #p_purity_legend <- p_purity_legend+theme(plot.margin = margin(b = 0))
       p_purity <- puritydata %>% ggplot(aes(Samples,1,fill=Purity))+geom_tile(col="black")+scale_fill_viridis_c(purityname,na.value = "#cccccc",option = 'D',breaks=pretty_breaks(5))+theme_minimal()+theme(legend.position = "none", panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t = 0.5,unit="cm"))+ylim(c(0,2))
     }else { 
       if(is.null(puritycol)){
-        puritycol <-  pal_npg()(n=length(unique(puritydata$Purity)))
+        puritycol <- colset[1:length(unique(puritydata$Purity))]
         names(puritycol) <- unique(puritydata$Purity)
       }
-      p_purity <- puritydata %>% ggplot(aes(Samples,1,fill=factor(Purity,levels = names(puritycol))))+geom_tile(col="black")+scale_fill_manual(values =puritycol)+theme_minimal()+theme(legend.position = "bottom",panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t=0.5,unit="cm"))+ylim(c(0,2))
-      p_purity_legend <- as_ggplot(get_legend(p_purity))
+      p_purity <- puritydata %>% ggplot(aes(Samples,1,fill=factor(Purity,levels = names(puritycol))))+geom_tile(col="black")+scale_fill_manual(values =puritycol)+theme_minimal()+theme(legend.position = "bottom",panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t=0.5,unit="cm"))+ylim(c(0,2))+guides(fill = guide_legend(nrow = 1))
+      p_purity_legend <- as_ggplot(get_legend(p_purity+legend_size))
       #p_purity_legend <- p_purity_legend+theme(plot.margin = margin(b = 0))
       p_purity <- puritydata %>% ggplot(aes(Samples,1,fill=factor(Purity,levels = names(puritycol))))+geom_tile(col="black")+scale_fill_manual(purityname,values =puritycol)+theme_minimal()+theme(legend.position = "none",panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t=0.5,unit="cm"))+ylim(c(0,2))
     }
@@ -1843,7 +1890,7 @@ iupac <- function(base){
 
 iupac_list <- c('A','T','C','G','R','Y','S','W','K','M','B','D','H','V','N')
 
-context_plot <- function(data,pattern,data_return = FALSE,output_plot = NULL,plot_width=18, plot_height=12){
+context_plot <- function(data,pattern,data_return = FALSE,output_plot = NULL,plot_width=14, plot_height=9){
   # type <- 'C>T'
   # subtype1 <- 'N'
   # subtype2 <- 'G'
@@ -1923,6 +1970,7 @@ signature_association <- function(data,cancer_type_input=NULL,signature_name_inp
   #   theme_ipsum_rc(axis_title_size = 12,axis_title_just = 'm',axis_col = 'black',ticks = T)
   #   
   
+  ## generated another Rplot blank file???
   p <- ggstatsplot::ggscatterstats(
     data=data %>% mutate(Exposure1=log10(Exposure1+1),Exposure2=log10(Exposure2+1)),
     x=Exposure1,
@@ -1957,6 +2005,12 @@ genome2size <- function(genome){
   )
   return(genomesize)
 }
+
+
+
+
+
+### Association function ### 
 
 
 
