@@ -1549,7 +1549,7 @@ Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_c
     }
   }
   
-  p_proportion <- sigdata %>% gather(Signature,Weight,-Samples) %>% mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% ggplot(aes(Samples,Weight,fill=factor(Signature,levels = names(sigcolorindex))))+geom_bar(stat="identity",position="fill",col="gray95",width = 1,size=0.1)+theme_ipsum_rc(axis_title_just = "m",axis_title_size = 12,grid = FALSE)+theme(panel.background = element_blank(),axis.ticks.x = element_blank(), axis.text.x = element_text(size = sampletext_size, angle = 90, vjust = 0.5, hjust = 1),panel.grid.major=element_line(),legend.position = "bottom",legend.box.background = element_blank(),legend.box.spacing = unit(-0.5,"cm"),legend.key = element_rect(size = 0),axis.ticks.y = element_line(colour = "black"),legend.key.size = unit(0.25, "cm"),legend.key.width =unit(1, "cm"))+scale_y_continuous(expand = c(0, 0),breaks = pretty_breaks())+xlab("")+scale_fill_manual("Mutational sigantures\n",values = sigcolorindex,drop=FALSE)+guides(fill=guide_legend(nrow=legendnrow,byrow=TRUE,label.position = "bottom"))+ylab("Signature contribution\n")
+  p_proportion <- sigdata %>% gather(Signature,Weight,-Samples) %>% mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% ggplot(aes(Samples,Weight,fill=factor(Signature,levels = names(sigcolorindex))))+geom_bar(stat="identity",position="fill",col="gray95",width = 1,size=0.1)+theme_ipsum_rc(axis_title_just = "m",axis_title_size = 12,grid = FALSE)+theme(panel.background = element_blank(),axis.ticks.x = element_blank(), axis.text.x = element_text(size = sampletext_size, angle = 90, vjust = 0.5, hjust = 1),panel.grid.major=element_line(),legend.position = "bottom",legend.box.background = element_blank(),legend.box.spacing = unit(-0.5,"cm"),legend.key = element_rect(size = 0),axis.ticks.y = element_line(colour = "black"),legend.key.size = unit(0.25, "cm"),legend.key.width =unit(1.5, "cm"))+scale_y_continuous(expand = c(0, 0),breaks = pretty_breaks())+xlab("")+scale_fill_manual("Mutational sigantures\n",values = sigcolorindex,drop=FALSE)+guides(fill=guide_legend(nrow=legendnrow,byrow=TRUE,label.position = "bottom"))+ylab("Signature contribution\n")
   #+theme(plot.margin=margin(t=4,unit="pt"))
   #legend.title = element_blank(),
   
@@ -1850,7 +1850,9 @@ prevalence_plot <- function(sigdata,nmutation = 0, legend_name="Sigantures", out
   
   p_piechart <- piechart_plot(data = pie_input,keep_legend = FALSE)
   p_barchart <- barchart_plot(data = bar_input,legend_name = legend_name,keep_legend = FALSE)
-  pall <- plot_grid(p_piechart+theme(plot.margin = margin(r = -2)),p_barchart,align = 'h',nrow = 1,rel_widths = c(1,4))
+  
+  uvalues <- sort(unique(bar_input$Catelogy))
+  pall <- plot_grid(p_piechart+theme(plot.margin = margin(r = -2)),p_barchart,align = 'h',nrow = 1,rel_widths = c(3,length(uvalues)))
   
   if(is.null(output_plot)){
     return(pall)
@@ -1998,7 +2000,8 @@ genome2size <- function(genome){
   genomesize <- case_when(
     genome == "hg18" ~ 3080436051/10^6, 
     genome == "GRCh38" ~ 3217346917/10^6, 
-    genome == "GRch37" ~ 3101976562/10^6, 
+    genome == "GRCh37" ~ 3101976562/10^6,
+    genome == "hg19" ~ 3101976562/10^6,
     genome == "mmc10" ~ 2725537669/10^6,
     genome == "mmc9" ~ 2654911517/10^6,
     TRUE ~ NA_real_
