@@ -150,15 +150,15 @@ if(Data_Source == "Public_Data"){
   load('../Database/Seqmatrix/seqmatrix_refdata.RData')
   
   # parameters for all the tables
-  study_input <- "PCAWG"
-  dataset_input <- "WGS"
-  signature_set_name_input <- "COSMIC v3 Signatures (SBS)" 
+  study_input <- "TCGA"
+  dataset_input <- "WES"
+  signature_set_name_input <- "COSMIC v3 Signatures (ID)" 
   exposure_refdata_selected <- exposure_refdata %>% filter(Study==study_input,Dataset==dataset_input,Signature_set_name==signature_set_name_input)
 
   genome <- case_when(
     study_input == "PCAWG" ~ "GRCh37",
     study_input == "TCGA" ~ "GRCh37",
-    TRUE ~ NA_character_
+    TRUE ~ "GRCh37"
   )
   genomesize <-  genome2size(genome)
   
@@ -217,9 +217,9 @@ TMBplot(data_input,output_plot = 'tmp.svg')
 
 # Tumor Mutational Burden separated by signatures
 if(Data_Source == "Public_Data"){
-  cancer_type_input <- 'Skin-Melanoma'
+  cancer_type_input <- 'AML'
 }else {
-  ## for input data, it will alwyas be "cancer_type_user" 
+  ## for input data, it will always be "cancer_type_user" 
   cancer_type_input <- cancer_type_user
 }
 
@@ -230,12 +230,13 @@ data_input <- exposure_refdata_selected %>%
   select(-Cancer_Type) %>% 
   rename(Cancer_Type=Signature_name)
 # put this barplot on the web
-TMBplot(data_input,output_plot = 'tmp.svg',addnote = signature_name_input)
+TMBplot(data_input,output_plot = 'tmp.svg')
+#,addnote = signature_name_input
 
 
 
 # Mutational signature burden across cancer types
-signature_name_input <- 'SBS4'
+signature_name_input <- 'ID1'
 
 data_input <- exposure_refdata_selected %>% 
   filter(Signature_name==signature_name_input) %>% 
@@ -246,11 +247,9 @@ data_input <- exposure_refdata_selected %>%
 TMBplot(data_input,output_plot = 'tmp.svg',addnote = signature_name_input)
 
 
-
-
 # Mutational Signature Assocaition
-signature_name_input1 <- 'SBS2'
-signature_name_input2 <- 'SBS13'
+signature_name_input1 <- 'ID1'
+signature_name_input2 <- 'ID2'
 cancer_type_input <- NULL  ## toggle to select specific cancer type or combine all cancer type data (default)
 signature_both <- FALSE ## toggle to choose samples with both signature detected
 
@@ -287,6 +286,9 @@ seqmatrix_refdata_input<- seqmatrix_refdata_selected %>% mutate(Sample=paste0(Ca
   pivot_wider(id_cols = MutationType,names_from=Sample,values_from=Mutations) %>% 
   arrange(MutationType)  ## have to sort the mutation type
 
+## filter out the samples without exposure data
+seqmatrix_refdata_input <- seqmatrix_refdata_input %>% select(MutationType,one_of(exposure_refdata_input$Sample))
+
 
 decompsite_input <- calculate_similarities(orignal_genomes = seqmatrix_refdata_input,signature = signature_refsets_input,signature_activaties = exposure_refdata_input)
 decompsite_input <- decompsite_input %>% separate(col = Sample_Names,into = c('Cancer_Type','Sample'),sep = '@')
@@ -297,7 +299,7 @@ decompsite_distribution(decompsite = decompsite_input,output_plot = 'tmp.svg') #
 
 # Landscape of Mutational Signature Activity
 if(Data_Source == "Public_Data"){
-cancer_type_input <- 'Skin-Melanoma'
+cancer_type_input <- 'AML'
 }else {
   ## for input data, it will alwyas be "cancer_type_user" 
   cancer_type_input <- cancer_type_user
@@ -316,6 +318,11 @@ seqmatrix_refdata_input<- seqmatrix_refdata_selected %>% filter(Cancer_Type == c
   select(MutationType,Sample,Mutations) %>% 
   pivot_wider(id_cols = MutationType,names_from=Sample,values_from=Mutations) %>% 
   arrange(MutationType)  ## have to sort the mutationtype
+
+## filter out the samples without exposure data
+seqmatrix_refdata_input <- seqmatrix_refdata_input %>% select(MutationType,one_of(exposure_refdata_input$Sample))
+
+
 decompsite_input <- calculate_similarities(orignal_genomes = seqmatrix_refdata_input,signature = signature_refsets_input,signature_activaties = exposure_refdata_input)
 
 cosinedata <- decompsite_input %>% select(Samples=Sample_Names,Similarity=Cosine_similarity)
@@ -362,11 +369,20 @@ if(vardata_input_file){
   vardata2_cat_input <- NULL
 }
 
+
 Exposure_Clustering(sigdata = sigdata,studydata = vardata1_input,studydata_cat = vardata1_cat_input,puritydata = vardata2_input,puritydata_cat = vardata2_cat_input, cosinedata = cosinedata,clustern=5,output_plot = 'tmp.svg' )
 
 ### prevalence plot
 # parameter nmutation
 nmutation_input <- 100
-prevalence_plot(sigdata = sigdata,nmutation = nmutation_input,output_plot = 'tmp.svg')
+nsams <- sigdata %>% pivot_longer(cols=-Samples) %>% filter(value>100) %>% dim()
+
+if(nsams[1]>0){
+  prevalence_plot(sigdata = sigdata,nmutation = nmutation_input,output_plot = 'tmp.svg')
+}else{
+  print(paste0('No signature in any sample with number of mutation larger than ',nmutation_input))
+}
+
+
 
 

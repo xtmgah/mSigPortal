@@ -354,7 +354,7 @@ cos_sim <- function (x, y)
   return(res)
 }
 
-
+# add the Correlation
 calculate_similarities <- function(orignal_genomes, signature, signature_activaties) {
   require(entropy)
   data2 <- as.data.frame(orignal_genomes)
@@ -372,6 +372,7 @@ calculate_similarities <- function(orignal_genomes, signature, signature_activat
   est_genomes <- as.data.frame(as.matrix(data3) %*% as.matrix(t(data4)))
   
   cosine_sim_list = c()
+  correlation_list = c()
   kl_divergence_list = c()
   l1_norm_list = c()
   l2_norm_list = c()
@@ -382,6 +383,7 @@ calculate_similarities <- function(orignal_genomes, signature, signature_activat
     p_i <- as.numeric(genomes[, i])
     q_i = (est_genomes[, i])
     cosine_sim_list = append(cosine_sim_list, round(cos_sim(p_i, q_i), digits=3))
+    correlation_list = append(correlation_list, round(cor(p_i, q_i), digits=3))
     kl_divergence_list = append(kl_divergence_list, round(KL.empirical(p_i, q_i), digits=4))
     l1_norm_list = append(l1_norm_list, round(norm(as.matrix(p_i-q_i), "1"), digits=3))
     relative_l1_list = append(relative_l1_list, round((dplyr::last(l1_norm_list)/norm(as.matrix(p_i), "1"))*100, digits=3))
@@ -399,7 +401,9 @@ calculate_similarities <- function(orignal_genomes, signature, signature_activat
                                       "L2_Norm"=l2_norm_list,
                                       `L2_Norm_%`=relative_l2_list,
                                       `100-L2_Norm_%`=100-relative_l2_list,
-                                      "KL_Divergence"= kl_divergence_list,check.names = F)
+                                      "KL_Divergence"= kl_divergence_list,
+                                      "Correlation" = correlation_list,
+                                      check.names = F)
   #write.csv(similarities_dataframe, file="MyData.csv")
   #write.table(similarities_dataframe, file="MyData.txt", sep="\t", row.names = FALSE)
   return(similarities_dataframe)
@@ -1528,6 +1532,9 @@ Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_c
   rownames(mdata) <- tmp$Samples
   
   #fviz_nbclust(mdata, kmeans, method = "gap_stat")
+  
+  clustern <- if_else(dim(mdata)[1]<clustern+5,2L,as.integer(clustern))
+  
   kcolors <- pal_d3("category20")(clustern)
   res <- hcut(mdata,k = clustern,hc_func = hc_func,hc_metric = hc_metric,hc_method = hc_method,stand=stand)
   

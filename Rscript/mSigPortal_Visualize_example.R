@@ -388,7 +388,7 @@ if(Data_Source != "Public_Data"){
   pattern_input <- 'NCG>NTG'
   # if slower, we could use seqmatrix_refdata_sbs96
   
-  if(cancer_type != "PanCancer"){
+  if(cancer_type == "PanCancer"){
     seqmatrix_input <- seqmatrix_refdata %>% filter(Study==study)
   }else{
     seqmatrix_input <- seqmatrix_refdata_public
