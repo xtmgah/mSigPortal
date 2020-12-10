@@ -361,13 +361,31 @@ calculate_similarities <- function(orignal_genomes, signature, signature_activat
   #data2 <- read.delim(orignal_genomes_file,header = T,check.names = F,stringsAsFactors = F)
   #data2 <- data.frame(data2)
   data2 <- data2[,!is.na(colSums(data2 != 0)) & colSums(data2 != 0) > 0]
-  genomes <- data2[, 2:length(data2)]
-  sample_names <- colnames(data2[,2:ncol(data2)])
-  #data3 <- read.delim(signature_file,header = T,check.names = F,stringsAsFactors = F)
   data3 <-  as.data.frame(signature)
+  data4 <-  as.data.frame(signature_activaties)
+  #colnames(data2[,2:ncol(data2)])
+  
+  
+  ## filter out the samples and signatures
+  sample_name_total <- data4$Sample
+  sample_name_tmp<- colnames(data2)[-1]
+  sample_name <- sample_name_total[sample_name_total %in% sample_name_tmp]
+  
+  signature_name_total <- colnames(data4)[-1]
+  signature_name_tmp <- colnames(data3)[-1]
+  signature_name <- signature_name_total[signature_name_total %in% signature_name_tmp]
+  
+  data2 <- data2 %>% select(MutationType,one_of(sample_name))
+  data3 <- data3 %>% select(MutationType,one_of(signature_name))
+  data4 <- data4 %>% select(Sample,one_of(signature_name)) %>% filter(Sample %in% sample_name)
+
+  genomes <- data2[, 2:length(data2)]
+
+  #data3 <- read.delim(signature_file,header = T,check.names = F,stringsAsFactors = F)
+  
   data3 <- data3[,2:ncol(data3)]
   #data4 <- read.delim(signature_activaties_file,header = T,check.names = F,stringsAsFactors = F)
-  data4 <-  as.data.frame(signature_activaties)
+
   data4 <- data4[,2:ncol(data4)]
   est_genomes <- as.data.frame(as.matrix(data3) %*% as.matrix(t(data4)))
   
@@ -382,17 +400,30 @@ calculate_similarities <- function(orignal_genomes, signature, signature_activat
   for (i in 1:ncol(genomes)) {
     p_i <- as.numeric(genomes[, i])
     q_i = (est_genomes[, i])
-    cosine_sim_list = append(cosine_sim_list, round(cos_sim(p_i, q_i), digits=3))
-    correlation_list = append(correlation_list, round(cor(p_i, q_i), digits=3))
-    kl_divergence_list = append(kl_divergence_list, round(KL.empirical(p_i, q_i), digits=4))
-    l1_norm_list = append(l1_norm_list, round(norm(as.matrix(p_i-q_i), "1"), digits=3))
-    relative_l1_list = append(relative_l1_list, round((dplyr::last(l1_norm_list)/norm(as.matrix(p_i), "1"))*100, digits=3))
-    l2_norm_list = append(l2_norm_list, round(norm(as.matrix(p_i-q_i), "2"), digits=3))
-    relative_l2_list = append(relative_l2_list, round((dplyr::last(l2_norm_list)/norm(as.matrix(p_i), "2"))*100, digits=3))
-    total_mutations = append(total_mutations, sum(p_i))
+    if(sum(q_i)>0){
+      cosine_sim_list = append(cosine_sim_list, round(cos_sim(p_i, q_i), digits=3))
+      correlation_list = append(correlation_list, round(cor(p_i, q_i), digits=3))
+      kl_divergence_list = append(kl_divergence_list, round(KL.empirical(p_i, q_i), digits=4))
+      l1_norm_list = append(l1_norm_list, round(norm(as.matrix(p_i-q_i), "1"), digits=3))
+      relative_l1_list = append(relative_l1_list, round((dplyr::last(l1_norm_list)/norm(as.matrix(p_i), "1"))*100, digits=3))
+      l2_norm_list = append(l2_norm_list, round(norm(as.matrix(p_i-q_i), "2"), digits=3))
+      relative_l2_list = append(relative_l2_list, round((dplyr::last(l2_norm_list)/norm(as.matrix(p_i), "2"))*100, digits=3))
+      total_mutations = append(total_mutations, sum(p_i))
+    }else{
+      cosine_sim_list = append(cosine_sim_list, NA_real_)
+      correlation_list = append(correlation_list, NA_real_)
+      kl_divergence_list = append(kl_divergence_list,NA_real_)
+      l1_norm_list = append(l1_norm_list, NA_real_)
+      relative_l1_list = append(relative_l1_list, NA_real_)
+      l2_norm_list = append(l2_norm_list, NA_real_)
+      relative_l2_list = append(relative_l2_list, NA_real_)
+      total_mutations = append(total_mutations, sum(p_i))
+    }
+    
+ 
   }
-  kl_divergence_list[!is.finite(kl_divergence_list)] <- 1000
-  similarities_dataframe = data.frame("Sample_Names"=sample_names,
+  kl_divergence_list[!is.na(kl_divergence_list) & !is.finite(kl_divergence_list)] <- 1000
+  similarities_dataframe = data.frame("Sample_Names"=sample_name,
                                       "Total_Mutations"=total_mutations,
                                       "Cosine_similarity"=cosine_sim_list,
                                       "L1_Norm"=l1_norm_list,
@@ -406,6 +437,8 @@ calculate_similarities <- function(orignal_genomes, signature, signature_activat
                                       check.names = F)
   #write.csv(similarities_dataframe, file="MyData.csv")
   #write.table(similarities_dataframe, file="MyData.txt", sep="\t", row.names = FALSE)
+  
+  similarities_dataframe <- tibble("Sample_Names"=sample_name_total) %>% left_join(similarities_dataframe)
   return(similarities_dataframe)
 }
 

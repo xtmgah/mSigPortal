@@ -150,9 +150,9 @@ if(Data_Source == "Public_Data"){
   load('../Database/Seqmatrix/seqmatrix_refdata.RData')
   
   # parameters for all the tables
-  study_input <- "TCGA"
-  dataset_input <- "WES"
-  signature_set_name_input <- "COSMIC v3 Signatures (ID)" 
+  study_input <- "PCAWG"
+  dataset_input <- "WGS"
+  signature_set_name_input <- "Organ-specific Cancer Signatures (SBS)" 
   exposure_refdata_selected <- exposure_refdata %>% filter(Study==study_input,Dataset==dataset_input,Signature_set_name==signature_set_name_input)
 
   genome <- case_when(
@@ -217,7 +217,7 @@ TMBplot(data_input,output_plot = 'tmp.svg')
 
 # Tumor Mutational Burden separated by signatures
 if(Data_Source == "Public_Data"){
-  cancer_type_input <- 'AML'
+  cancer_type_input <- 'Biliary-AdenoCA'
 }else {
   ## for input data, it will always be "cancer_type_user" 
   cancer_type_input <- cancer_type_user
@@ -236,7 +236,7 @@ TMBplot(data_input,output_plot = 'tmp.svg')
 
 
 # Mutational signature burden across cancer types
-signature_name_input <- 'ID1'
+signature_name_input <- 'Bone_SoftTissue_A (Bone_SoftTissue_18)'
 
 data_input <- exposure_refdata_selected %>% 
   filter(Signature_name==signature_name_input) %>% 
@@ -247,11 +247,11 @@ data_input <- exposure_refdata_selected %>%
 TMBplot(data_input,output_plot = 'tmp.svg',addnote = signature_name_input)
 
 
-# Mutational Signature Assocaition
-signature_name_input1 <- 'ID1'
-signature_name_input2 <- 'ID2'
+# Mutational Signature Association
+signature_name_input1 <- 'Biliary_B (Biliary_1)'
+signature_name_input2 <- 'Biliary_H (Biliary_30)'
 cancer_type_input <- NULL  ## toggle to select specific cancer type or combine all cancer type data (default)
-signature_both <- FALSE ## toggle to choose samples with both signature detected
+signature_both <- TRUE ## toggle to choose samples with both signature detected
 
 
 data_input <- left_join(
@@ -274,7 +274,7 @@ signature_association(data = data_input,cancer_type_input = cancer_type_input,si
 
 exposure_refdata_input <- exposure_refdata_selected %>% mutate(Sample=paste0(Cancer_Type,"@",Sample)) %>% 
   select(Sample,Signature_name,Exposure) %>% 
-  pivot_wider(id_cols = Sample,names_from=Signature_name,values_from=Exposure)
+  pivot_wider(id_cols = Sample,names_from=Signature_name,values_from=Exposure,values_fill = 0)
 
 signature_refsets_input <- signature_refsets_selected %>% 
   select(MutationType,Signature_name,Contribution) %>% 
@@ -286,10 +286,6 @@ seqmatrix_refdata_input<- seqmatrix_refdata_selected %>% mutate(Sample=paste0(Ca
   pivot_wider(id_cols = MutationType,names_from=Sample,values_from=Mutations) %>% 
   arrange(MutationType)  ## have to sort the mutation type
 
-## filter out the samples without exposure data
-seqmatrix_refdata_input <- seqmatrix_refdata_input %>% select(MutationType,one_of(exposure_refdata_input$Sample))
-
-
 decompsite_input <- calculate_similarities(orignal_genomes = seqmatrix_refdata_input,signature = signature_refsets_input,signature_activaties = exposure_refdata_input)
 decompsite_input <- decompsite_input %>% separate(col = Sample_Names,into = c('Cancer_Type','Sample'),sep = '@')
 decompsite_input %>% write_delim('tmp.txt',delim = '\t',col_names = T)  ## put the link to download this table
@@ -299,7 +295,7 @@ decompsite_distribution(decompsite = decompsite_input,output_plot = 'tmp.svg') #
 
 # Landscape of Mutational Signature Activity
 if(Data_Source == "Public_Data"){
-cancer_type_input <- 'AML'
+cancer_type_input <- 'Biliary-AdenoCA'
 }else {
   ## for input data, it will alwyas be "cancer_type_user" 
   cancer_type_input <- cancer_type_user
@@ -318,10 +314,6 @@ seqmatrix_refdata_input<- seqmatrix_refdata_selected %>% filter(Cancer_Type == c
   select(MutationType,Sample,Mutations) %>% 
   pivot_wider(id_cols = MutationType,names_from=Sample,values_from=Mutations) %>% 
   arrange(MutationType)  ## have to sort the mutationtype
-
-## filter out the samples without exposure data
-seqmatrix_refdata_input <- seqmatrix_refdata_input %>% select(MutationType,one_of(exposure_refdata_input$Sample))
-
 
 decompsite_input <- calculate_similarities(orignal_genomes = seqmatrix_refdata_input,signature = signature_refsets_input,signature_activaties = exposure_refdata_input)
 
