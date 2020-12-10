@@ -217,7 +217,7 @@ TMBplot(data_input,output_plot = 'tmp.svg')
 
 # Tumor Mutational Burden separated by signatures
 if(Data_Source == "Public_Data"){
-  cancer_type_input <- 'Biliary-AdenoCA'
+  cancer_type_input <- 'BRCA'
 }else {
   ## for input data, it will always be "cancer_type_user" 
   cancer_type_input <- cancer_type_user
@@ -236,7 +236,7 @@ TMBplot(data_input,output_plot = 'tmp.svg')
 
 
 # Mutational signature burden across cancer types
-signature_name_input <- 'Bone_SoftTissue_A (Bone_SoftTissue_18)'
+signature_name_input <- 'Breast_A (Breast_MMR1)'
 
 data_input <- exposure_refdata_selected %>% 
   filter(Signature_name==signature_name_input) %>% 
@@ -290,7 +290,11 @@ decompsite_input <- calculate_similarities(orignal_genomes = seqmatrix_refdata_i
 decompsite_input <- decompsite_input %>% separate(col = Sample_Names,into = c('Cancer_Type','Sample'),sep = '@')
 decompsite_input %>% write_delim('tmp.txt',delim = '\t',col_names = T)  ## put the link to download this table
 
-decompsite_distribution(decompsite = decompsite_input,output_plot = 'tmp.svg') # put the distribution plot online.
+if(!is.data.frame(decompsite_input)){
+  print('Evaluating step failed due to missing the data')
+}else {
+  decompsite_distribution(decompsite = decompsite_input,output_plot = 'tmp.svg') # put the distribution plot online.
+}
 
 
 # Landscape of Mutational Signature Activity
@@ -317,8 +321,6 @@ seqmatrix_refdata_input<- seqmatrix_refdata_selected %>% filter(Cancer_Type == c
 
 decompsite_input <- calculate_similarities(orignal_genomes = seqmatrix_refdata_input,signature = signature_refsets_input,signature_activaties = exposure_refdata_input)
 
-cosinedata <- decompsite_input %>% select(Samples=Sample_Names,Similarity=Cosine_similarity)
-
 data_input <- exposure_refdata_selected %>%
   filter(Cancer_Type==cancer_type_input) %>%
   select(Sample,Signature_name,Exposure) %>% 
@@ -326,8 +328,16 @@ data_input <- exposure_refdata_selected %>%
   rename(Samples=Sample)
 
 data_input <- data_input %>% select_if(~ !is.numeric(.)|| sum(.)>0)
+data_input <- data_input %>% filter(rowAny(across(where(is.numeric),~ .x>0 )))
 
 sigdata <- data_input
+
+if(!is.data.frame(decompsite_input)){
+  cosinedata <- sigdata %>% select(Samples)%>% mutate(Similarity=NA_real_)
+}else{
+  cosinedata <- decompsite_input %>% select(Samples=Sample_Names,Similarity=Cosine_similarity)
+}
+
 ## two parameters to add the two bars: vardata1, vardata1_cat, vardata2, vardata2_cat 
 # studydata <- data_input %>% select(Samples) %>% mutate(Study=if_else((seq_along(Samples) %% 2 ==0), "A","B"))
 # puritydata <-  data_input %>% select(Samples) %>% mutate(Purity=0)
@@ -361,7 +371,6 @@ if(vardata_input_file){
   vardata2_cat_input <- NULL
 }
 
-
 Exposure_Clustering(sigdata = sigdata,studydata = vardata1_input,studydata_cat = vardata1_cat_input,puritydata = vardata2_input,puritydata_cat = vardata2_cat_input, cosinedata = cosinedata,clustern=5,output_plot = 'tmp.svg' )
 
 ### prevalence plot
@@ -374,7 +383,4 @@ if(nsams[1]>0){
 }else{
   print(paste0('No signature in any sample with number of mutation larger than ',nmutation_input))
 }
-
-
-
 
