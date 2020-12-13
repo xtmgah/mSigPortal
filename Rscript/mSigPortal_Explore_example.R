@@ -150,7 +150,7 @@ if(Data_Source == "Public_Data"){
   load('../Database/Seqmatrix/seqmatrix_refdata.RData')
   
   # parameters for all the tables
-  study_input <- "PCAWG"
+  study_input <- "non-PCAWG"
   dataset_input <- "WGS"
   signature_set_name_input <- "Organ-specific Cancer Signatures (SBS)" 
   exposure_refdata_selected <- exposure_refdata %>% filter(Study==study_input,Dataset==dataset_input,Signature_set_name==signature_set_name_input)
@@ -248,11 +248,14 @@ TMBplot(data_input,output_plot = 'tmp.svg',addnote = signature_name_input)
 
 
 # Mutational Signature Association
-signature_name_input1 <- 'Biliary_B (Biliary_1)'
-signature_name_input2 <- 'Biliary_H (Biliary_30)'
 cancer_type_input <- NULL  ## toggle to select specific cancer type or combine all cancer type data (default)
 signature_both <- TRUE ## toggle to choose samples with both signature detected
 
+## drop down list for avaiable signature name
+exposure_refdata_selected %>% filter(Cancer_Type==cancer_type_input,Exposure>0) %>% pull(Signature_name) %>% unique()
+
+signature_name_input1 <- 'Lung_A (Lung_13)'
+signature_name_input2 <- 'Lung_C (Lung_1)'
 
 data_input <- left_join(
   exposure_refdata_selected %>% 
@@ -287,13 +290,14 @@ seqmatrix_refdata_input<- seqmatrix_refdata_selected %>% mutate(Sample=paste0(Ca
   arrange(MutationType)  ## have to sort the mutation type
 
 decompsite_input <- calculate_similarities(orignal_genomes = seqmatrix_refdata_input,signature = signature_refsets_input,signature_activaties = exposure_refdata_input)
-decompsite_input <- decompsite_input %>% separate(col = Sample_Names,into = c('Cancer_Type','Sample'),sep = '@')
-decompsite_input %>% write_delim('tmp.txt',delim = '\t',col_names = T)  ## put the link to download this table
 
 if(!is.data.frame(decompsite_input)){
   print('Evaluating step failed due to missing the data')
 }else {
+  decompsite_input <- decompsite_input %>% separate(col = Sample_Names,into = c('Cancer_Type','Sample'),sep = '@')
   decompsite_distribution(decompsite = decompsite_input,output_plot = 'tmp.svg') # put the distribution plot online.
+  decompsite_input %>% write_delim('tmp.txt',delim = '\t',col_names = T)  ## put the link to download this table
+  
 }
 
 
