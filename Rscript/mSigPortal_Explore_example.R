@@ -150,7 +150,7 @@ if(Data_Source == "Public_Data"){
   load('../Database/Seqmatrix/seqmatrix_refdata.RData')
   
   # parameters for all the tables
-  study_input <- "non-PCAWG"
+  study_input <- "Breast560"
   dataset_input <- "WGS"
   signature_set_name_input <- "Organ-specific Cancer Signatures (SBS)" 
   exposure_refdata_selected <- exposure_refdata %>% filter(Study==study_input,Dataset==dataset_input,Signature_set_name==signature_set_name_input)
@@ -167,6 +167,11 @@ if(Data_Source == "Public_Data"){
   signature_refsets_selected <- signature_refsets %>% 
     filter(Signature_set_name==signature_set_name_input)
   seqmatrix_refdata_selected <- seqmatrix_refdata %>% filter(Study==study_input,Dataset==dataset_input,Profile == signature_refsets_selected$Profile[1])
+  
+  cancer_type_input <- 'BRCA'
+  
+  # available siganture name, Dropdown list for all the signature name
+  signature_name_avail <- exposure_refdata_selected %>% filter(Cancer_Type==cancer_type_input,Exposure>0) %>% pull(Signature_name) %>% unique()  
   
 }else{
   ## require for user input
@@ -203,6 +208,8 @@ if(Data_Source == "Public_Data"){
   signature_refsets_selected <- signature_refsets_selected %>% select(-Type,-SubType) %>% pivot_longer(cols = -MutationType,names_to="Signature_name",values_to="Contribution")
   seqmatrix_refdata_selected <- seqmatrix_refdata_selected%>% select(-Type,-SubType) %>% pivot_longer(cols = -MutationType,names_to="Sample",values_to="Mutations") %>% mutate(Cancer_Type=cancer_type_user)
   
+  cancer_type_input <- cancer_type_user
+  
 }
 
 
@@ -216,14 +223,6 @@ TMBplot(data_input,output_plot = 'tmp.svg')
 
 
 # Tumor Mutational Burden separated by signatures
-if(Data_Source == "Public_Data"){
-  cancer_type_input <- 'BRCA'
-}else {
-  ## for input data, it will always be "cancer_type_user" 
-  cancer_type_input <- cancer_type_user
-}
-
-
 data_input <- exposure_refdata_selected %>% 
   filter(Cancer_Type==cancer_type_input) %>% 
   mutate(Burden=log10((Exposure)/genomesize)) %>% 
@@ -232,7 +231,6 @@ data_input <- exposure_refdata_selected %>%
 # put this barplot on the web
 TMBplot(data_input,output_plot = 'tmp.svg')
 #,addnote = signature_name_input
-
 
 
 # Mutational signature burden across cancer types
@@ -248,14 +246,11 @@ TMBplot(data_input,output_plot = 'tmp.svg',addnote = signature_name_input)
 
 
 # Mutational Signature Association
-cancer_type_input <- NULL  ## toggle to select specific cancer type or combine all cancer type data (default)
+cancer_type_only <- TRUE  ## toggle to select specific cancer type or combine all cancer type data (default)
 signature_both <- TRUE ## toggle to choose samples with both signature detected
 
-## drop down list for avaiable signature name
-exposure_refdata_selected %>% filter(Cancer_Type==cancer_type_input,Exposure>0) %>% pull(Signature_name) %>% unique()
-
-signature_name_input1 <- 'Lung_A (Lung_13)'
-signature_name_input2 <- 'Lung_C (Lung_1)'
+signature_name_input1 <- 'Breast_F (Breast_18)'
+signature_name_input2 <- 'Breast_A (Breast_MMR1)'
 
 data_input <- left_join(
   exposure_refdata_selected %>% 
@@ -269,7 +264,11 @@ data_input <- left_join(
     select(-Signature_name)
 )
 
-signature_association(data = data_input,cancer_type_input = cancer_type_input,signature_name_input1 = signature_name_input1, signature_name_input2 = signature_name_input2, signature_both = signature_both,output_plot = 'tmp.svg')
+if(cancer_type_only){
+  data_input <- data_input %>% filter(Cancer_Type==cancer_type_input)
+}
+
+signature_association(data = data_input,signature_name_input1 = signature_name_input1, signature_name_input2 = signature_name_input2, signature_both = signature_both,output_plot = 'tmp.svg')
 
 
 # Evaluating the Performance of Mutational Signature Decomposition --------
@@ -292,7 +291,7 @@ seqmatrix_refdata_input<- seqmatrix_refdata_selected %>% mutate(Sample=paste0(Ca
 decompsite_input <- calculate_similarities(orignal_genomes = seqmatrix_refdata_input,signature = signature_refsets_input,signature_activaties = exposure_refdata_input)
 
 if(!is.data.frame(decompsite_input)){
-  print('Evaluating step failed due to missing the data')
+  print('ERROR: Evaluating step failed due to missing the data')
 }else {
   decompsite_input <- decompsite_input %>% separate(col = Sample_Names,into = c('Cancer_Type','Sample'),sep = '@')
   decompsite_distribution(decompsite = decompsite_input,output_plot = 'tmp.svg') # put the distribution plot online.

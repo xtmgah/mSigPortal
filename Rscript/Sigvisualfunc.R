@@ -2,6 +2,19 @@ require(tidyverse)
 require(ggtext)
 require(ggforce)
 
+
+
+
+# Conflicted package ------------------------------------------------------
+resolve_conflicts <- function(){
+  require(conflicted)
+  conflict_prefer("select", "dplyr")
+  conflict_prefer("filter", "dplyr")
+  #filter <- dplyr::filter
+  #select <- dplyr::select
+}
+
+
 ### reformat the signature name ###
 signames <- 
   tibble(
@@ -1999,44 +2012,52 @@ content_extraction <- function(data){
 
 
 
-signature_association <- function(data,cancer_type_input=NULL,signature_name_input1="Siganture 1",signature_name_input2="Siganture 2", signature_both=FALSE,output_plot = NULL,plot_width=10, plot_height=10){
-  if(!is.null(cancer_type_input)){
-    data <- data %>% filter(Cancer_Type==cancer_type_input)
-  }
+signature_association <- function(data,signature_name_input1="Siganture 1",signature_name_input2="Siganture 2", signature_both=FALSE,output_plot = NULL,plot_width=10, plot_height=10){
+  # cancer_type_only
+  # if(!is.null(cancer_type_input)){
+  #   data <- data %>% filter(Cancer_Type==cancer_type_input)
+  # }
   
   if(signature_both){
     data <- data %>% filter(Exposure1>0,Exposure2>0)
   }
   
-  # data %>% 
-  #   ggplot(aes(log10(Exposure1+1),log10(Exposure2+1)))+
-  #   geom_point()+
-  #   geom_smooth(method = "lm",se = TRUE)+
-  #   labs(x=paste0('Nubmer of mutations in ',signature_name_input1, ' (log10)'),y=paste0('Nubmer of mutations in ',signature_name_input2,' (log10)'))+
-  #   theme_ipsum_rc(axis_title_size = 12,axis_title_just = 'm',axis_col = 'black',ticks = T)
-  #   
+  ntotal <- data %>% filter(!is.na(Exposure1),!is.na(Exposure2)) %>% dim() %>% .[[1]]
   
-  ## generated another Rplot blank file???
-  p <- ggstatsplot::ggscatterstats(
-    data=data %>% mutate(Exposure1=log10(Exposure1+1),Exposure2=log10(Exposure2+1)),
-    x=Exposure1,
-    y=Exposure2,
-    xlab=paste0('Nubmer of mutations in ',signature_name_input1, ' (log10)'),
-    ylab=paste0('Nubmer of mutations in ',signature_name_input2,' (log10)'),
-    marginal.type = "density",
-    messages=FALSE,
-  )
-  
-  if(is.null(output_plot)){
-    return(p)
-  }else{
-    ggsave(filename = output_plot,plot = p,width = plot_width,height = plot_height)
+  if(ntotal==0){
+    errinfo <- "ERROR: No sample assigned to both signatures in selected study"
+    return(errinfo)
+  }else {
+    
+    # data %>% 
+    #   ggplot(aes(log10(Exposure1+1),log10(Exposure2+1)))+
+    #   geom_point()+
+    #   geom_smooth(method = "lm",se = TRUE)+
+    #   labs(x=paste0('Nubmer of mutations in ',signature_name_input1, ' (log10)'),y=paste0('Nubmer of mutations in ',signature_name_input2,' (log10)'))+
+    #   theme_ipsum_rc(axis_title_size = 12,axis_title_just = 'm',axis_col = 'black',ticks = T)
+    #   
+    
+    ## generated another Rplot blank file???
+    p <- ggstatsplot::ggscatterstats(
+      data=data %>% mutate(Exposure1=log10(Exposure1+1),Exposure2=log10(Exposure2+1)),
+      x=Exposure1,
+      y=Exposure2,
+      xlab=paste0('Nubmer of mutations in ',signature_name_input1, ' (log10)'),
+      ylab=paste0('Nubmer of mutations in ',signature_name_input2,' (log10)'),
+      marginal.type = "density",
+      messages=FALSE,
+    )
+    
+    if(is.null(output_plot)){
+      return(p)
+    }else{
+      ggsave(filename = output_plot,plot = p,width = plot_width,height = plot_height)
+    }
+    
   }
   
   
-  
 }
-
 
 
 # Genome2Size  ------------------------------------------------------------
@@ -2052,6 +2073,286 @@ genome2size <- function(genome){
   )
   return(genomesize)
 }
+
+
+
+
+# Rainfall_Plot -----------------------------------------------------------
+
+# mutSNP ----------------------------------------------------------------
+mutSNP.input <- function(mut.data, chr = "chr", pos = "pos", ref = "ref", 
+                         alt = "alt", build = NULL, k = 10) {
+  if (exists("mut.data", mode = "list")) {
+    mut.data <- mut.data
+  } else {
+    if (file.exists(mut.data)) {
+      mut.data <- utils::read.table(mut.data, sep = "\t", header = TRUE, 
+                                    as.is = FALSE, check.names = FALSE)
+    } else {
+      stop("mut.data is neither a file nor a loaded data frame")
+    }
+  }
+  mut.data <- mut.data[, c(chr, pos, ref, alt)]
+  genome.opts = c("hg19", "hg18", "hg38")
+  if (!build %in% genome.opts || is.null(build)) {
+    stop("Available reference builds: hg18, hg19, hg38")
+  }
+  if (build == "hg19") {
+    chr.lens = c(249250621, 243199373, 198022430, 191154276, 180915260, 
+                 171115067, 159138663, 146364022, 141213431, 135534747, 
+                 135006516, 133851895, 115169878, 107349540, 102531392, 
+                 90354753, 81195210, 78077248, 59128983, 63025520, 48129895, 
+                 51304566, 155270560, 59373566)
+    bsg = BSgenome.Hsapiens.UCSC.hg19
+  } else if (build == "hg18") {
+    chr.lens = c(247249719, 242951149, 199501827, 191273063, 180857866, 
+                 170899992, 158821424, 146274826, 140273252, 135374737, 
+                 134452384, 132349534, 114142980, 106368585, 100338915, 
+                 88827254, 78774742, 76117153, 63811651, 62435964, 46944323, 
+                 49691432, 154913754, 57772954)
+    bsg = BSgenome.Hsapiens.UCSC.hg18
+  } else if (build == "hg38") {
+    chr.lens = c(248956422, 242193529, 198295559, 190214555, 181538259, 
+                 170805979, 159345973, 145138636, 138394717, 133797422, 
+                 135086622, 133275309, 114364328, 107043718, 101991189, 
+                 90338345, 83257441, 80373285, 58617616, 64444167, 46709983, 
+                 50818468, 156040895, 57227415)
+    bsg = BSgenome.Hsapiens.UCSC.hg38
+  } else {
+    stop("Available reference builds: hg18, hg19, hg38")
+  }
+  mut.data$build = build
+  if (!all(mut.data$ref %in% DNA_BASES & mut.data$alt %in% DNA_BASES)) {
+    stop("Only SNV substitutions are currently supported.")
+  }
+  ref_base = DNAStringSet(mut.data$ref)
+  alt_base = DNAStringSet(mut.data$alt)
+  conv.start = mut.data$pos - k
+  conv.end = mut.data$pos + k
+  context = getSeq(bsg, mut.data$chr, start = conv.start, end = conv.end)
+  if (TRUE) {
+    idx = mut.data$ref %in% c("A", "G")
+    context[idx] = reverseComplement(context[idx])
+    ref_base[idx] = reverseComplement(ref_base[idx])
+    alt_base[idx] = reverseComplement(alt_base[idx])
+  }
+  mut.data$alteration = paste(ref_base, alt_base, sep = ">")
+  mut.data$context = context
+  # Replace chr x and y with numeric value (23 and 24) for better
+  # ordering
+  seq = gsub(pattern = "chr", replacement = "", x = mut.data$chr, 
+             fixed = TRUE)
+  seq = gsub(pattern = "X", replacement = "23", x = seq, fixed = TRUE)
+  seq = gsub(pattern = "Y", replacement = "24", x = seq, fixed = TRUE)
+  mut.data$seq = as.numeric(seq)
+  mut.data = mut.data[order(mut.data$seq, mut.data$pos), ]
+  chr.lens.sum = cumsum(chr.lens)
+  chr.lens.sum = c(0, chr.lens.sum)
+  mut.data$dis = c(mut.data$pos[1], diff(mut.data$pos + chr.lens.sum[mut.data$seq]))
+  return(mut.data)
+}
+
+
+
+
+# Kataegis point ----------------------------------------------------------
+katPoint <- function(data, sample = "sample", min.mut = 5, max.dis = 1000, 
+                     txdb = NULL) {
+  build = data$build[1]
+  genome.opts = c("hg19", "hg18", "hg38")
+  if (!build %in% genome.opts) {
+    stop("Available reference builds: hg18, hg19, hg38")
+  }
+  if (build == "hg19") {
+    chr.arm = c(1.25e+08, 93300000, 9.1e+07, 50400000, 48400000, 
+                6.1e+07, 59900000, 45600000, 4.9e+07, 40200000, 53700000, 
+                35800000, 17900000, 17600000, 1.9e+07, 36600000, 2.4e+07, 
+                17200000, 26500000, 27500000, 13200000, 14700000, 60600000, 
+                12500000)
+  } else if (build == "hg18") {
+    chr.arm = c(124300000, 93300000, 91700000, 50700000, 47700000, 
+                60500000, 59100000, 45200000, 51800000, 40300000, 52900000, 
+                35400000, 1.6e+07, 15600000, 1.7e+07, 38200000, 22200000, 
+                16100000, 28500000, 27100000, 12300000, 11800000, 59500000, 
+                11300000)
+  } else if (build == "hg38") {
+    chr.arm = c(123400000, 93900000, 90900000, 5e+07, 48800000, 
+                59800000, 60100000, 45200000, 4.3e+07, 39800000, 53400000, 
+                35500000, 17700000, 17200000, 1.9e+07, 36800000, 25100000, 
+                18500000, 26200000, 28100000, 1.2e+07, 1.5e+07, 6.1e+07, 
+                10400000)
+  } else {
+    stop("Available reference builds: hg18, hg19, hg38")
+  }
+  num = dim(data)[1] - 5
+  katPoint <- matrix(nrow = num, ncol = 8)
+  i = 1
+  mutnum = 1
+  Cmutnum = 0
+  for (i in 1:num) {
+    if (data$ref[i] %in% c("C", "G")){
+      Cmutnum = Cmutnum + 1
+    }
+    if (data$dis[i + 1] <= max.dis) {
+      mutnum = mutnum + 1
+    } else {
+      if (mutnum >= min.mut) {
+        len = data$pos[i] - data$pos[i - mutnum + 1] + 1
+        chr.n = gsub(pattern = "chr", replacement = "", x = data$chr[i], 
+                     fixed = TRUE)
+        chr.n = gsub(pattern = "X", replacement = "23", x = chr.n, 
+                     fixed = TRUE)
+        chr.n = gsub(pattern = "Y", replacement = "24", x = chr.n, 
+                     fixed = TRUE)
+        chr.n = as.numeric(chr.n)
+        if (data$pos[i] <= chr.arm[chr.n]) {
+          arm = paste(chr.n, "p", sep = "")
+        } else if (data$pos[i - mutnum + 1] >= chr.arm[chr.n]) {
+          arm = paste(chr.n, "q", sep = "")
+        } else {
+          arm = paste(chr.n, "p, ", chr.n, "q", sep = "")
+        }
+        katPoint[i, 1:8] = c(sample, data$chr[i], data$pos[i - mutnum + 1], data$pos[i], arm, len, mutnum, round(Cmutnum/mutnum,3))
+      }
+      mutnum = 1
+      Cmutnum = 0
+    }
+  }
+  katPoint.out = data.frame(na.omit(katPoint))
+  names(katPoint.out) = c("sample", "chrom", "start", "end", "chrom.arm", "length", "number.mut", 
+                          "weight.C>X")
+  for (i in 1:dim(katPoint.out)[1]) {
+    if (as.numeric(as.character(katPoint.out$"weight.C>X"[i])) < 0.8) {
+      katPoint.out$confidence[i] = 0
+    } else {
+      katPoint.out$confidence[i] <- length(which(subset(katPoint.out,as.numeric(as.character(katPoint.out$"weight.C>X")) >= 0.8)$chrom == katPoint.out$chrom[i]))
+      if (katPoint.out$confidence[i] > 3) {
+        katPoint.out$confidence[i] = 3
+      }
+    }
+  }
+  if (!is.null(txdb)) {
+    gr <- GRanges(seqnames = Rle(katPoint.out$chrom), ranges=IRanges(start = as.numeric(as.character(katPoint.out$start)), end =as.numeric(as.character(katPoint.out$end))))
+    peakAnno <- ChIPseeker::annotatePeak(gr, tssRegion = c(-3000, 3000), TxDb = txdb, annoDb = "org.Hs.eg.db")
+    katPoint.out$annotation <- peakAnno@anno$annotation
+    katPoint.out$distanceToTSS <- peakAnno@anno$distanceToTSS
+    katPoint.out$geneName <- peakAnno@anno$SYMBOL
+    katPoint.out$geneID <- peakAnno@anno$geneId
+  } 
+  message(paste(dim(katPoint.out)[1], "potential kataegis events identified", 
+                sep = " "))
+  return(katPoint.out)
+}
+
+
+# Kataegis plot -----------------------------------------------------------
+
+kataegis_rainfall_plot <- function(mutdata,sample_name="sample",genome_build = "hg19",reference_data_folder, chromsome=NULL,kataegis_highligh=FALSE,min.mut = 5,max.dis = 1000,filename=NULL){
+  require(tidyverse)
+  require(ggsci)
+  require(hrbrthemes)
+  require(cowplot)
+  #require(ChIPseeker)
+  
+  genome_build <- str_to_lower(genome_build)
+  
+  if(genome_build %in% c('hg19','grch37')){
+    require(BSgenome.Hsapiens.UCSC.hg19)
+    require(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    genome_build <- 'hg19'
+    ref_file <- paste0(reference_data_folder,"/hg19_ref.RData")
+    load(ref_file)
+    hgref <- hg19
+    TxDb.Hsapiens <- TxDb.Hsapiens.UCSC.hg19.knownGene
+  }
+  
+  if(genome_build %in% c('hg38','grch38')){
+    require(BSgenome.Hsapiens.UCSC.hg38)
+    require(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    genome_build <- 'hg38'
+    ref_file <- paste0(reference_data_folder,"/hg38_ref.RData")
+    load(ref_file)
+    hgref <- hg38
+    TxDb.Hsapiens <- TxDb.Hsapiens.UCSC.hg38.knownGene
+  }
+  
+  
+  #mutdata format:chr,pos,ref,alt
+  mutdata <- mutdata %>% 
+    mutate(chr=str_remove(chr,"^chr")) %>% 
+    dplyr::filter(str_length(ref)==1,str_length(alt)==1,!str_detect(alt,"-"),!str_detect(ref,"-"),chr %in% c(1:22,"X","Y"))%>% 
+    mutate(chr=paste0("chr",chr)) 
+  
+  if(!is.null(chromsome)){
+    hgref <- hgref %>% dplyr::filter(chr==chromsome) %>% mutate(start2=1,end2=len)
+    mutdata <- mutdata %>% dplyr::filter(chr==chromsome)
+  }
+  
+  mutSNP = mutSNP.input(mut.data = as.data.frame(mutdata), chr = "chr", pos = "pos", ref = "ref", alt = "alt", build = genome_build)
+  mutSNP$context <- ""
+  katdata <- NA
+  try({
+    katdata <- katPoint(mutSNP,txdb = TxDb.Hsapiens,sample = sample_name,min.mut = min.mut,max.dis = max.dis)
+  },silent = TRUE)
+  #print(katdata)
+  
+  if(is.data.frame(katdata)){
+    if(dim(katdata)[1]>0){
+      katdata <- katdata %>% mutate(start=as.integer(start),end=as.integer(end)) %>% left_join(hgref,by=c('chrom'='chr'))
+      for(i in 1:dim(katdata)[1]){
+        kchr <- katdata$chrom[i]
+        kstart <- katdata$start[i]
+        kend <- katdata$end[i]
+        mutSNP$context[mutSNP$chr==kchr & mutSNP$pos>=kstart & mutSNP$pos<=kend] <- 'Kataegsis'
+      }
+    }
+  }
+  
+  #color themes for the mutation subtype
+  SNVcolor <- pal_d3()(6)
+  names(SNVcolor) = c("C>A", "C>G", "C>T", "T>A", "T>C", "T>G")
+  addcolor <- "gray80"
+  names(addcolor) <- "Non-kataegis mutations"
+  
+  mutSNP <- mutSNP %>% 
+    left_join(hgref %>% dplyr::select(chr,start2),by=c('chr'='chr')) %>% 
+    mutate(pos=pos+start2-1) %>% 
+    dplyr::rename(dist=dis) 
+  
+  if(kataegis_highligh){
+    mutSNP <- mutSNP %>% mutate(SNV=if_else(context=="","Non-kataegis mutations",alteration))
+    SNVcolor <- c(SNVcolor,addcolor)
+  }else{
+    mutSNP <- mutSNP %>% mutate(SNV=alteration) 
+  }
+  
+  mutSNP <- mutSNP %>% mutate(SNV=factor(SNV,level=names(SNVcolor))) 
+  
+  p <- mutSNP %>% 
+    ggplot(aes(pos,log10(dist),fill=SNV))+
+    geom_vline(xintercept = c(hgref$start2,hgref$end2),col="#cccccc",lwd=0.4)+
+    geom_hline(yintercept = c(2,3),col=c("red","blue"),lwd=0.4,linetype=2)+
+    geom_point(shape=21,stroke=0.1,size=1.5)+
+    labs(y="Intermutation distance (bp,log10)\n",x = "Chromosome")+
+    scale_x_continuous(breaks = (hgref$start2+hgref$end2)/2,labels = str_remove(hgref$chr,'chr'),expand = c(0.005,0.005),limits = c(0,tail(hgref$end2,1)),guide = guide_axis(n.dodge=1))+
+    scale_y_continuous(breaks = pretty_breaks())+
+    scale_fill_manual("Subtype",values = SNVcolor,drop=FALSE,na.value="gray90")+
+    theme_ipsum_rc(axis_title_just = "m",axis_title_size = 14,grid="Y",ticks = T,axis = FALSE)+
+    theme(plot.title = element_text(hjust = 0.5,face = "plain"),legend.text = element_text(size = 12),legend.position = "bottom")+
+    guides(fill = guide_legend(override.aes = list(size = 3),nrow = 1))+
+    panel_border(color = 'black',size = 0.5)+
+    coord_cartesian(clip = 'off')
+  
+  if(is.data.frame(katdata)){
+    if(dim(katdata)[1]>0){
+      p <- p+annotate("segment", x = katdata$start2+(katdata$start+katdata$end)/2, xend = katdata$start2+(katdata$start+katdata$end)/2, y = 0.5, yend = 1,size=0.3, colour = "black",arrow=arrow(length = unit(0.25,"cm")))
+      katdata <- katdata %>% dplyr::select(sample:geneID)
+    }}
+  ggsave(filename = filename,plot = p,width = 15,height = 7)
+  
+  return(katdata)
+}
+
 
 
 
