@@ -41,6 +41,8 @@ if(Data_Source == "Public_Data"){
   matrixfiles %>% select(Profile_Type,Matrix_Size)
   svgfiles <- read_csv(paste0(foldername,'/svg_files_list.txt'),col_names = T) 
   ### svgfiles and matrixfiles used as input data
+  #the following file does not apply to catlgoy file
+  mutationfile <- '../Example_data/example_results/input/Project_mSigPortal_Mutations_Collapse.txt' 
 }
 
 
@@ -556,6 +558,42 @@ if(Data_Source != "Public_Data"){
   res.pca$rotation %>% as.data.frame() %>% rownames_to_column(var = 'Sample') %>% write_delim('PCA4.txt',delim = '\t',col_names = T)
   
 }
+
+
+
+
+# Kataegis Identificaiton -----------------------------------------------------------
+#parameters for this function: Sample Name, Highlight Kataegis Mutations, Minimum Number of Mutations, Maximum Distance, Chromosome
+# Sample Name: same as other module
+# Highlight Kataegis Mutations: logical, default FALSE
+# Minimum Number of Mutations: default 5
+# Maximum Distance: 1000
+#Chromosome: default null; can choose from chr1:chr22, chrX and chrY
+
+if(Data_Source != "Public_Data"){
+  mutation_file <- paste0(foldername,'/input/Project_mSigPortal_SNV_Collapse.txt')
+  if(file.exists(mutation_file)){ 
+    mutation_data <- read_delim(file = mutation_file,delim = '\t',col_names =FALSE)
+    colnames(mutation_data) <- c('project','sample','type','genome_build','mutation_type','chr','pos','end','ref','alt','source')
+    
+    # input parameters
+    sample_name_input <-  "SC420396"
+    kataegis_highligh_input <- FALSE
+    min_mut_input <- 5
+    max_dis_input <- 1000
+    chromsome_input <- NULL
+    
+    genome_build <- mutation_data$genome_build[1]
+    mutdata <- mutation_data %>% filter(sample==sample_name_input) %>% dplyr::select(chr,pos,ref,alt)
+    
+    kataegis_result <- kataegis_rainfall_plot(mutdata,sample_name=sample_name_input,genome_build = genome_build,reference_data_folder='../Database/Others', chromsome=chromsome_input,kataegis_highligh=kataegis_highligh_input,min.mut = min_mut_input,max.dis = max_dis_input,filename='tmp.svg')  ## put tmp.svg on the webpage
+    #resolve_conflicts()
+    kataegis_result  # make a table using kataegis_result bellow the plot
+  }else{
+    print("Kataegis Identification only works for the VCF input files!")
+  }
+}
+
 
 
 
