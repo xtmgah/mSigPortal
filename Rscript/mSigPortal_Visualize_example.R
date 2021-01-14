@@ -577,11 +577,12 @@ if(Data_Source != "Public_Data"){
     colnames(mutation_data) <- c('project','sample','type','genome_build','mutation_type','chr','pos','end','ref','alt','source')
     
     # input parameters
-    sample_name_input <-  "SC420396"
+    sample_name_input <-  "SC420396@PASS"
     kataegis_highligh_input <- FALSE
     min_mut_input <- 5
-    max_dis_input <- 1000
+    max_dis_input <- 100
     chromsome_input <- NULL
+    chromsome_input <- "chr2"
     
     genome_build <- mutation_data$genome_build[1]
     mutdata <- mutation_data %>% filter(sample==sample_name_input) %>% dplyr::select(chr,pos,ref,alt)
@@ -590,7 +591,7 @@ if(Data_Source != "Public_Data"){
     #resolve_conflicts()
     kataegis_result  # make a table using kataegis_result bellow the plot
   }else{
-    print("Kataegis Identification only works for the VCF input files!")
+    stop("ERROR: Kataegis Identification only works for the VCF input files!")
   }
 }
 

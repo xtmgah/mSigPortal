@@ -1,6 +1,12 @@
 require(tidyverse)
 require(ggtext)
 require(ggforce)
+library(janitor)
+library(ggpubr)
+library(cowplot)
+library(hrbrthemes)
+library(ggsci)
+library(ggrepel)
 
 
 
@@ -806,6 +812,9 @@ profile_heatmap_plot <- function(data,output_plot = NULL,plot_width=NULL, plot_h
   
   # data format: Sample  Profile Mutations
   
+  # merge different profile 
+  data <- data %>% mutate(Key=str_remove(Profile,"\\d+")) %>% group_by(Sample,Mutations,Key) %>% mutate(Profile=paste0(Profile,collapse = '/')) %>% ungroup() %>% unique() %>% select(-Key) 
+  
   profile_tmp <- data %>% group_by(Profile) %>% summarise(mean=mean(Mutations)) %>% arrange(desc(mean))
   samleve_tmp <- data %>% filter(Profile==profile_tmp$Profile[1]) %>% arrange(Mutations) %>% pull(Sample)
   
@@ -827,19 +836,35 @@ profile_heatmap_plot <- function(data,output_plot = NULL,plot_width=NULL, plot_h
   angle_max <- if_else(name_max < 15, 90, 30)
   vjust_max <- if_else(name_max < 15, 0.5, 1)
   
-  plot_final <- data %>% left_join(profile_tmp) %>% 
-    mutate(Sample=factor(Sample,levels = samleve_tmp),Profile=factor(Profile,levels = profile_tmp$Profile)) %>% 
-    ggplot(aes(Sample,Profile,fill=(Mutations)))+
-    geom_tile(col="white")+
-    scale_fill_viridis_c(trans = "log10",label=comma_format(),na.value = 'black')+
-    labs(x="",y="",fill="Number of mutations\n")+
-    theme_ipsum_rc(grid = FALSE,ticks = FALSE,axis = FALSE)+
-    theme(legend.key.width =unit(2, "cm"),legend.position = "top")
-  
-  if(name_len<=80){
-    plot_final <- plot_final + theme(axis.text.x = element_text(angle = angle_max,hjust = 1,vjust = vjust_max,size = 10))
-  } else{
-    plot_final <- plot_final + theme(axis.text.x = element_blank())
+  if(name_len>100){
+    
+    plot_final <- data %>% left_join(profile_tmp) %>% 
+      mutate(Sample=factor(Sample,levels = samleve_tmp),Profile=factor(Profile,levels = profile_tmp$Profile)) %>% 
+      ggplot(aes(Sample,log10(Mutations),group=Profile,col=Profile))+
+      geom_line()+
+      geom_point()+
+      scale_color_d3()+
+      labs(x="Sample index",y="log10(Mutations)",color="Profile")+
+      theme_ipsum_rc(grid = "XYy",ticks = TRUE,axis = FALSE,axis_title_just = 'm',axis_title_size = 14)+
+      theme(axis.text.x = element_blank(),axis.ticks.x = element_blank())+
+      panel_border(color = 'black')
+    
+  }else{
+    
+    plot_final <- data %>% left_join(profile_tmp) %>% 
+      mutate(Sample=factor(Sample,levels = samleve_tmp),Profile=factor(Profile,levels = profile_tmp$Profile)) %>% 
+      ggplot(aes(Sample,Profile,fill=(Mutations)))+
+      geom_tile(col="white")+
+      scale_fill_viridis_c(trans = "log10",label=comma_format(),na.value = 'black')+
+      labs(x="",y="",fill="Number of mutations\n")+
+      theme_ipsum_rc(grid = FALSE,ticks = FALSE,axis = FALSE)+
+      theme(legend.key.width =unit(2, "cm"),legend.position = "top")
+    
+    if(name_len<=80){
+      plot_final <- plot_final + theme(axis.text.x = element_text(angle = angle_max,hjust = 1,vjust = vjust_max,size = 10))
+    } else{
+      plot_final <- plot_final + theme(axis.text.x = element_blank())
+    }
   }
   
   ## define the length of x and y
@@ -1186,6 +1211,11 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
   RSS = format(RSS, scientific = TRUE, digits = 3)
   cosine_sim = cos_sim(profile1[[4]], profile2[[4]])
   cosine_sim = round(cosine_sim, 3)
+  if(colnames(profile1)[4] == colnames(profile2)[4]){
+    colnames(profile1)[4] <-  "Profile1"
+    colnames(profile2)[4] <-  "Profile2"
+  }
+  
   df <-  profile1 %>% left_join(profile2) %>% mutate(Difference=diff)
   if(is.null(profile_names)){
     profile_names <- colnames(df)[4:5]
@@ -1212,10 +1242,11 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
       ylab("Relative contribution") +
       guides(fill = FALSE) + 
       labs(x="")+
+      scale_y_continuous(labels = scales::number_format(accuracy = 0.01))+
       #scale_y_continuous(expand = c(0,0))+
       theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
-      ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
-      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 12,hjust = 0.5,colour = "white", margin = margin()), strip.text.y = element_text(size = 12,hjust = 0.5, margin = margin()),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5)+geom_vline(xintercept = Inf,colour = 'black',size = 0.5)#axis.line.x = element_line(colour = 'black',size = 0.25),
+      ggtitle(paste("RSS = ", RSS, "; Cosine Similarity = ", cosine_sim, sep = ""))+
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 10,hjust = 0.5,colour = "white", margin = margin(0,0,0,0,unit = 'cm')), strip.text.y = element_text(size = 10,hjust = 0.5,margin = margin(0,0,0,0,unit = 'cm')),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5)+geom_vline(xintercept = Inf,colour = 'black',size = 0.5)#axis.line.x = element_line(colour = 'black',size = 0.25),
     #panel_border(color = gray(0.5),size = 0.3)
   }
   else {
@@ -1227,10 +1258,11 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
       ylab("Relative contribution") +
       guides(fill = FALSE) + 
       labs(x="")+
+      scale_y_continuous(labels = scales::number_format(accuracy = 0.01))+
       #scale_y_continuous(expand = c(0,0))+
       theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
-      ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
-      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 12,hjust = 0.5,colour = "white", margin = margin()), strip.text.y = element_text(size = 12,hjust = 0.5, margin = margin()),strip.background = element_rect(fill = "#f0f0f0",), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5) +geom_vline(xintercept = Inf,colour = 'black',size = 0.5) #,axis.line.x = element_line(colour = 'black',size = 0.25)
+      ggtitle(paste("RSS = ", RSS, "; Cosine Similarity = ", cosine_sim, sep = ""))+
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 10,hjust = 0.5,colour = "white", margin = margin(0,0,0,0,unit = 'cm')), strip.text.y = element_text(size = 10,hjust = 0.5,margin = margin(0,0,0,0,unit = 'cm')),strip.background = element_rect(fill = "#f0f0f0",), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5) +geom_vline(xintercept = Inf,colour = 'black',size = 0.5) #,axis.line.x = element_line(colour = 'black',size = 0.25)
     #     panel_border(color = gray(0.5),size = 0.3)
   }
   
@@ -1281,6 +1313,11 @@ plot_compare_profiles_diff_strand <- function (profile1, profile2, profile_names
   RSS = format(RSS, scientific = TRUE, digits = 3)
   cosine_sim = cos_sim(profile1[[5]], profile2[[5]])
   cosine_sim = round(cosine_sim, 3)
+  if(colnames(profile1)[4] == colnames(profile2)[4]){
+    colnames(profile1)[4] <-  "Profile1"
+    colnames(profile2)[4] <-  "Profile2"
+  }
+  
   df <-  profile1 %>% left_join(profile2) %>% mutate(Difference=diff)
   if(is.null(profile_names)){
     profile_names <- colnames(df)[5:6]
@@ -1308,8 +1345,9 @@ plot_compare_profiles_diff_strand <- function (profile1, profile2, profile_names
       guides(fill = FALSE) + 
       labs(x="")+
       #scale_y_continuous(expand = c(0,0))+
+      scale_y_continuous(labels = scales::number_format(accuracy = 0.01))+
       theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
-      ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
+      ggtitle(paste("RSS = ", RSS, "; Cosine Similarity = ", cosine_sim, sep = ""))+
       theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 12,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.x = element_line(colour = 'black',size = 0.25),axis.line.y = element_line(colour = 'black',size = 0.25))+geom_vline(xintercept = Inf,colour = 'black',size = 0.5)
     #      panel_border(color = gray(0.5),size = 0.3)
   }
@@ -1323,14 +1361,260 @@ plot_compare_profiles_diff_strand <- function (profile1, profile2, profile_names
       ylab("Relative contribution") +
       guides(fill = FALSE) + 
       labs(x="")+
+      scale_y_continuous(labels = scales::number_format(accuracy = 0.01))+
       #scale_y_continuous(expand = c(0,0))+
       theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
-      ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
+      ggtitle(paste("RSS = ", RSS, "; Cosine Similarity = ", cosine_sim, sep = ""))+
       theme(axis.title.y = element_text(size = 12, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 14,hjust = 0.5), strip.text.y = element_text(size = 14,hjust = 0.5),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.x = element_line(colour = 'black',size = 0.25),axis.line.y = element_line(colour = 'black',size = 0.25))+geom_vline(xintercept = Inf,colour = 'black',size = 0.5)
     # panel_border(color = gray(0.5),size = 0.3)
   }
   return(plot)
 }
+
+
+
+
+position_stack_and_nudge <- function(x = 0, y = 0, vjust = 1, reverse = FALSE) {
+  ggproto(NULL, PositionStackAndNudge,
+          x = x,
+          y = y,
+          vjust = vjust,
+          reverse = reverse
+  )
+}
+
+#' @rdname ggplot2-ggproto
+#' @format NULL
+#' @usage NULL
+#' @noRd
+PositionStackAndNudge <- ggproto("PositionStackAndNudge", PositionStack,
+                                 x = 0,
+                                 y = 0,
+                                 
+                                 setup_params = function(self, data) {
+                                   c(
+                                     list(x = self$x, y = self$y),
+                                     ggproto_parent(PositionStack, self)$setup_params(data)
+                                   )
+                                 },
+                                 
+                                 compute_layer = function(self, data, params, panel) {
+                                   # operate on the stacked positions (updated in August 2020)
+                                   data = ggproto_parent(PositionStack, self)$compute_layer(data, params, panel)
+                                   
+                                   x_orig <- data$x
+                                   y_orig <- data$y
+                                   # transform only the dimensions for which non-zero nudging is requested
+                                   if (any(params$x != 0)) {
+                                     if (any(params$y != 0)) {
+                                       data <- transform_position(data, function(x) x + params$x, function(y) y + params$y)
+                                     } else {
+                                       data <- transform_position(data, function(x) x + params$x, NULL)
+                                     }
+                                   } else if (any(params$y != 0)) {
+                                     data <- transform_position(data, function(x) x, function(y) y + params$y)
+                                   }
+                                   data$nudge_x <- data$x
+                                   data$nudge_y <- data$y
+                                   data$x <- x_orig
+                                   data$y <- y_orig
+                                   
+                                   data
+                                 },
+                                 
+                                 compute_panel = function(self, data, params, scales) {
+                                   ggproto_parent(PositionStack, self)$compute_panel(data, params, scales)
+                                 }
+)
+
+
+# Profile mulitple profiles -----------------------------------------------
+
+plot_compare_profiles_diff2 <- function (profile, profile_names = NULL, profile_ymax = NULL,  colors = NULL, condensed = FALSE,output_plot = NULL,plot_width=NULL, plot_height=NULL, xlab="") 
+{
+  ## profile 1 and profile 2 will be the dataframe with two columns: MutationType and value
+  
+  COLORS6 = c("#03BCEE", "#010101", "#E32926", "#CAC9C9", "#A1CE63", "#EBC6C4")
+  COLORS10 = c("#03BCEE", "#0366CB", "#A1CE63", "#016601", "#FE9898", "#E32926", "#FEB166", "#FE8001", "#CB98FE", "#4C0198")
+  COLORS16=c("#FCBD6F", "#FE8002", "#AFDC8A", "#36A02E", "#FCC9B4", "#FB896A", "#F04432", "#BB191A", "#CFE0F1", "#93C3DE", "#4A97C8", "#1764AA", "#E1E1EE", "#B5B5D7", "#8582BC", "#62409A")
+  
+  typelength = dim(profile)[1]
+  if (is.null(colors)) {
+    if(typelength == 96){colors = COLORS6; }
+    if(typelength == 78){colors = COLORS10;}
+    if(typelength == 83){colors = COLORS16;}
+  }
+  
+  indel_short <-  FALSE
+  if(typelength == 83) {indel_short = TRUE}
+  profile <- profile_format_df(profile,factortype = TRUE,indel_short = indel_short) 
+  
+  names(colors) <- levels(profile$Type)
+  
+  #print(colors)
+  
+  profile[,4] <- profile[,4]/sum(profile[,4])  
+  df <-  profile
+  if(is.null(profile_names)){
+    profile_names <- colnames(df)[4:5]
+  }
+  colnames(df)[4:5] <- profile_names
+  df <- df %>% pivot_longer(cols = -c(1,2,3)) %>% mutate(name=factor(name)) %>% mutate(Type=factor(Type,levels = names(colors)))
+  
+  if(is.null(profile_ymax)){
+    profile_ymax <- max(df$value)*1.1
+  }
+  
+  
+  #dftmp = tibble(Type = rep(levels(profile$Type)[1], 4), SubType = rep((profile$SubType)[1], 4), name = c(profile_names, "Difference", "Difference"), value = c(profile_ymax, profile_ymax, diff_ylim[1], diff_ylim[2])) %>% mutate(name=factor(name,levels = c(profile_names))) %>% mutate(Type=factor(Type,levels = names(colors)))
+  
+  
+  if (condensed) {
+    plot = ggplot(data = df, aes(x = SubType, y = value,  fill = Type, width = 1)) + 
+      geom_bar(stat = "identity", position = "identity", colour = "black", size = 0.2) + 
+      #geom_point(data = dftmp, aes(x = SubType, y = value), alpha = 0,size=0) + 
+      scale_fill_manual(values = colors) + 
+      facet_grid(name ~ Type, scales = "free",space = "free_x") +
+      ylab("Relative contribution") +
+      guides(fill = FALSE) + 
+      labs(x=xlab)+
+      scale_y_continuous(labels = scales::number_format(accuracy = 0.01))+
+      #scale_y_continuous(expand = c(0,0))+
+      theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
+      #ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 10,hjust = 0.5,colour = "white", margin = margin(0,0,0,0,unit = 'cm')), strip.text.y = element_text(size = 10,hjust = 0.5,margin = margin(0,0,0,0,unit = 'cm')),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5)+geom_vline(xintercept = Inf,colour = 'black',size = 0.5)#axis.line.x = element_line(colour = 'black',size = 0.25),
+    #panel_border(color = gray(0.5),size = 0.3)
+  }
+  else {
+    plot = ggplot(data = df, aes(x = SubType, y = value,  fill = Type, width = 0.7)) + 
+      geom_bar(stat = "identity", position = "identity", colour = "black", size = 0) + 
+      #geom_point(data = dftmp, aes(x = SubType, y = value), alpha = 0,size=0) + 
+      scale_fill_manual(values = colors) + 
+      facet_grid(name ~ Type, scales = "free",space = "free_x") +
+      ylab("Relative contribution") +
+      guides(fill = FALSE) + 
+      labs(x=xlab)+
+      scale_y_continuous(labels = scales::number_format(accuracy = 0.01))+
+      #scale_y_continuous(expand = c(0,0))+
+      theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
+      #ggtitle(paste("RSS = ", RSS, "; Cosine similarity = ", cosine_sim, sep = ""))+
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 10,hjust = 0.5,colour = "white",  margin = margin(0,0,0,0,unit = 'cm')), strip.text.y = element_text(size = 10,hjust = 0.5,margin = margin(0,0,0,0,unit = 'cm')),strip.background = element_rect(fill = "#f0f0f0",), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5) +geom_vline(xintercept = Inf,colour = 'black',size = 0.5) #,axis.line.x = element_line(colour = 'black',size = 0.25)
+    #     panel_border(color = gray(0.5),size = 0.3)
+  }
+  
+  
+  ## add background color for strip
+  require(grid)
+  g <- ggplot_gtable(ggplot_build(plot))
+  strip_top <- which(grepl('strip-t', g$layout$name))
+  fills <- colors
+  k <- 1
+  for (i in strip_top) {
+    j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+    g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+    k <- k+1
+  }
+  plot <- as_ggplot(g)
+  
+  
+  
+  if(is.null(output_plot)){
+    return(plot)
+  }else{
+    xleng <- 14
+    yleng <- 7
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    
+    ggsave(filename = output_plot,plot = plot,width = plot_width,height = plot_height)
+  }
+  
+}
+
+
+
+
+
+
+
+# Plot individual samples -------------------------------------------------
+plot_individual_samples <-  function (exposure_refdata_input, signature_refsets_input, seqmatrix_refdata_input, profile_names = NULL, profile_ymax = NULL,  colors = NULL, condensed = FALSE,output_plot = NULL,plot_width=15, plot_height=10) 
+{
+  ## exposure_refdata_input:  Signature_name Exposure
+  ## signature_refsets_input: Signature_name MutationType Contribution
+  ## seqmatrix_refdata_input, MutationType xxx
+  
+  colnames(exposure_refdata_input) <- c("Signature_name", "Exposure")
+  colnames(signature_refsets_input) <- c("Signature_name", "MutationType", "Contribution")
+  colnames(seqmatrix_refdata_input) <- c("MutationType", "Contribution")
+  
+  present_sigs0 <- exposure_refdata_input %>% arrange(desc(Exposure)) %>% adorn_percentages(denominator = 'col') %>% filter(Exposure>0)
+  present_sigs <-  present_sigs0 %>% filter(Exposure>0.01)
+  label_sigs <- present_sigs %>% mutate(Exposure=percent(Exposure,accuracy = 0.1)) %>% mutate(Label=paste0(Exposure,"*",Signature_name)) %>% summarise(Label=paste0(Label,collapse = ' + ')) %>% mutate(Label=paste0('Orignal Profile = ',Label)) %>% pull(Label)
+  
+  orignal_profile <- seqmatrix_refdata_input %>% 
+    adorn_percentages(denominator = 'col') 
+  
+  
+  reconstructed_profile <- left_join(
+    exposure_refdata_input,
+    signature_refsets_input
+  ) %>% mutate(Contribution=Exposure*Contribution) %>% 
+    group_by(MutationType) %>% 
+    summarise(Contribution=sum(Contribution)) %>% 
+    adorn_percentages(denominator = 'col') 
+  
+  additional_profile <- signature_refsets_input %>% 
+    filter(Signature_name %in% present_sigs$Signature_name) %>% 
+    pivot_wider(names_from = Signature_name,values_from = Contribution) 
+  
+  
+  
+  # Barplot 
+  if(str_detect(present_sigs0$Signature_name[1],'SBS')){
+    sigcol <- SBScolor
+  }else{
+    sigcol <- c(pal_d3()(10),pal_aaas()(10),pal_npg()(10))[1:dim(present_sigs0)[1]]
+  }
+  
+  
+  p_bar <- present_sigs0 %>%
+    mutate(Signature_name=factor(Signature_name),Signature_name=fct_reorder(Signature_name,Exposure)) %>% 
+    ggplot(aes(x="Sample_ID",y=Exposure,fill=Signature_name,group=Signature_name)) +
+    geom_bar(width = 0.2,position="stack", stat="identity")+
+    geom_text_repel(aes(label=Signature_name,col=Signature_name),position = position_stack_and_nudge(vjust = 0.5,x=-0.5), direction = "y", hjust = "right")+
+    theme_ipsum_rc(axis = FALSE,grid = FALSE,ticks = FALSE,axis_title_just = 'm',axis_title_size = 12)+
+    theme(axis.text.x  = element_blank(),axis.text.y  = element_blank(),axis.title.y = element_blank(),legend.position = "none")+
+    labs(x="")+
+    scale_fill_manual(values = sigcol)+
+    scale_color_manual(values = sigcol)
+  
+  
+  p_diff <- plot_compare_profiles_diff(orignal_profile,reconstructed_profile,profile_names = c('Orignal', 'Deconstructed'),condensed = condensed)
+  p_additional <- plot_compare_profiles_diff2(additional_profile,condensed = condensed,xlab=label_sigs)
+  
+  n_diff <- 3
+  n_additional <- dim(additional_profile)[2]-1
+  p_com <- plot_grid(p_diff+theme(plot.margin = unit(c(0, 0, -1, 0), "cm")),p_additional+theme(plot.margin = unit(c(-1, 0, 0, 0), "cm")),align = 'v',axis = 'lr',nrow = 2,ncol = 1,rel_heights = c(n_diff+1,n_additional))
+  
+  p_com_final <- plot_grid(p_bar+ theme(plot.margin = unit(c(0, 0, 0, 0), "cm")),p_com+ theme(plot.margin = unit(c(0, 0, 0, -2), "cm")),align = 'h',axis = 'tb',nrow = 1,ncol = 2,rel_widths = c(1,7))
+  
+  if(is.null(output_plot)){
+    return(p_com_final)
+  }else{
+    xleng <- 14
+    yleng <- 7
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    
+    ggsave(filename = output_plot,plot = p_com_final,width = plot_width,height = plot_height)
+  }
+  
+  
+}
+
+
+
 
 
 
@@ -1441,9 +1725,13 @@ signature_piechart <- function(data,colset, output_plot = NULL,plot_width=NULL, 
 
 
 ## TMB plot ###
-TMBplot <- function(data,output_plot = NULL,plot_width=NULL, plot_height=NULL,addnote= NULL){
+TMBplot <- function(data,output_plot = NULL,plot_width=NULL, plot_height=NULL,addnote= NULL,ylab="Number of Mutations per Megabase\n(log10)"){
   # Cancer_Type,     Sample,   Burden
   # group Cancer Type
+  if(dim(data)[1]<5){
+    stop('Error: Not enough data to show the TMB plot')
+  }
+  
   data <- data %>% mutate(Burden=if_else(is.infinite(Burden),NA_real_,Burden))
   mdata <- suppressMessages(data %>% group_by(Cancer_Type) %>% summarise(median=median(Burden,na.rm = TRUE),total=n(),nsample=sum(!is.na(Burden),na.rm=TRUE)) %>% arrange(median) %>% mutate(Seq=seq_along(Cancer_Type)*10-10))
   ## remove na cancer type
@@ -1471,7 +1759,7 @@ TMBplot <- function(data,output_plot = NULL,plot_width=NULL, plot_height=NULL,ad
     scale_fill_manual(values=c('#F2F2F2','#D4D4D4'))+
     scale_x_continuous(limits = c(min(mdata$Seq),max(mdata$Seq2)),expand = c(0,0),breaks = mdata$score,labels = mdata$Label_col,sec.axis = dup_axis(labels = mdata$Cancer_Type))+
     scale_y_continuous(limits = c(ymint,ymaxt),expand = c(0,0),breaks = f)+
-    labs(x="",y="Number of Mutations per Megabase\n(log10)")+
+    labs(x="",y=ylab)+
     theme_ipsum_rc(axis_title_just = 'm',axis_title_size = 14,axis_text_size = 12,grid = "Y",ticks = FALSE)+
     theme(legend.position = "None",axis.text.x.top = element_text(size = 11,angle = -45,hjust = 1,vjust = 0),axis.text.x.bottom = element_markdown(size = 12),panel.border = element_rect(colour = "black",fill = NA))+
     coord_cartesian(clip = 'off')
@@ -1543,7 +1831,7 @@ decompsite_distribution <- function(decompsite,output_plot = NULL,plot_width=NUL
 
 
 ### Landscape of mutational signature cluster function ####
-Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_cat = TRUE, studycolor=NULL,study_cutoff = -Inf,studyname = NULL,puritydata=NULL,puritydata_cat=FALSE,puritycol=NULL,purity_cutoff=-Inf,purityname = NULL,cosinedata,cosine_cutoff=0,highlight=NULL,legendnrow=NULL,sampletext_size=6,output_plot=NULL,plot_height=NULL,plot_width=NULL,clustern,hc_func='hclust',hc_metric = 'euclidean',hc_method = 'ward.D2',stand=TRUE){
+Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_cat = TRUE, studycolor=NULL,study_cutoff = -Inf,studyname = NULL,puritydata=NULL,puritydata_cat=FALSE,puritycol=NULL,purity_cutoff=-Inf,purityname = NULL,cosinedata=NULL,cosine_cutoff=0,highlight=NULL,legendnrow=NULL,sampletext_size=6,output_plot=NULL,plot_height=NULL,plot_width=NULL,clustern,hc_func='hclust',hc_metric = 'euclidean',hc_method = 'ward.D2',stand=TRUE){
   require(tidyverse)
   require(scales)
   require(janitor)
@@ -1623,14 +1911,19 @@ Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_c
   #p3 <- flush_ticks(p3,flush = "Y",plot = FALSE)
   #p4 <- flush_ticks(p4,flush = "Y",plot = FALSE)
   
-  # cosine similarity bar
-  p_cosine <- cosinedata %>%  mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% mutate(Similarity=if_else(Similarity<cosine_cutoff,NA_real_,Similarity)) %>% ggplot(aes(Samples,1,fill=Similarity))+geom_tile(col="black")+scale_fill_viridis_c("Cosine similarity\n",na.value = "#cccccc",option = 'C',limits = c(0.6, 1), oob = scales::squish)+theme_minimal()+theme(legend.position = "bottom",legend.key.width =unit(2,"cm"),legend.key.height = unit(0.3,"cm"), panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+ylim(c(0,2))
-  #+theme(title = element_blank())
-  ## p_cosine_legend = cosine similarity bar (legend)
-  p_cosine_legend <- as_ggplot(get_legend(p_cosine))
-  #p_cosine_legend <- p_cosine_legend+theme(plot.margin = margin(b = 0))
-  p_cosine <- cosinedata %>%  mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% mutate(Similarity=if_else(Similarity<cosine_cutoff,NA_real_,Similarity)) %>% ggplot(aes(Samples,1,fill=Similarity))+geom_tile(col="black")+scale_fill_viridis_c(na.value = "#cccccc",option = 'C',limits = c(0.6, 1), oob = scales::squish)+theme_minimal()+theme(legend.position = "none", panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1.2,t = 0.5,unit="cm"))+ylim(c(0,2))
-  #,title = element_blank()
+  if(!is.null(cosinedata)){
+    # cosine similarity bar
+    p_cosine <- cosinedata %>%  mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% mutate(Similarity=if_else(Similarity<cosine_cutoff,NA_real_,Similarity)) %>% ggplot(aes(Samples,1,fill=Similarity))+geom_tile(col="black")+scale_fill_viridis_c("Cosine similarity\n",na.value = "#cccccc",option = 'C',limits = c(0.6, 1), oob = scales::squish)+theme_minimal()+theme(legend.position = "bottom",legend.key.width =unit(2,"cm"),legend.key.height = unit(0.3,"cm"), panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+ylim(c(0,2))
+    #+theme(title = element_blank())
+    ## p_cosine_legend = cosine similarity bar (legend)
+    p_cosine_legend <- as_ggplot(get_legend(p_cosine))
+    #p_cosine_legend <- p_cosine_legend+theme(plot.margin = margin(b = 0))
+    p_cosine <- cosinedata %>%  mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% mutate(Similarity=if_else(Similarity<cosine_cutoff,NA_real_,Similarity)) %>% ggplot(aes(Samples,1,fill=Similarity))+geom_tile(col="black")+scale_fill_viridis_c(na.value = "#cccccc",option = 'C',limits = c(0.6, 1), oob = scales::squish)+theme_minimal()+theme(legend.position = "none", panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1.2,t = 0.5,unit="cm"))+ylim(c(0,2))
+    #,title = element_blank()
+  }else{
+    p_cosine <- NULL
+    p_cosine_legend <- NULL
+  }
   
   legend_size <- theme(legend.position = "bottom",legend.direction = "horizontal", legend.box.background = element_blank(),legend.key = element_rect(size = 0),legend.key.size = unit(0.25, "cm"),legend.key.width =unit(0.6, "cm"))
   #legend.box.spacing = unit(-0.5,"cm"),
@@ -1887,6 +2180,7 @@ barchart_plot2 <- function(data, output_plot = NULL,plot_width=NULL, plot_height
 
 
 prevalence_plot <- function(sigdata,nmutation = 0, legend_name="Sigantures", output_plot = NULL,plot_width=NULL, plot_height=NULL){
+  require(janitor)
   pie_input <- sigdata %>% 
     summarise(across(where(is.numeric),~sum(.x,na.rm=TRUE))) %>% 
     mutate(Type="Prevalence by mutations") %>%
@@ -1911,9 +2205,9 @@ prevalence_plot <- function(sigdata,nmutation = 0, legend_name="Sigantures", out
   uvalues <- sort(unique(bar_input$Catelogy))
   pall <- plot_grid(p_piechart+theme(plot.margin = margin(r = -2)),p_barchart,align = 'h',nrow = 1,rel_widths = c(3,length(uvalues)))
   
-  if(is.null(output_plot)){
-    return(pall)
-  }else{
+  
+  
+  if(!is.null(output_plot)){
     uvalues <- sort(unique(bar_input$Catelogy))
     xleng <- 6+length(uvalues)*0.5
     xleng <- if_else(xleng>15,15,xleng)
@@ -1922,6 +2216,13 @@ prevalence_plot <- function(sigdata,nmutation = 0, legend_name="Sigantures", out
     if(is.null(plot_height)){ plot_height <-  yleng}
     ggsave(filename = output_plot,plot = pall,width = plot_width,height = plot_height)
   }
+  
+  pie_input <- pie_input %>% mutate(Percentage=percent(value,accuracy = 0.1)) %>% select(Type,Signature=name,Value=value,Percentage)
+  bar_input <- bar_input %>% select(Type,Signature=Catelogy,Value=Frequency)%>% mutate(Percentage=percent(Value,accuracy = 0.1))
+  freq_data <- bind_rows(pie_input,bar_input)
+  list_return <- list(freq_data=freq_data,pie_plot=p_piechart,bar_plot=p_barchart)
+  
+  return(list_return)
   
 }
 
@@ -2268,7 +2569,7 @@ kataegis_rainfall_plot <- function(mutdata,sample_name="sample",genome_build = "
   
   if(genome_build %in% c('hg38','grch38')){
     require(BSgenome.Hsapiens.UCSC.hg38)
-    require(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    require(TxDb.Hsapiens.UCSC.hg38.knownGene)
     genome_build <- 'hg38'
     ref_file <- paste0(reference_data_folder,"/hg38_ref.RData")
     load(ref_file)
@@ -2286,6 +2587,10 @@ kataegis_rainfall_plot <- function(mutdata,sample_name="sample",genome_build = "
   if(!is.null(chromsome)){
     hgref <- hgref %>% dplyr::filter(chr==chromsome) %>% mutate(start2=1,end2=len)
     mutdata <- mutdata %>% dplyr::filter(chr==chromsome)
+  }
+  
+  if(dim(mutdata)[1] < min.mut){
+    stop("ERROR: Not enough mutations for kataegis identification!")
   }
   
   mutSNP = mutSNP.input(mut.data = as.data.frame(mutdata), chr = "chr", pos = "pos", ref = "ref", alt = "alt", build = genome_build)
@@ -2333,8 +2638,8 @@ kataegis_rainfall_plot <- function(mutdata,sample_name="sample",genome_build = "
     geom_vline(xintercept = c(hgref$start2,hgref$end2),col="#cccccc",lwd=0.4)+
     geom_hline(yintercept = c(2,3),col=c("red","blue"),lwd=0.4,linetype=2)+
     geom_point(shape=21,stroke=0.1,size=1.5)+
-    labs(y="Intermutation distance (bp,log10)\n",x = "Chromosome")+
-    scale_x_continuous(breaks = (hgref$start2+hgref$end2)/2,labels = str_remove(hgref$chr,'chr'),expand = c(0.005,0.005),limits = c(0,tail(hgref$end2,1)),guide = guide_axis(n.dodge=1))+
+    #labs(y="Intermutation distance (bp,log10)\n",x = "Chromosome")+
+    #scale_x_continuous(breaks = (hgref$start2+hgref$end2)/2,labels = str_remove(hgref$chr,'chr'),expand = c(0.005,0.005),limits = c(0,tail(hgref$end2,1)),guide = guide_axis(n.dodge=1))+
     scale_y_continuous(breaks = pretty_breaks())+
     scale_fill_manual("Subtype",values = SNVcolor,drop=FALSE,na.value="gray90")+
     theme_ipsum_rc(axis_title_just = "m",axis_title_size = 14,grid="Y",ticks = T,axis = FALSE)+
@@ -2342,6 +2647,13 @@ kataegis_rainfall_plot <- function(mutdata,sample_name="sample",genome_build = "
     guides(fill = guide_legend(override.aes = list(size = 3),nrow = 1))+
     panel_border(color = 'black',size = 0.5)+
     coord_cartesian(clip = 'off')
+  
+  if(!is.null(chromsome)){
+    p <- p+scale_x_continuous(breaks = pretty_breaks(),labels = label_comma(),expand = c(0.005,0.005))+labs(y="Intermutation distance (bp,log10)\n",x = paste0("Chromosome ",extract_numeric(chromsome)))
+  }else{
+    p <- p+scale_x_continuous(breaks = (hgref$start2+hgref$end2)/2,labels = str_remove(hgref$chr,'chr'),expand = c(0.005,0.005),limits = c(0,tail(hgref$end2,1)),guide = guide_axis(n.dodge=1))+labs(y="Intermutation distance (bp,log10)\n",x = "Chromosome")
+  }
+  
   
   if(is.data.frame(katdata)){
     if(dim(katdata)[1]>0){

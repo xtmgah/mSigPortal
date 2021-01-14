@@ -6,6 +6,7 @@ library(ggsci)
 library(ggrepel)
 library(ggforce)
 library(ggtext)
+library(ggpubr)
 
 # source msigportal function ----------------------------------------------
 source('Sigvisualfunc.R')
@@ -31,7 +32,6 @@ nsig_data <- nsig_data %>% left_join(
 
 # put the follow pie-chart on website 
 signature_piechart(nsig_data,sigsetcolor,output_plot = 'tmp.svg')
-
 
 
 # section 2: Mutational signature profile  --------------------------------------------------------------
@@ -143,18 +143,34 @@ plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,output_plot = 'tm
 # Exposure Exploring ------------------------------------------------------
 
 if(Data_Source == "Public_Data"){
-  
   # load exposure data files
-  load('../Database/Exposure/exposure_refdata.RData')
+  #load('../Database/Exposure/exposure_refdata.RData')
   load('../Database/Signature/signature_refsets.RData')
-  load('../Database/Seqmatrix/seqmatrix_refdata.RData')
+  #load('../Database/Seqmatrix/seqmatrix_refdata.RData')
+  
+  study_input <- "PCAWG"
+  dataset_input <- "WGS"
+  
+  exposure_reffile <- paste0('../Database/Exposure/',study_input,'_',dataset_input,'_','exposure_refdata.RData')
+  seqmatrix_reffile <- paste0('../Database/Seqmatrix/',study_input,'_',dataset_input,'_','seqmatrix_refdata.RData')
+  
+  if(file.exists(exposure_reffile)){
+    load(exposure_reffile)
+  }else{
+    stop('ERROR: Missing Exposure File for Selected Study!')
+  }
+  
+  if(file.exists(seqmatrix_reffile)){
+    load(seqmatrix_reffile)
+  }else{
+    print('Warnning: Missing Mutation Profile Matrix File for Selected Study; Some Function May Not Working!')
+  }
   
   # parameters for all the tables
-  study_input <- "Breast560"
-  dataset_input <- "WGS"
-  signature_set_name_input <- "Organ-specific Cancer Signatures (SBS)" 
+  
+  signature_set_name_input <- "COSMIC v3 Signatures (ID)" 
   exposure_refdata_selected <- exposure_refdata %>% filter(Study==study_input,Dataset==dataset_input,Signature_set_name==signature_set_name_input)
-
+  
   genome <- case_when(
     study_input == "PCAWG" ~ "GRCh37",
     study_input == "TCGA" ~ "GRCh37",
@@ -168,7 +184,7 @@ if(Data_Source == "Public_Data"){
     filter(Signature_set_name==signature_set_name_input)
   seqmatrix_refdata_selected <- seqmatrix_refdata %>% filter(Study==study_input,Dataset==dataset_input,Profile == signature_refsets_selected$Profile[1])
   
-  cancer_type_input <- 'BRCA'
+  cancer_type_input <- 'Skin-Melanoma'
   
   # available siganture name, Dropdown list for all the signature name
   signature_name_avail <- exposure_refdata_selected %>% filter(Cancer_Type==cancer_type_input,Exposure>0) %>% pull(Signature_name) %>% unique()  
@@ -179,7 +195,7 @@ if(Data_Source == "Public_Data"){
   ## Exposure File, Matrix File, Signature File, Genome Size, 
   exposure_refdata_selected <- read_delim('../Example_data/Sherlock_SBS96_exposure.txt',delim = '\t',col_names = T)
   seqmatrix_refdata_selected <- read_delim('../Example_data/Sherlock_SBS96_matrix.txt',delim = '\t',col_names = T)
- 
+  
   # Phillip, two option for this: select know signature or upload a file
   signature_file_input <-  '../Example_data/Sherlock_SBS96_siganture.txt'
   if(file.exists(signature_file_input)){
@@ -234,7 +250,7 @@ TMBplot(data_input,output_plot = 'tmp.svg')
 
 
 # Mutational signature burden across cancer types
-signature_name_input <- 'Breast_A (Breast_MMR1)'
+signature_name_input <- 'SBS7a'
 
 data_input <- exposure_refdata_selected %>% 
   filter(Signature_name==signature_name_input) %>% 
@@ -243,7 +259,6 @@ data_input <- exposure_refdata_selected %>%
   ungroup() 
 # put this barplot on the web
 TMBplot(data_input,output_plot = 'tmp.svg',addnote = signature_name_input)
-
 
 # Mutational Signature Association
 cancer_type_only <- TRUE  ## toggle to select specific cancer type or combine all cancer type data (default)
@@ -273,56 +288,67 @@ signature_association(data = data_input,signature_name_input1 = signature_name_i
 
 # Evaluating the Performance of Mutational Signature Decomposition --------
 # load seqmatrix
-
-exposure_refdata_input <- exposure_refdata_selected %>% mutate(Sample=paste0(Cancer_Type,"@",Sample)) %>% 
-  select(Sample,Signature_name,Exposure) %>% 
-  pivot_wider(id_cols = Sample,names_from=Signature_name,values_from=Exposure,values_fill = 0)
-
-signature_refsets_input <- signature_refsets_selected %>% 
-  select(MutationType,Signature_name,Contribution) %>% 
-  pivot_wider(id_cols = MutationType,names_from=Signature_name,values_from=Contribution) %>% 
-  arrange(MutationType) # have to sort the mutationtype
-
-seqmatrix_refdata_input<- seqmatrix_refdata_selected %>% mutate(Sample=paste0(Cancer_Type,"@",Sample)) %>% 
-  select(MutationType,Sample,Mutations) %>% 
-  pivot_wider(id_cols = MutationType,names_from=Sample,values_from=Mutations) %>% 
-  arrange(MutationType)  ## have to sort the mutation type
-
-decompsite_input <- calculate_similarities(orignal_genomes = seqmatrix_refdata_input,signature = signature_refsets_input,signature_activaties = exposure_refdata_input)
-
-if(!is.data.frame(decompsite_input)){
-  print('ERROR: Evaluating step failed due to missing the data')
-}else {
-  decompsite_input <- decompsite_input %>% separate(col = Sample_Names,into = c('Cancer_Type','Sample'),sep = '@')
-  decompsite_distribution(decompsite = decompsite_input,output_plot = 'tmp.svg') # put the distribution plot online.
-  decompsite_input %>% write_delim('tmp.txt',delim = '\t',col_names = T)  ## put the link to download this table
+if(file.exists(seqmatrix_reffile)){
+  exposure_refdata_input <- exposure_refdata_selected %>% mutate(Sample=paste0(Cancer_Type,"@",Sample)) %>% 
+    select(Sample,Signature_name,Exposure) %>% 
+    pivot_wider(id_cols = Sample,names_from=Signature_name,values_from=Exposure,values_fill = 0)
   
+  signature_refsets_input <- signature_refsets_selected %>% 
+    select(MutationType,Signature_name,Contribution) %>% 
+    pivot_wider(id_cols = MutationType,names_from=Signature_name,values_from=Contribution) %>% 
+    arrange(MutationType) # have to sort the mutationtype
+  
+  seqmatrix_refdata_input<- seqmatrix_refdata_selected %>% mutate(Sample=paste0(Cancer_Type,"@",Sample)) %>% 
+    select(MutationType,Sample,Mutations) %>% 
+    pivot_wider(id_cols = MutationType,names_from=Sample,values_from=Mutations) %>% 
+    arrange(MutationType)  ## have to sort the mutation type
+  
+  decompsite_input <- calculate_similarities(orignal_genomes = seqmatrix_refdata_input,signature = signature_refsets_input,signature_activaties = exposure_refdata_input)
+  
+  if(!is.data.frame(decompsite_input)){
+    stop('ERROR: Evaluating step failed due to missing the data')
+  }else {
+    decompsite_input <- decompsite_input %>% separate(col = Sample_Names,into = c('Cancer_Type','Sample'),sep = '@')
+    decompsite_distribution(decompsite = decompsite_input,output_plot = 'tmp.svg') # put the distribution plot online.
+    decompsite_input %>% write_delim('tmp.txt',delim = '\t',col_names = T)  ## put the link to download this table
+    
+  }
+}else{
+  print('Warnning: Missing Mutation Profile Matrix File For Selected Study; This Function Will Not Working!')
 }
+
 
 
 # Landscape of Mutational Signature Activity
 if(Data_Source == "Public_Data"){
-cancer_type_input <- 'Biliary-AdenoCA'
+  cancer_type_input <- 'Biliary-AdenoCA'
 }else {
   ## for input data, it will alwyas be "cancer_type_user" 
   cancer_type_input <- cancer_type_user
 }
 
-exposure_refdata_input <- exposure_refdata_selected %>% filter(Cancer_Type == cancer_type_input)%>% 
-  select(Sample,Signature_name,Exposure) %>% 
-  pivot_wider(id_cols = Sample,names_from=Signature_name,values_from=Exposure)
-
-signature_refsets_input <- signature_refsets_selected %>% 
-  select(MutationType,Signature_name,Contribution) %>% 
-  pivot_wider(id_cols = MutationType,names_from=Signature_name,values_from=Contribution) %>% 
-  arrange(MutationType) # have to sort the mutationtype
-
-seqmatrix_refdata_input<- seqmatrix_refdata_selected %>% filter(Cancer_Type == cancer_type_input)%>% 
-  select(MutationType,Sample,Mutations) %>% 
-  pivot_wider(id_cols = MutationType,names_from=Sample,values_from=Mutations) %>% 
-  arrange(MutationType)  ## have to sort the mutationtype
-
-decompsite_input <- calculate_similarities(orignal_genomes = seqmatrix_refdata_input,signature = signature_refsets_input,signature_activaties = exposure_refdata_input)
+if(file.exists(seqmatrix_reffile)){
+  
+  exposure_refdata_input <- exposure_refdata_selected %>% filter(Cancer_Type == cancer_type_input)%>% 
+    select(Sample,Signature_name,Exposure) %>% 
+    pivot_wider(id_cols = Sample,names_from=Signature_name,values_from=Exposure)
+  
+  signature_refsets_input <- signature_refsets_selected %>% 
+    select(MutationType,Signature_name,Contribution) %>% 
+    pivot_wider(id_cols = MutationType,names_from=Signature_name,values_from=Contribution) %>% 
+    arrange(MutationType) # have to sort the mutationtype
+  
+  seqmatrix_refdata_input<- seqmatrix_refdata_selected %>% filter(Cancer_Type == cancer_type_input)%>% 
+    select(MutationType,Sample,Mutations) %>% 
+    pivot_wider(id_cols = MutationType,names_from=Sample,values_from=Mutations) %>% 
+    arrange(MutationType)  ## have to sort the mutationtype
+  
+  decompsite_input <- calculate_similarities(orignal_genomes = seqmatrix_refdata_input,signature = signature_refsets_input,signature_activaties = exposure_refdata_input)
+  cosinedata <- decompsite_input %>% select(Samples=Sample_Names,Similarity=Cosine_similarity)
+  
+}else{
+  cosinedata <- NULL
+}
 
 data_input <- exposure_refdata_selected %>%
   filter(Cancer_Type==cancer_type_input) %>%
@@ -334,12 +360,6 @@ data_input <- data_input %>% select_if(~ !is.numeric(.)|| sum(.)>0)
 data_input <- data_input %>% filter(rowAny(across(where(is.numeric),~ .x>0 )))
 
 sigdata <- data_input
-
-if(!is.data.frame(decompsite_input)){
-  cosinedata <- sigdata %>% select(Samples)%>% mutate(Similarity=NA_real_)
-}else{
-  cosinedata <- decompsite_input %>% select(Samples=Sample_Names,Similarity=Cosine_similarity)
-}
 
 ## two parameters to add the two bars: vardata1, vardata1_cat, vardata2, vardata2_cat 
 # studydata <- data_input %>% select(Samples) %>% mutate(Study=if_else((seq_along(Samples) %% 2 ==0), "A","B"))
@@ -382,8 +402,39 @@ nmutation_input <- 100
 nsams <- sigdata %>% pivot_longer(cols=-Samples) %>% filter(value>100) %>% dim()
 
 if(nsams[1]>0){
-  prevalence_plot(sigdata = sigdata,nmutation = nmutation_input,output_plot = 'tmp.svg')
+  prevaout <- prevalence_plot(sigdata = sigdata,nmutation = nmutation_input,output_plot = 'tmp.svg')
 }else{
   print(paste0('No signature in any sample with number of mutation larger than ',nmutation_input))
 }
+
+# put a Download Data link to the freq_data
+prevaout$freq_data
+
+
+### Mutational Signature in individual Sample 
+if(file.exists(seqmatrix_reffile)){
+  exposure_refdata_input <- exposure_refdata_selected %>% filter(Cancer_Type==cancer_type_input)
+  #sample_name_input <-  exposure_refdata_input$Sample[1] ## default sample name
+  sample_name_input <- 'SP124401'
+  exposure_refdata_input <- exposure_refdata_input %>% filter(Sample==sample_name_input) %>% select(Signature_name,Exposure)
+  signature_refsets_input <-  signature_refsets_selected %>% select(Signature_name,MutationType,Contribution)
+  seqmatrix_refdata_input <- seqmatrix_refdata_selected %>% filter(Sample==sample_name_input) %>% select(MutationType, Mutations)
+  
+  
+  plot_individual_samples(exposure_refdata_input = exposure_refdata_input,signature_refsets_input = signature_refsets_input,seqmatrix_refdata_input = seqmatrix_refdata_input,condensed = FALSE,output_plot = 'tmp.svg')  
+  
+  
+
+  
+  }else{
+  print('Warnning: Missing Mutation Profile Matrix File For Selected Study; This Function Will Not Working!')
+}
+
+
+
+
+
+
+
+
 
