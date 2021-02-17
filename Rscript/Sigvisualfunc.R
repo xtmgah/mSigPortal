@@ -801,6 +801,69 @@ plot_dbs_78_profile <- function(data,samplename=NULL,samplename_plot=TRUE, filen
 #save(data_sbs_exm1,data_dbs_exm1,file='../Example.RData')
 
 
+# Plot_Profile_Logo -------------------------------------------------------
+
+plot_profile_logo <- function (profile, colors = NULL, condensed = FALSE,output_plot = NULL,plot_width=NULL, plot_height=NULL) 
+{
+  ## profile 1 and profile 2 will be the dataframe with two columns: MutationType and value
+  
+  COLORS6 = c("#03BCEE", "#010101", "#E32926", "#CAC9C9", "#A1CE63", "#EBC6C4")
+  COLORS10 = c("#03BCEE", "#0366CB", "#A1CE63", "#016601", "#FE9898", "#E32926", "#FEB166", "#FE8001", "#CB98FE", "#4C0198")
+  COLORS16=c("#FCBD6F", "#FE8002", "#AFDC8A", "#36A02E", "#FCC9B4", "#FB896A", "#F04432", "#BB191A", "#CFE0F1", "#93C3DE", "#4A97C8", "#1764AA", "#E1E1EE", "#B5B5D7", "#8582BC", "#62409A")
+  
+  typelength = dim(profile)[1]
+  if (is.null(colors)) {
+    if(typelength == 96){colors = COLORS6; }
+    if(typelength == 78){colors = COLORS10;}
+    if(typelength == 83){colors = COLORS16;}
+  }
+  
+  ## make sure the order profile 1 and profile 2 are the same order
+  
+  indel_short <-  FALSE
+  if(typelength == 83) {indel_short = TRUE}
+  profile <- profile_format_df(profile,factortype = TRUE,indel_short = indel_short) 
+  names(colors) <- levels(profile$Type)
+  
+  #print(colors)
+  
+  profile[,4] <- profile[,4]/sum(profile[,4])  
+  
+  plot <- ggplot(data = profile, aes(x = SubType, y = Value,  fill = Type, width = 0.5)) + 
+    geom_bar(stat = "identity", position = "identity", colour = NA, size = 0) + 
+    scale_fill_manual(values = colors) + 
+    facet_grid(. ~ Type, scales = "free",space = "free_x") +
+    guides(fill = FALSE) + 
+    scale_x_discrete(expand = expansion(add = 0))+
+    scale_y_continuous(expand = expansion(mult = c(0,0.1)))+
+    theme(axis.ticks = element_blank(),axis.title = element_blank(), axis.text = element_blank(),panel.background = element_blank(),panel.grid = element_blank(),strip.text.x = element_blank(),panel.spacing.x = unit(0, "lines"),axis.line.x = element_line(colour = 'black',size = 0.05))
+  #element_text(size = 0,margin = margin(1.5,0,1.5,0))
+  
+  # ## add background color for strip
+  # require(grid)
+  # g <- ggplot_gtable(ggplot_build(plot))
+  # strip_top <- which(grepl('strip-t', g$layout$name))
+  # fills <- colors
+  # k <- 1
+  # for (i in strip_top) {
+  #   j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+  #   g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  #   k <- k+1
+  # }
+  # plot <- as_ggplot(g)
+  # 
+  if(is.null(output_plot)){
+    return(plot)
+  }else{
+    xleng <- 2
+    yleng <- 0.8
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    
+    ggsave(filename = output_plot,plot = plot,width = plot_width,height = plot_height)
+  }
+  
+}
 
 
 
@@ -813,7 +876,8 @@ profile_heatmap_plot <- function(data,output_plot = NULL,plot_width=NULL, plot_h
   # data format: Sample  Profile Mutations
   
   # merge different profile 
-  data <- data %>% mutate(Key=str_remove(Profile,"\\d+")) %>% group_by(Sample,Mutations,Key) %>% mutate(Profile=paste0(Profile,collapse = '/')) %>% ungroup() %>% unique() %>% select(-Key) 
+  #if(length(unique(data_input$Sample)))
+  data <- data %>% mutate(Key=str_remove(Profile,"\\d+")) %>% group_by(Sample,Mutations,Key) %>%mutate(Matrix=parse_number(Profile)) %>%arrange(Key,Matrix) %>% mutate(Profile=paste0(Matrix,collapse = '/')) %>% mutate(Profile=paste0(Key,": ",Profile)) %>% select(-Matrix) %>% ungroup() %>% unique() %>% select(-Key) 
   
   profile_tmp <- data %>% group_by(Profile) %>% summarise(mean=mean(Mutations)) %>% arrange(desc(mean))
   samleve_tmp <- data %>% filter(Profile==profile_tmp$Profile[1]) %>% arrange(Mutations) %>% pull(Sample)
@@ -836,7 +900,7 @@ profile_heatmap_plot <- function(data,output_plot = NULL,plot_width=NULL, plot_h
   angle_max <- if_else(name_max < 15, 90, 30)
   vjust_max <- if_else(name_max < 15, 0.5, 1)
   
-  if(name_len>100){
+  if(name_len>0){
     
     plot_final <- data %>% left_join(profile_tmp) %>% 
       mutate(Sample=factor(Sample,levels = samleve_tmp),Profile=factor(Profile,levels = profile_tmp$Profile)) %>% 
@@ -844,10 +908,12 @@ profile_heatmap_plot <- function(data,output_plot = NULL,plot_width=NULL, plot_h
       geom_line()+
       geom_point()+
       scale_color_d3()+
+      scale_y_continuous(breaks = pretty_breaks())+
       labs(x="Sample index",y="log10(Mutations)",color="Profile")+
       theme_ipsum_rc(grid = "XYy",ticks = TRUE,axis = FALSE,axis_title_just = 'm',axis_title_size = 14)+
       theme(axis.text.x = element_blank(),axis.ticks.x = element_blank())+
       panel_border(color = 'black')
+    #,legend.direction = "vertical",legend.position = "top"
     
   }else{
     
@@ -871,10 +937,11 @@ profile_heatmap_plot <- function(data,output_plot = NULL,plot_width=NULL, plot_h
   leng0 <- 2.5
   leng_ratio <-  0.2
   
-  xleng <- leng_ratio*(name_len)+leng0+2.5
+  xleng <- leng_ratio*(name_len)+leng0+4
   
   xleng <- if_else(xleng>15,15,xleng)
-  yleng <- leng_ratio*name_max+2.5+leng0
+  #yleng <- leng_ratio*name_max+2.5+leng0
+  yleng <- 6
   
   if(is.null(output_plot)){
     return(plot_final)
@@ -1732,7 +1799,7 @@ TMBplot <- function(data,output_plot = NULL,plot_width=NULL, plot_height=NULL,ad
     stop('Error: Not enough data to show the TMB plot')
   }
   
-  data <- data %>% mutate(Burden=if_else(is.infinite(Burden),NA_real_,Burden))
+  data <- data %>%mutate(Burden=as.numeric(Burden)) %>%  mutate(Burden=if_else(is.infinite(Burden),NA_real_,Burden))
   mdata <- suppressMessages(data %>% group_by(Cancer_Type) %>% summarise(median=median(Burden,na.rm = TRUE),total=n(),nsample=sum(!is.na(Burden),na.rm=TRUE)) %>% arrange(median) %>% mutate(Seq=seq_along(Cancer_Type)*10-10))
   ## remove na cancer type
   natype <- mdata %>% filter(is.na(median)) %>% pull(Cancer_Type)
@@ -2189,23 +2256,35 @@ prevalence_plot <- function(sigdata,nmutation = 0, legend_name="Sigantures", out
     pivot_longer(cols = -Type) %>% 
     mutate(lab=if_else(value>0.05,percent(value,accuracy = 0.1),''))
   
-  bar_input <- sigdata %>% pivot_longer(cols=-Samples) %>% #,names_transform = list(key = forcats::fct_inorder)
-    filter(value>nmutation) %>%
-    count(name) %>%
-    mutate(value=n/dim(sigdata)[1]) %>% 
-    mutate(Type="Prevalence by samples") %>% 
-    select(Type,Catelogy=name,Frequency=value) %>% 
-    mutate(Catelogy=factor(Catelogy,levels = c(colnames(sigdata)[-1]))) %>% 
-    arrange(Catelogy) %>% 
-    mutate(Catelogy=as.character(Catelogy))
+  nfilter <- sigdata %>% pivot_longer(cols=-Samples) %>% filter(value>nmutation) %>% dim() %>% .[[1]]
   
-  p_piechart <- piechart_plot(data = pie_input,keep_legend = FALSE)
-  p_barchart <- barchart_plot(data = bar_input,legend_name = legend_name,keep_legend = FALSE)
+  if(nfilter==0){
+    bar_input <- NULL
+  }else{
+    bar_input <- sigdata %>% pivot_longer(cols=-Samples) %>% #,names_transform = list(key = forcats::fct_inorder)
+      filter(value>nmutation) %>%
+      count(name) %>%
+      mutate(value=n/dim(sigdata)[1]) %>% 
+      mutate(Type="Prevalence by samples") %>% 
+      select(Type,Catelogy=name,Frequency=value) %>% 
+      mutate(Catelogy=factor(Catelogy,levels = c(colnames(sigdata)[-1]))) %>% 
+      arrange(Catelogy) %>% 
+      mutate(Catelogy=as.character(Catelogy))
+  }
   
-  uvalues <- sort(unique(bar_input$Catelogy))
-  pall <- plot_grid(p_piechart+theme(plot.margin = margin(r = -2)),p_barchart,align = 'h',nrow = 1,rel_widths = c(3,length(uvalues)))
+  p_barchart <- NULL
   
-  
+  if(!is.null(bar_input)) {
+    p_piechart <- piechart_plot(data = pie_input,keep_legend = FALSE)
+    p_barchart <- barchart_plot(data = bar_input,legend_name = legend_name,keep_legend = FALSE)
+    uvalues <- sort(unique(bar_input$Catelogy))
+    pall <- plot_grid(p_piechart+theme(plot.margin = margin(r = -2)),p_barchart,align = 'h',nrow = 1,rel_widths = c(3,length(uvalues)))
+  }else{
+    uvalues <- 3
+    p_piechart <- piechart_plot(data = pie_input,keep_legend = TRUE)
+    pall <- plot_grid(p_piechart+theme(plot.margin = margin(r = -2)),p_barchart,align = 'h',nrow = 1,rel_widths = c(3,length(uvalues)))
+    
+  }
   
   if(!is.null(output_plot)){
     uvalues <- sort(unique(bar_input$Catelogy))
@@ -2218,8 +2297,13 @@ prevalence_plot <- function(sigdata,nmutation = 0, legend_name="Sigantures", out
   }
   
   pie_input <- pie_input %>% mutate(Percentage=percent(value,accuracy = 0.1)) %>% select(Type,Signature=name,Value=value,Percentage)
-  bar_input <- bar_input %>% select(Type,Signature=Catelogy,Value=Frequency)%>% mutate(Percentage=percent(Value,accuracy = 0.1))
-  freq_data <- bind_rows(pie_input,bar_input)
+  if(!is.null(bar_input)){
+    bar_input <- bar_input %>% select(Type,Signature=Catelogy,Value=Frequency)%>% mutate(Percentage=percent(Value,accuracy = 0.1))
+    freq_data <- bind_rows(pie_input,bar_input)
+  }else{
+    freq_data <- pie_input
+  }
+  
   list_return <- list(freq_data=freq_data,pie_plot=p_piechart,bar_plot=p_barchart)
   
   return(list_return)
