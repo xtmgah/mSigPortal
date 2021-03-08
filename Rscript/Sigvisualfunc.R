@@ -802,7 +802,6 @@ plot_dbs_78_profile <- function(data,samplename=NULL,samplename_plot=TRUE, filen
 
 
 # Plot_Profile_Logo -------------------------------------------------------
-
 plot_profile_logo <- function (profile, colors = NULL, condensed = FALSE,output_plot = NULL,plot_width=NULL, plot_height=NULL) 
 {
   ## profile 1 and profile 2 will be the dataframe with two columns: MutationType and value
@@ -866,6 +865,274 @@ plot_profile_logo <- function (profile, colors = NULL, condensed = FALSE,output_
 }
 
 
+
+# ID29_Plot ---------------------------------------------------------------
+id29_col1 <- c(
+  "[+C]A",
+  "[+C]G",
+  "[+C]T",
+  "[+C]C",
+  "[+C]CC",
+  "[+C]LongRep",
+  "[+T]A",
+  "[+T]C",
+  "[+T]G",
+  "[+T]T",
+  "[+T]TT",
+  "[+T]LongRep",
+  "[+>1]NonRep",
+  "[+>1]Rep",
+  "[-C]A",
+  "[-C]G",
+  "[-C]T",
+  "[-C]C",
+  "[-C]CC",
+  "[-C]LongRep",
+  "[-T]A",
+  "[-T]C",
+  "[-T]G",
+  "[-T]T",
+  "[-T]TT",
+  "[-T]LongRep",
+  "[->1]Others",
+  "[->1]Rep",
+  "[->1]Mh")
+
+id29_col2 <- c(
+  "[+C]A",
+  "[+C]G",
+  "[+C]T",
+  "[+C]C",
+  "[+C]CC",
+  "[+C]LR",
+  "[+T]A",
+  "[+T]C",
+  "[+T]G",
+  "[+T]T",
+  "[+T]TT",
+  "[+T]LR",
+  "[+>1]NonR",
+  "[+>1]Rep",
+  "[-C]A",
+  "[-C]G",
+  "[-C]T",
+  "[-C]C",
+  "[-C]CC",
+  "[-C]LR",
+  "[-T]A",
+  "[-T]C",
+  "[-T]G",
+  "[-T]T",
+  "[-T]TT",
+  "[-T]LR",
+  "[->1]NonR",
+  "[->1]Rep",
+  "[-]Mh")
+
+id29_colors <- c("[+C]"="#0C5CA2","[+T]"="#CA4904","[+>1]"="#BF6196","[-C]"="#47A4E3","[-T]"="#DF8E05","[->1]"="#139060","[-]"="#7C00A5")
+id29 <- tibble(MutationType1=id29_col1,MutationType2=id29_col2) %>% 
+  mutate(Type=str_replace(MutationType1,"].*","]"),SubType=str_remove(MutationType1,".*]")) %>% 
+  mutate(Type=factor(Type,levels = names(id29_colors))) %>% 
+  mutate(MutationType2=factor(MutationType2,levels = id29_col2))
+
+
+plot_profile_id29 <- function (profile, colors = id29_colors,output_plot = NULL,plot_width=NULL, plot_height=NULL) 
+{
+  ## make sure the order profile 1 and profile 2 are the same order
+  
+  ## normalize 
+  colnames(profile) <- c('MutationType1','Value')
+  profile <- profile %>% left_join(id29) %>% select(MutationType2,Type,SubType,Value)
+  
+  profile[,4] <- profile[,4]/sum(profile[,4])  
+  
+  plot <- ggplot(data = profile, aes(x = MutationType2, y = Value,  fill = Type, width = 0.7)) + 
+    geom_bar(stat = "identity", position = "identity", colour = NA, size = 0) + 
+    scale_fill_manual(values = colors) + 
+    facet_grid(. ~ Type, scales = "free",space = "free_x") +
+    guides(fill = FALSE) + 
+    scale_x_discrete(expand = expansion(add = 0))+
+    scale_y_continuous(expand = expansion(mult = c(0,0.1)),breaks = pretty_breaks(5))+
+    labs(x="",y="")+
+    theme_ipsum_rc(grid = 'yY',axis_text_size = 10)+
+    theme(axis.text.x = element_text(angle = 330,hjust = 0,vjust = 1),strip.text.x = element_text(hjust = 0.5,face = "bold",colour = "white"),panel.spacing.x = unit(0.2, "lines"),panel.spacing.y = unit(0.2, "lines"),axis.line.x.bottom = element_line(colour = 'black',size = 0.2),strip.background = element_rect(size = 0))
+  
+  ## add background color for strip
+  require(grid)
+  g <- ggplot_gtable(ggplot_build(plot))
+  strip_top <- which(grepl('strip-t', g$layout$name))
+  fills <- colors
+  k <- 1
+  for (i in strip_top) {
+    j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+    g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+    k <- k+1
+  }
+  plot <- as_ggplot(g)
+  
+  if(is.null(output_plot)){
+    return(plot)
+  }else{
+    xleng <- 14
+    yleng <- 5
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    
+    ggsave(filename = output_plot,plot = plot,width = plot_width,height = plot_height)
+  }
+  
+}
+
+plot_profile_id29_logo <- function (profile, colors = id29_colors,output_plot = NULL,plot_width=NULL, plot_height=NULL) 
+{
+  ## make sure the order profile 1 and profile 2 are the same order
+  
+  ## normalize 
+  colnames(profile) <- c('MutationType1','Value')
+  profile <- profile %>% left_join(id29) %>% select(MutationType2,Type,SubType,Value)
+  
+  profile[,4] <- profile[,4]/sum(profile[,4])  
+  
+  plot <- ggplot(data = profile, aes(x = MutationType2, y = Value,  fill = Type, width = 0.7)) + 
+    geom_bar(stat = "identity", position = "identity", colour = NA, size = 0) + 
+    scale_fill_manual(values = colors) + 
+    facet_grid(. ~ Type, scales = "free",space = "free_x") +
+    guides(fill = FALSE) + 
+    scale_x_discrete(expand = expansion(add = 0))+
+    scale_y_continuous(expand = expansion(mult = c(0,0.1)),breaks = pretty_breaks(5))+
+    labs(x="",y="")+
+    theme(axis.ticks = element_blank(),axis.title = element_blank(), axis.text = element_blank(),panel.background = element_blank(),panel.grid = element_blank(),strip.text.x = element_blank(),panel.spacing.x = unit(0, "lines"),axis.line.x = element_line(colour = 'black',size = 0.05))
+  
+  ## add background color for strip
+  # require(grid)
+  # g <- ggplot_gtable(ggplot_build(plot))
+  # strip_top <- which(grepl('strip-t', g$layout$name))
+  # fills <- colors
+  # k <- 1
+  # for (i in strip_top) {
+  #   j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+  #   g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  #   k <- k+1
+  # }
+  # plot <- as_ggplot(g)
+  
+  if(is.null(output_plot)){
+    return(plot)
+  }else{
+    xleng <- 2
+    yleng <- 0.8
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    
+    ggsave(filename = output_plot,plot = plot,width = plot_width,height = plot_height)
+  }
+  
+}
+
+
+
+# DBS_signal_plot ---------------------------------------------------------
+dbs78_signal_colors <- c('AA>NN'='#E4446E','AC>NN'='#63C26F','AG>NN'='#FEE74C','AT>NN'='#4195CF','CA>NN'='#F3935C','CC>NN'='#9F47BE','CG>NN'='#6FF3F3','GA>NN'='#EF50E8','GC>NN'='#D9F964','TA>NN'='#F8C6C6')
+
+plot_profile_dbs78_signal <- function (profile, colors = dbs78_signal_colors,output_plot = NULL,plot_width=NULL, plot_height=NULL) 
+{
+  ## make sure the order profile 1 and profile 2 are the same order
+  
+  ## normalize 
+  colnames(profile) <- c('MutationType','Value')
+  profile <- profile_format_df(profile,factortype = TRUE,indel_short = indel_short) 
+  names(colors) <- levels(profile$Type)
+  
+  
+  profile[,4] <- profile[,4]/sum(profile[,4])  
+  
+  plot <- ggplot(data = profile, aes(x = MutationType, y = Value,  fill = Type, width = 0.7)) + 
+    geom_bar(stat = "identity", position = "identity", colour = NA, size = 0) + 
+    scale_fill_manual(values = colors) + 
+    facet_grid(. ~ Type, scales = "free",space = "free_x") +
+    guides(fill = FALSE) + 
+    scale_x_discrete(expand = expansion(add = 0))+
+    scale_y_continuous(expand = expansion(mult = c(0,0.1)),breaks = pretty_breaks(5))+
+    labs(x="",y="")+
+    theme_ipsum_rc(grid = 'yY',axis_text_size = 10)+
+    theme(axis.text.x = element_text(angle = 270,hjust = 0,vjust = 0.5),strip.text.x = element_text(hjust = 0.5,face = "bold"),panel.spacing.x = unit(0.2, "lines"),panel.spacing.y = unit(0.2, "lines"),axis.line.x.bottom = element_line(colour = 'black',size = 0.2),strip.background = element_rect(size = 0))
+  
+  ## add background color for strip
+  require(grid)
+  g <- ggplot_gtable(ggplot_build(plot))
+  strip_top <- which(grepl('strip-t', g$layout$name))
+  fills <- colors
+  k <- 1
+  for (i in strip_top) {
+    j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+    g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+    k <- k+1
+  }
+  plot <- as_ggplot(g)
+  
+  if(is.null(output_plot)){
+    return(plot)
+  }else{
+    xleng <- 14
+    yleng <- 5
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    
+    ggsave(filename = output_plot,plot = plot,width = plot_width,height = plot_height)
+  }
+  
+}
+
+
+
+
+plot_profile_dbs78_signal_logo <- function (profile, colors = dbs78_signal_colors,output_plot = NULL,plot_width=NULL, plot_height=NULL) 
+{
+  ## make sure the order profile 1 and profile 2 are the same order
+  
+  ## normalize 
+  colnames(profile) <- c('MutationType','Value')
+  profile <- profile_format_df(profile,factortype = TRUE,indel_short = indel_short) 
+  names(colors) <- levels(profile$Type)
+  
+  
+  profile[,4] <- profile[,4]/sum(profile[,4])  
+  
+  plot <- ggplot(data = profile, aes(x = MutationType, y = Value,  fill = Type, width = 0.7)) + 
+    geom_bar(stat = "identity", position = "identity", colour = NA, size = 0) + 
+    scale_fill_manual(values = colors) + 
+    facet_grid(. ~ Type, scales = "free",space = "free_x") +
+    guides(fill = FALSE) + 
+    scale_x_discrete(expand = expansion(add = 0))+
+    scale_y_continuous(expand = expansion(mult = c(0,0.1)),breaks = pretty_breaks(5))+
+    labs(x="",y="")+
+    theme(axis.ticks = element_blank(),axis.title = element_blank(), axis.text = element_blank(),panel.background = element_blank(),panel.grid = element_blank(),strip.text.x = element_blank(),panel.spacing.x = unit(0, "lines"),axis.line.x = element_line(colour = 'black',size = 0.05))
+  
+  ## add background color for strip
+  # require(grid)
+  # g <- ggplot_gtable(ggplot_build(plot))
+  # strip_top <- which(grepl('strip-t', g$layout$name))
+  # fills <- colors
+  # k <- 1
+  # for (i in strip_top) {
+  #   j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+  #   g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+  #   k <- k+1
+  # }
+  # plot <- as_ggplot(g)
+  
+  if(is.null(output_plot)){
+    return(plot)
+  }else{
+    xleng <- 2
+    yleng <- 0.8
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    
+    ggsave(filename = output_plot,plot = plot,width = plot_width,height = plot_height)
+  }
+  
+}
 
 
 
@@ -1313,7 +1580,7 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
       #scale_y_continuous(expand = c(0,0))+
       theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
       ggtitle(paste("RSS = ", RSS, "; Cosine Similarity = ", cosine_sim, sep = ""))+
-      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 10,hjust = 0.5,colour = "white", margin = margin(0,0,0,0,unit = 'cm')), strip.text.y = element_text(size = 10,hjust = 0.5,margin = margin(0,0,0,0,unit = 'cm')),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5)+geom_vline(xintercept = Inf,colour = 'black',size = 0.5)#axis.line.x = element_line(colour = 'black',size = 0.25),
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 10,hjust = 0.5,colour = "white", margin = margin(0.1,0.1,0.1,0.1,unit = 'cm')), strip.text.y = element_text(size = 10,hjust = 0.5,margin = margin(0.1,0.1,0.1,0.1,unit = 'cm')),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5)+geom_vline(xintercept = Inf,colour = 'black',size = 0.5)#axis.line.x = element_line(colour = 'black',size = 0.25),
     #panel_border(color = gray(0.5),size = 0.3)
   }
   else {
@@ -1329,7 +1596,7 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
       #scale_y_continuous(expand = c(0,0))+
       theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
       ggtitle(paste("RSS = ", RSS, "; Cosine Similarity = ", cosine_sim, sep = ""))+
-      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 10,hjust = 0.5,colour = "white", margin = margin(0,0,0,0,unit = 'cm')), strip.text.y = element_text(size = 10,hjust = 0.5,margin = margin(0,0,0,0,unit = 'cm')),strip.background = element_rect(fill = "#f0f0f0",), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5) +geom_vline(xintercept = Inf,colour = 'black',size = 0.5) #,axis.line.x = element_line(colour = 'black',size = 0.25)
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 10,hjust = 0.5,colour = "white", margin = margin(0.1,0.1,0.1,0.1,unit = 'cm')), strip.text.y = element_text(size = 10,hjust = 0.5,margin = margin(0.1,0.1,0.1,0.1,unit = 'cm')),strip.background = element_rect(fill = "#f0f0f0",), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5) +geom_vline(xintercept = Inf,colour = 'black',size = 0.5) #,axis.line.x = element_line(colour = 'black',size = 0.25)
     #     panel_border(color = gray(0.5),size = 0.3)
   }
   
@@ -1832,7 +2099,7 @@ TMBplot <- function(data,output_plot = NULL,plot_width=NULL, plot_height=NULL,ad
     coord_cartesian(clip = 'off')
   
   if(!is.null(addnote)){
-    p <- p+annotate("text",x=-Inf, y = Inf, label = addnote, vjust=2, hjust=-0.2,size=7)
+    p <- p+annotate("text",x=-Inf, y = Inf, label = addnote, vjust=2, hjust=-0.2,size=4)
   }
   
   
