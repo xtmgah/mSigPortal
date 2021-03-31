@@ -2165,7 +2165,7 @@ decompsite_distribution <- function(decompsite,output_plot = NULL,plot_width=NUL
 
 
 ### Landscape of mutational signature cluster function ####
-Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_cat = TRUE, studycolor=NULL,study_cutoff = -Inf,studyname = NULL,puritydata=NULL,puritydata_cat=FALSE,puritycol=NULL,purity_cutoff=-Inf,purityname = NULL,cosinedata=NULL,cosine_cutoff=0,highlight=NULL,legendnrow=NULL,sampletext_size=6,output_plot=NULL,plot_height=NULL,plot_width=NULL,clustern,hc_func='hclust',hc_metric = 'euclidean',hc_method = 'ward.D2',stand=TRUE){
+Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_cat = TRUE, studycolor=NULL,study_cutoff = -Inf,studyname = NULL,puritydata=NULL,puritydata_cat=FALSE,puritycol=NULL,purity_cutoff=-Inf,purityname = NULL,cosinedata=NULL,cosine_cutoff=0,highlight=NULL,legendnrow=NULL,sampletext_size=6,output_plot=NULL,plot_height=NULL,plot_width=NULL,clustern=NULL,kcolors=NULL,hc_func='hclust',hc_metric = 'euclidean',hc_method = 'ward.D2',stand=TRUE){
   require(tidyverse)
   require(scales)
   require(janitor)
@@ -2204,14 +2204,18 @@ Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_c
   rownames(mdata) <- tmp$Samples
   
   #fviz_nbclust(mdata, kmeans, method = "gap_stat")
+  if(is.null(clustern)){
+    clustern=2
+    kcolors="black"
+  }else{
+    clustern <- if_else(dim(mdata)[1]<clustern+5,2L,as.integer(clustern))
+    if(is.null(kcolors)) {kcolors="black"}
+  }
   
-  clustern <- if_else(dim(mdata)[1]<clustern+5,2L,as.integer(clustern))
-  
-  kcolors <- pal_d3("category20")(clustern)
   res <- hcut(mdata,k = clustern,hc_func = hc_func,hc_metric = hc_metric,hc_method = hc_method,stand=stand)
   
   # p_cluster
-  p_cluster <- fviz_dend(res, rect = TRUE, cex = 0.5,k_colors = kcolors,lwd = 0.5,show_labels = F)+scale_x_discrete(expand = c(0,0))+ theme(plot.margin=margin(b=-0.7,unit="cm"),title = element_blank())
+  p_cluster <- fviz_dend(res, rect = TRUE, cex = 0.5,k_colors = kcolors,lwd = 0.3,show_labels = F)+scale_x_discrete(expand = c(0,0))+ theme(plot.margin=margin(b=-0.7,unit="cm"),title = element_blank())
   #plot.margin=margin(b=-1,unit="cm")
   
   ## p_mutation
@@ -2306,12 +2310,13 @@ Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_c
       p_purity_legend <- as_ggplot(get_legend(p_purity+legend_size))
       #p_purity_legend <- p_purity_legend+theme(plot.margin = margin(b = 0))
       p_purity <- puritydata %>% ggplot(aes(Samples,1,fill=Purity))+geom_tile(col="black")+scale_fill_viridis_c(purityname,na.value = "#cccccc",option = 'D',breaks=pretty_breaks(5))+theme_minimal()+theme(legend.position = "none", panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t = 0.5,unit="cm"))+ylim(c(0,2))
-    }else { 
+    }else {
+      purityname <-  paste0(purityname,"\n")
       if(is.null(puritycol)){
         puritycol <- colset[1:length(unique(puritydata$Purity))]
         names(puritycol) <- unique(puritydata$Purity)
       }
-      p_purity <- puritydata %>% ggplot(aes(Samples,1,fill=factor(Purity,levels = names(puritycol))))+geom_tile(col="black")+scale_fill_manual(values =puritycol)+theme_minimal()+theme(legend.position = "bottom",panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t=0.5,unit="cm"))+ylim(c(0,2))+guides(fill = guide_legend(nrow = 1))
+      p_purity <- puritydata %>% ggplot(aes(Samples,1,fill=factor(Purity,levels = names(puritycol))))+geom_tile(col="black")+scale_fill_manual(purityname,values =puritycol)+theme_minimal()+theme(legend.position = "bottom",panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t=0.5,unit="cm"))+ylim(c(0,2))+guides(fill = guide_legend(nrow = 1))
       p_purity_legend <- as_ggplot(get_legend(p_purity+legend_size))
       #p_purity_legend <- p_purity_legend+theme(plot.margin = margin(b = 0))
       p_purity <- puritydata %>% ggplot(aes(Samples,1,fill=factor(Purity,levels = names(puritycol))))+geom_tile(col="black")+scale_fill_manual(purityname,values =puritycol)+theme_minimal()+theme(legend.position = "none",panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+theme(plot.margin=margin(b=-1,t=0.5,unit="cm"))+ylim(c(0,2))
@@ -2694,8 +2699,8 @@ signature_association <- function(data,signature_name_input1="Siganture 1",signa
       data=data %>% mutate(Exposure1=log10(Exposure1+1),Exposure2=log10(Exposure2+1)),
       x=Exposure1,
       y=Exposure2,
-      xlab=paste0('Nubmer of mutations in ',signature_name_input1, ' (log10)'),
-      ylab=paste0('Nubmer of mutations in ',signature_name_input2,' (log10)'),
+      xlab=paste0('Number of mutations in ',signature_name_input1,' (log10)'),
+      ylab=paste0('Number of mutations in ',signature_name_input2,' (log10)'),
       marginal.type = "density",
       messages=FALSE,
     )
