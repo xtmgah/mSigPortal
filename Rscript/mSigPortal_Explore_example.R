@@ -76,7 +76,7 @@ svgfile_selected <- signature_profile_files %>% filter(Source==signature_source_
 
 # section3: Cosine similarities among mutational signatures -------------------------
 # The parameters will be “Matrix Size”, “Reference Signature Set1” and “Reference Signature Set2”. 
-profile_name_input <- "SBS96" # profile type
+profile_name_input <- "SBS1536" # profile type
 # the availabe options for signaturesetname1 and signaturesetname2 will be:
 signature_refsets %>% filter(Profile==profile_name_input)%>% pull(Signature_set_name) %>% unique()
 
@@ -107,10 +107,11 @@ cos_sim_res %>% write_delim('signature_cos_sim_res.txt',delim = '\t',col_names =
 ## A comparison of two reference signatures
 # There will be five parameters: “Profile Type”,  “Reference Signature Set1”, “Signature Name1”, “Reference Signature Set2”, “Signature Name2”; 
 profile_name_input <- "SBS96" # profile type
-signatureset_name1 <- "COSMIC v3 Signatures (SBS)"
-signatureset_name2 <- "COSMIC v3 Signatures (SBS)"
-signature_name1 <-  "SBS1"
-signature_name2 <- "SBS5"
+signatureset_name1 <- "Environmental Mutagen Signatures (SBS)"
+signatureset_name2 <- "Environmental Mutagen Signatures (SBS)"
+signature_name1 <-  "5-Methylchrysene (1.6 uM) + S9"
+signature_name2 <- "BaP (2 uM) + S9"
+signature_name2 <- "BaP (0.39 uM) + S9"
 
 # similarly, the available options for signatureset_name1 and signatureset_name2 will be:
 signature_refsets %>% filter(Profile==profile_name_input)%>% pull(Signature_set_name) %>% unique()
@@ -132,7 +133,7 @@ profile2 <- signature_refsets %>%
   select(MutationType,one_of(signature_name2))
 
 # put this plot on the web:
-plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,output_plot = 'tmp.svg')
+plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,output_plot = 'tmp.pdf')
 
 
 
@@ -431,6 +432,15 @@ if(file.exists(seqmatrix_reffile)){
 }
 
 
+
+# Exposure Download ----------------------------------------------------------------
+dfile_name <- paste(study_input,dataset_input,cancer_type_input,str_remove_all(str_remove_all(signature_set_name_input,'\\('),'\\)'),'exposure_data.txt.gz',sep = '_')
+dfile_name <- str_replace_all(dfile_name,' +','_')
+exposure_refdata_input <- exposure_refdata_selected %>% filter(Cancer_Type==cancer_type_input)
+exposure_refdata_input %>% 
+  select(Sample,Signature_name,Exposure) %>% 
+  pivot_wider(names_from = Signature_name,values_from = Exposure) %>% 
+  write_delim(file = dfile_name,delim = '\t',col_names = T)
 
 
 

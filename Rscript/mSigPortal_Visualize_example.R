@@ -15,7 +15,7 @@ source('Sigvisualfunc.R')
 if(Data_Source == "Public_Data"){
   #parameters for the public data 
   # list for the public data
-  load('../Database/Seqmatrix/seqmatrix_refdata_info.RData')
+  load('../Database/Seqmatrix/Seqmatrix/seqmatrix_refdata_info.RData')
   seqmatrix_refdata_info2
   foldername <- "~/NIH-Work/MutationSignature/mSigPortal/CBIIT/Reference_paper_data/The repertoire of mutational signatures in human cancer/SampleMatrix/Matrix/" 
   ## read svg summary list from public data
@@ -32,6 +32,12 @@ if(Data_Source == "Public_Data"){
   seqmatrix_refdata_public <- seqmatrix_refdata_subset 
   #%>% filter(Study == study, Cancer_Type==cancer_type,Dataset == experimental_strategy)
   ### svgfiles_public and seqmatrix_refdata_public used as input data 
+  
+  ## download function for public dataset
+  ## Download matrices of different mutational profiles for selected study
+  seqmatrix_public_download(seqmatrix_refdata_public = seqmatrix_refdata_public,tmpfolder = "./seqmatrix_public_testdownload")
+  # this download command will generated ./seqmatrix_public_testdownload.tar.gz; we need put this file to the download
+  
   
 }else{
   ## read matrix summary list 
@@ -105,7 +111,7 @@ if(Data_Source != "Public_Data"){
 
 # Load R object for the rest tables -------------------------------------------
 # load public sigantures
-load('Data/signature_refsets.RData')
+load('../Database/Signature/signature_refsets.RData')
 
 
 
@@ -372,10 +378,15 @@ if(Data_Source != "Public_Data"){
 }else{
   
   #study <- "TCGA"  ## based on the left panel
+  # for Breast560
+  # data_input <- seqmatrix_refdata_public %>% filter(Profile=="SBS96") %>% mutate(Study=paste0(Study,"@",Cancer_Type),Type=str_sub(MutationType,3,5),SubType1=str_sub(MutationType,1,1),SubType2=str_sub(str_sub(MutationType,7,7))) %>% select(Study,Sample,MutationType,Type,SubType1,SubType2,Mutations)
+  # 
+  # content_data_all_tmp <- content_extraction(data_input)
+  # content_data_all_tmp <- content_data_all_tmp %>% filter(Total>200,N1>0.1)
+  # content_data_all <- bind_rows(content_data_all,content_data_all_tmp)
+  # save(content_data_all,file='../Database/Others/content_data_all.RData',version = 2)
+  # 
   
-  # content_data_all <- content_extraction(data_input)
-  # content_data_all <- content_data_all %>% filter(Total>200,N1>0.1)
-  # save(content_data_all,file='Data/content_data_all.RData',version = 2)
   load('../Database/Others/content_data_all.RData')
   data_tmp <- content_data_all %>% 
     filter(N1>Proportion_input,str_detect(Study,paste0("^",study,"@"))) %>% 
@@ -494,7 +505,6 @@ if(profile_name %in% unique(signature_refsets$Profile))
   cos_sim_res2 %>% write_delim('cos_sim_res3.txt',delim = '\t',col_names = T)
   
 }
-
 
 
 
