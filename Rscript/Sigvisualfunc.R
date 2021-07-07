@@ -2904,7 +2904,7 @@ katPoint <- function(data, sample = "sample", min.mut = 5, max.dis = 1000,
 
 # Kataegis plot -----------------------------------------------------------
 
-kataegis_rainfall_plot <- function(mutdata,sample_name="sample",genome_build = "hg19",reference_data_folder, chromsome=NULL,kataegis_highligh=FALSE,min.mut = 5,max.dis = 1000,filename=NULL){
+kataegis_rainfall_plot <- function(mutdata,sample_name="sample",genome_build = "hg19",reference_data_folder=NULL, chromsome=NULL,kataegis_highligh=FALSE,min.mut = 5,max.dis = 1000,filename=NULL){
   require(tidyverse)
   require(ggsci)
   require(hrbrthemes)
@@ -2917,8 +2917,10 @@ kataegis_rainfall_plot <- function(mutdata,sample_name="sample",genome_build = "
     require(BSgenome.Hsapiens.UCSC.hg19)
     require(TxDb.Hsapiens.UCSC.hg19.knownGene)
     genome_build <- 'hg19'
-    ref_file <- paste0(reference_data_folder,"/hg19_ref.RData")
-    load(ref_file)
+    if(!is.null(reference_data_folder)){
+      ref_file <- paste0(reference_data_folder,"/hg19_ref.RData")
+      load(ref_file)
+    }
     hgref <- hg19
     TxDb.Hsapiens <- TxDb.Hsapiens.UCSC.hg19.knownGene
   }
@@ -2927,8 +2929,10 @@ kataegis_rainfall_plot <- function(mutdata,sample_name="sample",genome_build = "
     require(BSgenome.Hsapiens.UCSC.hg38)
     require(TxDb.Hsapiens.UCSC.hg38.knownGene)
     genome_build <- 'hg38'
+    if(!is.null(reference_data_folder)){
     ref_file <- paste0(reference_data_folder,"/hg38_ref.RData")
     load(ref_file)
+    }
     hgref <- hg38
     TxDb.Hsapiens <- TxDb.Hsapiens.UCSC.hg38.knownGene
   }
@@ -3021,6 +3025,43 @@ kataegis_rainfall_plot <- function(mutdata,sample_name="sample",genome_build = "
   return(katdata)
 }
 
+
+
+
+
+# seqmatrix_public_download  ---------------------------------------------------------------
+
+seqmatrix_public_download <- function(seqmatrix_refdata_public,tmpfolder= "./seqmatrix_public_testdownload"){
+  
+  #tmpfolder <- '~/Downloads/vistmp'
+  tmpfile <- paste0(tmpfolder,'/',study,"_",cancer_type)
+  dir.create(path = tmpfolder,recursive = TRUE)
+  profile_list <- seqmatrix_refdata_public %>% count(Profile) %>% pull(Profile)
+  
+  for(profiletmp in profile_list){
+    dupsample <- seqmatrix_refdata_public %>% select(Study,Cancer_Type,Sample) %>% unique() %>% count(Sample) %>% filter(n>1) %>% dim() %>% .[[1]]
+    if(dupsample == 0){
+      seqmatrix_refdata_public %>%
+        filter(Profile==profiletmp) %>% 
+        select(Sample,MutationType,Mutations) %>% 
+        pivot_wider(id_cols = MutationType,names_from=Sample,values_from=Mutations) %>% 
+        write_delim(paste0(tmpfile,'.',profiletmp,'.txt'),delim = '\t',col_names = T)
+    }else{
+      seqmatrix_refdata_public %>%
+        filter(Profile==profiletmp) %>% 
+        mutate(Sample=paste0(Study,"_",Cancer_Type,"_",Sample)) %>% 
+        select(Sample,MutationType,Mutations) %>% 
+        pivot_wider(id_cols = MutationType,names_from=Sample,values_from=Mutations) %>% 
+        write_delim(paste0(tmpfile,'.',profiletmp,'.txt'),delim = '\t',col_names = T)
+    }
+  }
+  
+  
+  cmdfile1 <- paste0('tar -C ',str_remove(tmpfolder,"/[^/]*$"),' -zcvf ', tmpfolder,".tar.gz ",str_remove(tmpfolder,".*/"))
+  system(cmdfile1)
+  cmdfile2 <- paste0('rm -rf ',tmpfolder)
+  system(cmdfile2)
+}
 
 
 
