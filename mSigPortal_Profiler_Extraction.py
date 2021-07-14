@@ -8,17 +8,17 @@ from zipfile import ZipFile
 '''
 Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
-Version:	1.29
-Date:		Nov-05-2020
-Update:			(1) Generate seqInfo for downloading (seqInfo=True)
-			(2) Generate Compressed Dir: DBS.tar.gz;ID.tar.gz;plots.tar.gz;SBS.tar.gz;vcf_files.tar.gz;
-			(3) Generate Statistics.txt (need to update: github:SigProfilerMatrixGenerator-master/SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py)
-			(4) Solve the 'True' bug for Collpase Option 
-			(5) Fix the bug in Catalog format with -c function
-			(6) Generate Matrix_List.txt
-			(7) Solve the problem "The header is incorrectly displayed in the CSV/TSV File"
-			(8) Fix the bug of -F function in CSV/TSV format
-			(9) Filter the line of ALT with ","
+Version:	1.30
+Date:		May-01-2021
+Update:		(01) Generate seqInfo for downloading (seqInfo=True)
+			(02) Generate Compressed Dir: DBS.tar.gz;ID.tar.gz;plots.tar.gz;SBS.tar.gz;vcf_files.tar.gz;
+			(03) Generate Statistics.txt (need to update: github:SigProfilerMatrixGenerator-master/SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py)
+			(04) Solve the 'True' bug for Collpase Option 
+			(05) Fix the bug in Catalog format with -c function
+			(06) Generate Matrix_List.txt
+			(07) Solve the problem "The header is incorrectly displayed in the CSV/TSV File"
+			(08) Fix the bug of -F function in CSV/TSV format
+			(09) Filter the line of ALT with ","
 			(10) Improve the function of -F with "-" in CSV, TSV and VCF format 
 			(11) Improve the function of Collpase [The All_Samples@Filter]
 			(12) Fix the bug of "rm -rf /tmp"!
@@ -26,6 +26,8 @@ Update:			(1) Generate seqInfo for downloading (seqInfo=True)
 			(14) Improve the output file: matrix_files_list.txt
 			(15) Improve argparse --help
 			(16) Change the ouptput structure for Catalog
+			(17) tar compressing without directory structure, This is very complicated better with zip not gzip, command is following:
+				 cmd = "zip -jr %s/File_Dir_Name.zip %s/File_Dir_Name" % (zip_Dir,Original_Dir)
 '''
 
 
@@ -1390,13 +1392,16 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, B
 		PDF_Path = "%s/output/plots" % (Output_Dir)
 		SBS_Path = "%s/output/SBS" % (Output_Dir)
 		Matrix_Path = "%s/output/vcf_files" % (Output_Dir)
+		Matrix_ZiP_Path = "%s/output/vcf_files_zip" % (Output_Dir) # tar directory without whole structure // 04-01-2021
+		GenerateDir(Matrix_ZiP_Path)
+
 
 		Matrix_List_File = open(Matrix_List_Path, 'w')
 		Header = "Profile_Type,Matrix_Size,Path\n"
 		Matrix_List_File.write(Header)
 
 		if os.path.exists(DBS_Path):
-			os.system("tar -zcvf %s.tar.gz %s" % (DBS_Path,DBS_Path))
+			os.system("zip -jr %s.zip %s" % (DBS_Path,DBS_Path))
 
 			Catalog = "DBS"
 			for ii in os.listdir(DBS_Path):
@@ -1406,8 +1411,10 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, B
 				Final_String = "%s,%s,%s\n" % (Catalog,Type,Path)
 				Matrix_List_File.write(Final_String)
 
+
 		if os.path.exists(ID_Path):
-			os.system("tar -zcvf %s.tar.gz %s" % (ID_Path,ID_Path))
+			#os.system("tar -zcvf %s.tar.gz %s" % (ID_Path,ID_Path))
+			os.system("zip -jr %s.zip %s" % (ID_Path,ID_Path))
 
 			Catalog = "ID"
 			for ii in os.listdir(ID_Path):
@@ -1417,11 +1424,15 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, B
 				Final_String = "%s,%s,%s\n" % (Catalog,Type,Path)
 				Matrix_List_File.write(Final_String)
 
+
 		if os.path.exists(PDF_Path):
-			os.system("tar -zcvf %s.tar.gz %s" % (PDF_Path,PDF_Path))
+			#os.system("tar -zcvf %s.tar.gz %s" % (PDF_Path,PDF_Path))
+			os.system("zip -jr %s.zip %s" % (PDF_Path,PDF_Path))
+
 
 		if os.path.exists(SBS_Path):
-			os.system("tar -zcvf %s.tar.gz %s" % (SBS_Path,SBS_Path))
+			os.system("zip -jr %s.zip %s" % (SBS_Path,SBS_Path))
+
 			Catalog = "SBS"
 			for ii in os.listdir(SBS_Path):
 				Type = ii.split(".")[1].split("SBS")[1]
@@ -1431,11 +1442,15 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, B
 				Matrix_List_File.write(Final_String)
 
 		if os.path.exists(Matrix_Path):
-			os.system("tar -zcvf %s.tar.gz %s" % (Matrix_Path,Matrix_Path))
-
+			#os.system("tar -zcvf %s.tar.gz %s" % (Matrix_Path,Matrix_Path))
+			for iii in os.listdir(Matrix_Path):
+				Sub_iii = "%s/%s" % (Matrix_Path,iii)
+				zip_Cmd = "zip -jr %s/%s_txt.zip %s" % (Matrix_ZiP_Path,iii,Sub_iii)
+				os.system(zip_Cmd)
 
 		Matrix_List_File.close()
-		
+
+
 		####### zip #######
 
 		for svg in os.listdir(SVG_New_Output_Dir):
@@ -1506,7 +1521,9 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, B
 						Catalog = "SBS"
 						Final_String = "%s,%s,%s\n" % (Catalog, Type, Path)
 						Matrix_List_File.write(Final_String)
-						os.system("tar -zcvf %s.tar.gz %s" % (FF_temp_Dir, FF_temp_Dir))
+						#os.system("tar -zcvf %s.tar.gz %s" % (FF_temp_Dir, FF_temp_Dir))
+						os.system("zip -jr %s.zip %s" % (FF_temp_Dir, FF_temp_Dir))
+
 
 					elif Type in DBS_Arr:
 						sigPlt.plotDBS(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=False)
@@ -1523,7 +1540,9 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, B
 						Final_String = "%s,%s,%s\n" % (Catalog, Type, Path)
 						Matrix_List_File.write(Final_String)
 
-						os.system("tar -zcvf %s.tar.gz %s" % (FF_temp_Dir, FF_temp_Dir))
+						#os.system("tar -zcvf %s.tar.gz %s" % (FF_temp_Dir, FF_temp_Dir))
+						os.system("zip -jr %s.zip %s" % (FF_temp_Dir, FF_temp_Dir))
+
 
 					elif Type in ID_Arr:
 						sigPlt.plotID(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=False)
@@ -1541,7 +1560,8 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, B
 						Final_String = "%s,%s,%s\n" % (Catalog, Type, Path)
 						Matrix_List_File.write(Final_String)
 
-						os.system("tar -zcvf %s.tar.gz %s" % (FF_temp_Dir, FF_temp_Dir))
+						#os.system("tar -zcvf %s.tar.gz %s" % (FF_temp_Dir, FF_temp_Dir))
+						os.system("zip -jr %s.zip %s" % (FF_temp_Dir, FF_temp_Dir))
 
 
 					else:
@@ -1558,8 +1578,12 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, B
 					FF_command_2 = "mv %s/svg %s/" % (Output_Dir, FF_Dir)
 					print(FF_command_2)
 					os.system(FF_command_2)
-					os.system("tar -zcvf %s.tar.gz %s" % (FF_Dir_pdf, FF_Dir_pdf))
-					os.system("tar -zcvf %s.tar.gz %s" % (FF_Dir_svg, FF_Dir_svg))
+					#os.system("tar -zcvf %s.tar.gz %s" % (FF_Dir_pdf, FF_Dir_pdf))
+					#os.system("tar -zcvf %s.tar.gz %s" % (FF_Dir_svg, FF_Dir_svg))
+
+					os.system("zip -jr %s.zip %s" % (FF_Dir_pdf, FF_Dir_pdf))
+					os.system("zip -jr %s.zip %s" % (FF_Dir_svg, FF_Dir_svg))
+
 
 		Matrix_List_File.close()
 		print("Finisheh !!!!!!!!!!!!!!!!!!!!!!!!!!")
@@ -1594,7 +1618,6 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, B
 					pass
 				else:
 					svg_Location = "%s/%s" % (SVG_Ouput_Dir,svg)
-					svg_Location = os.path.abspath(svg_Location)
 					String = "%s,%s,%s,%s,%s\n" % (sample_Name,Profile_Type,Matrix,Tag,svg_Location)
 					summary_File.write(String)
 		summary_File.close()
@@ -1652,7 +1675,7 @@ if __name__ == "__main__":
 
 
 ### Usage for csv
-# python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction_v30.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output -g GRCh37 -t WGS
 
 ### Usage for tsv
 # python mSigPortal_Profiler_Extraction.py -f tsv -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output -g GRCh37 -t WGS
@@ -1701,10 +1724,10 @@ if __name__ == "__main__":
 # python mSigPortal_Profiler_Extraction_v28.py -f vcf -F PASS@alt_allele_in_normal@- -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS -c True
 
 ### Usage for catalog_csv
-# python mSigPortal_Profiler_Extraction_v29.py -f catalog_csv -i Demo_input/demo_input_catalog.csv -p Project -o Test_Output_Catlog_CSV -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction_v30.py -f catalog_csv -i Demo_input/demo_input_catalog.csv -p Project -o Test_Output_Catlog_CSV -g GRCh37 -t WGS
 
 ### Usage for catalog_tsv
-# python mSigPortal_Profiler_Extraction_v29.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv -p Project -o Test_Output_Catlog_TSV -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction_v30.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv -p Project -o Test_Output_Catlog_TSV -g GRCh37 -t WGS
 
 
 
