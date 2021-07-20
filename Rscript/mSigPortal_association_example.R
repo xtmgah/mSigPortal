@@ -4,101 +4,68 @@ libztw()
 # Module for Signature Association module 
 source('Sigvisualfunc.R')
 
-
-# Public dataset sample Size ----------------------------------------------
-load('../Database/Exposure/PCAWG_WGS_exposure_refdata.RData')
-data1 <- exposure_refdata %>% mutate(Key=paste0(Study,"_",Dataset)) %>% select(Key,Cancer_Type,Sample) %>% unique() %>% count(Key,Cancer_Type) 
-load('../Database/Exposure/Breast560_WGS_exposure_refdata.RData')
-data2 <- exposure_refdata %>% mutate(Key=paste0(Study,"_",Dataset)) %>% select(Key,Cancer_Type,Sample) %>% unique() %>% count(Key,Cancer_Type)
-load('../Database/Exposure/Breast80_WGS_exposure_refdata.RData')
-data3 <- exposure_refdata %>% mutate(Key=paste0(Study,"_",Dataset)) %>% select(Key,Cancer_Type,Sample) %>% unique() %>% count(Key,Cancer_Type)
-data3.1<- tibble(Key="Sherlock-Lung-WGS",Cancer_Type="LCINS",n=232) 
-load('../Database/Exposure/non-PCAWG_WGS_exposure_refdata.RData')
-data3.2 <- exposure_refdata %>% mutate(Key=paste0(Study,"_",Dataset)) %>% select(Key,Cancer_Type,Sample) %>% unique() %>% count(Key,Cancer_Type) 
-datall1 <- bind_rows(data1,data2,data3,data3.1,data3.2)
-tmp <- datall1 %>% group_by(Cancer_Type) %>% summarise(n=sum(n)) %>% arrange(desc(n)) %>% pull(Cancer_Type)
-pall1 <- datall1%>% 
-  mutate(Cancer_Type=factor(Cancer_Type,levels = tmp)) %>% 
-  ggplot(aes(Cancer_Type,n,fill=Key))+geom_col()+theme_ipsum_rc(axis = "XY",axis_title_size = 16,axis_title_just = 'm',grid="Y",strip_text_face = 'bold',ticks = TRUE)+labs(x="",y="Number of samples\n",fill="WGS")+theme(axis.text.x = element_text(angle = 90,hjust = 1,vjust = 0.5))+scale_y_continuous(expand = c(0,0),limits = c(0,500))+scale_x_discrete(expand = c(0,0))+geom_text(aes(label = n), vjust = -0.5)+scale_fill_d3()
-
-
-
-load('../Database/Exposure/TCGA_WES_exposure_refdata.RData')
-data4 <- exposure_refdata %>% mutate(Key=paste0(Study,"_",Dataset)) %>% select(Key,Cancer_Type,Sample) %>% unique() %>% count(Key,Cancer_Type) 
-load('../Database/Exposure/non-PCAWG_WES_exposure_refdata.RData')
-data5 <- exposure_refdata %>% mutate(Key=paste0(Study,"_",Dataset)) %>% select(Key,Cancer_Type,Sample) %>% unique() %>% count(Key,Cancer_Type) 
-
-datall2 <- bind_rows(data4,data5)
-tmp <- datall2 %>% group_by(Cancer_Type) %>% summarise(n=sum(n)) %>% arrange(desc(n)) %>% pull(Cancer_Type)
-pall2 <- datall2%>% 
-  mutate(Cancer_Type=factor(Cancer_Type,levels = tmp)) %>% 
-  ggplot(aes(Cancer_Type,n,fill=Key))+geom_col()+theme_ipsum_rc(axis = "XY",axis_title_size = 16,axis_title_just = 'm',grid="Y",strip_text_face = 'bold',ticks = TRUE)+labs(x="",y="Number of samples\n",fill="WES")+theme(axis.text.x = element_text(angle = 90,hjust = 1,vjust = 0.5))+scale_y_continuous(expand = c(0,0),limits = c(0,1200))+scale_x_discrete(expand = c(0,0))+geom_text(aes(label = n), vjust = -0.5)+scale_fill_d3()
-
-
-
-ggsave(filename = 'pall1.svg',plot = pall1,width = 20,height = 8,device = cairo_pdf)
-ggsave(filename = 'pall2.svg',plot = pall2,width = 24,height = 8,device = cairo_pdf)
-
-
-
-
-
-# dataset -----------------------------------------------------------------
-load('../TMP/Association_Prepare/PCAWG_vardata.RData')
-
-
-
-
-
-
-
-# Exposure Data -----------------------------------------------------------
 if(Data_Source == "Public_Data"){
   # parameters for all the tables
-  study_input <- "Breast560"
+  study_input <- "PCAWG"
   dataset_input <- "WGS"
-  signature_set_name_input <- "Organ-specific Cancer Signatures (SBS)" 
-  
+  signature_set_name_input <- "COSMIC v3 Signatures (SBS)" 
+  cancer_type_input <- "Lung-AdenoCA"
   # load exposure data files
   exposure_data_file <- paste0('../Database/Exposure/',study_input,"_",dataset_input,'_exposure_refdata.RData')
+  association_data_file <- paste0('../Database/Association/',study_input,'_vardata.RData')
   
-  if(!file.exists(exposure_data_file)){
-    stop("ERROR: Exposure data is not avaiable for selected study. please select other study")
+  if(!file.exists(exposure_data_file) | !file.exists(association_data_file)){
+    stop("ERROR: Exposure or assoicaiton variable data are not avaiable for selected study. please check input or select other study")
   }
-  
   load(exposure_data_file)
+  load(association_data_file)
+  exposure_refdata_selected <- exposure_refdata %>% filter(Signature_set_name==signature_set_name_input, Cancer_Type == cancer_type_input)
   
-  exposure_refdata_selected <- exposure_refdata %>% filter(Signature_set_name==signature_set_name_input)
+  exposure_refdata_selected <- exposure_refdata_selected %>% 
+    select(Sample,Signature_name,Signature_exposure=Exposure) %>% 
+    group_by(Sample) %>% 
+    mutate(Signature_exposure_ratio=Signature_exposure/sum(Signature_exposure),Signature_exposure_cat=if_else(Signature_exposure>100, "Observed", "Not_observed")) %>% 
+    ungroup() %>%
+    mutate(Signature_exposure_cat=factor(Signature_exposure_cat,level=c("Not_observed","Observed")))
   
-  genome <- case_when(
-    study_input == "PCAWG" ~ "GRCh37",
-    study_input == "TCGA" ~ "GRCh37",
-    TRUE ~ "GRCh37"
-  )
-  genomesize <-  genome2size(genome)
+  # output jason for the variable2 
+  # vardata_refdata %>%
+  #   select(data_source,data_type,variable_name,variable_value_type) %>%
+  #   unique() %>%
+  #   toJSON(pretty = TRUE, auto_unbox = TRUE) %>%
+  #   write(paste0('../Database/Association/',study_input,'_vardata.json'))
+  # 
   
-  cancer_types <- exposure_refdata_selected %>% pull(Cancer_Type) %>% unique()
+  vardata_refdata_selected <- vardata_refdata %>% filter(Cancer_Type == cancer_type_input)
   
+  # overlapped samples
+  osamples <- intersect(unique(vardata_refdata_selected$Sample),unique(exposure_refdata_selected$Sample))
+  
+  vardata_refdata_selected <- vardata_refdata_selected %>% filter(Sample %in% osamples)
+  exposure_refdata_selected <- exposure_refdata_selected %>% filter(Sample %in% osamples)
+  
+  # expsorue variant list
+  Exposure_varlist <- colnames(exposure_refdata_selected)[-c(1:2)]
+  #Association_varlist, # load corresponding json file as the paramters for variant  
+  Exposure_varinput <- "Signature_exposure_ratio"
+  Association_varinput_source <- 'genomic data'
+  Association_varinput_type <- 'evolution_and_heterogeneity'
+  Association_varinput_name <- 'purity'
+  
+  exposure_refdata_selected <- exposure_refdata_selected %>% select(Sample,Exposure_varinput)
+  vardata_refdata_selected <- vardata_refdata_selected %>%
+    filter(data_source==Association_varinput_source, data_type==Association_varinput_type,variable_name==Association_varinput_name)  
+    
+  if(unique(vardata_refdata_selected$variable_value_type) == "numeric") { vardata_refdata_selected$variable_value <- as.numeric(vardata_refdata_selected$variable_value )} 
+    
+  vardata_refdata_selected <- vardata_refdata_selected %>% 
+    pivot_wider(id_cols = Sample,names_from = variable_name,values_from = variable_value)
+  
+  data_input <- left_join(vardata_refdata_selected,exposure_refdata_selected)
+  
+  mSigPortal_associaiton(data=data_input,Var1 = Association_varinput_name, Var2=Exposure_varinput,type = "parametric",xlab=Association_varinput_name, ylab=Exposure_varinput,filter_zero1=FALSE, filter_zero2=FALSE,log1=FALSE,log2=TRUE, type="parametric", collapse_var1=NULL, collapse_var2=NULL, file = "association_result.svg")
+  
+  ## asssociation_data.txt will output as download text file. 
+  data_input %>% write_delim(file = 'asssociation_data.txt',delim = '\t',col_names = T,na = '')
 }
-
-
-#  
-# exposure data as Number of mutations
-
-
-
-# exposure data as Proportion
-
-# exposure data as Presence
-
-
-library(inspectdf)
-  exposure_refdata %>% inspect_num() %>% show_plot()
-exposure_refdata %>% ggplot(aes(log2(Exposure+1),col=Signature_name))+geom_density()+facet_wrap(~Cancer_Type )+scale_color_d3()
-
-
-
-# Variable Data -----------------------------------------------------------
-
-
 

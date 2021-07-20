@@ -2930,8 +2930,8 @@ kataegis_rainfall_plot <- function(mutdata,sample_name="sample",genome_build = "
     require(TxDb.Hsapiens.UCSC.hg38.knownGene)
     genome_build <- 'hg38'
     if(!is.null(reference_data_folder)){
-    ref_file <- paste0(reference_data_folder,"/hg38_ref.RData")
-    load(ref_file)
+      ref_file <- paste0(reference_data_folder,"/hg38_ref.RData")
+      load(ref_file)
     }
     hgref <- hg38
     TxDb.Hsapiens <- TxDb.Hsapiens.UCSC.hg38.knownGene
@@ -3065,10 +3065,227 @@ seqmatrix_public_download <- function(seqmatrix_refdata_public,tmpfolder= "./seq
 
 
 
-
-
 ### Association function ### 
+
+#require(hablar)
+change_data_type <- function(data){
+  if(is.numeric(data)){
+    data <- as.character(data)
+  }else if(is.character(data)){
+    data <- as.numeric(data)
+  }
+  return(data)
+}
+
+validate_vardf <- function(data, forces=NULL, nachars=c("","na","Na","NA","nan","NAN","Nan"), Nmin=5, Nmin_drop=FALSE){
+  #names_oringal <- colnames(data)
+  # force data type
+  if(!is.null(forces)){ 
+    data <- data %>% mutate(across(one_of(forces),change_data_type))  
+  }
+  
+  # process na
+  data <- data %>% mutate(across(where(is.character), ~  if_else(.x %in% nachars, NA_character_, .x)))
+  
+  # process the integer
+  data <- data %>% mutate(across(where(is.integer), as.numeric))
+  
+  # convertt numbers to characters if less than xx unique value
+  #data %>% mutate(across(where(is.numeric), ~ if_else(n_distinct(.) < Nmin, .x, .x)))
+  Nmin_names <- data %>% summarise(across(where(is.numeric),n_distinct)) %>% select_if(function(x) x<Nmin) %>% colnames()
+  if(length(Nmin_names)>0){
+    if(Nmin_drop){
+      data <- data %>% select(-one_of(Nmin_names))
+      #names_oringal <- names_oringal[!(names_oringal %in% Nmin_names)]
+    }
+    else{
+      data <- data %>% mutate(across(one_of(Nmin_names),change_data_type)) 
+    }
+  }
+  
+  ## make the factors and reorder the levels
+  data <- data %>% mutate(across(where(is.character),~ fct_lump(fct_infreq(as.factor(.x)),prop = 0.2)))
+  
+  # if change the order
+  #data <- data %>% select(names_oringal)
+  return(as_tibble(data))
+}
 
 
 ### other funcitons ###
 rowAny <- function(x) rowSums(x) > 0
+
+
+# mSigPortal_associaiton --------------------------------------------------
+mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=NULL, xlab="Variable1", ylab="Variable2",filter_zero1=FALSE, filter_zero2=FALSE,log1=FALSE,log2=FALSE, type="parametric", collapse_var1=NULL, collapse_var2=NULL, output_plot=NULL,plot_width=8,plot_height=8) {
+  
+  data <- validate_vardf(data)
+  
+  if(regression){
+    ## for regression module
+    supported_types <- c("lm", "glm", "annov  ", "bayes", "skit")
+    
+    if(!str_detect(formula,"~")){
+      stop("Please check your formula for regression, for example, lm( mpg ~ vs + gear")
+    }
+    
+    input_formula <- paste0("mod <- data %>% ",formula)
+    eval(parse(text=input_formula))
+    
+    p <- ggstatsplot::ggcoefstats(
+      x= mod,
+      point.args = list(color = "red", size = 3, shape = 15),
+      exclude.intercept = TRUE,
+      title = formula,
+      ggtheme = hrbrthemes::theme_ipsum_rc()
+    ) + # note the order in which the labels are entered
+      ggplot2::labs(x = "regression coefficient", y = NULL)
+  }else{
+    
+    ## subset data
+    data <- data %>% select(one_of(c(Var1,Var2)))
+    colnames(data) <- c("Var1","Var2")
+    var1_type <- if_else(is.factor(data[[1]]),"categorical", if_else(is.numeric(data[[1]]),"continuous",NA_character_))
+    var2_type <- if_else(is.factor(data[[2]]),"categorical", if_else(is.numeric(data[[2]]),"continuous",NA_character_))
+    
+    if(is.na(var1_type)|is.na(var2_type)){
+      stop("Please check your data type of these two selected variables")
+    }
+    
+    # process data or filtering data
+    if(filter_zero1 & var1_type == 'continuous') {
+      data <- data %>% filter(Var1 != 0)
+    }
+    
+    if(filter_zero2 & var2_type == 'continuous') {
+      data <- data %>% filter(Var2 != 0)
+    }
+    
+    if(log1 & var1_type == 'continuous') {
+      data <- data %>% filter(Var1>0) %>% mutate(Var1 = log2(Var1))
+    }
+    
+    if(log2 & var2_type == 'continuous') {
+      data <- data %>% filter(Var2>0) %>% mutate(Var2 = log2(Var2))
+    }
+    
+    if(var1_type =="categorical" && !is.null(collapse_var1)){
+      if(! (collapse_var1 %in% data$Var1)){ 
+        print("Warning: categorical value does not exist in data, please input the correct level of the categorical variables for variable1.")
+      }else{
+        data$Var1 <- fct_other(data$Var1,keep = collapse_var1)
+      }
+    }
+    
+    if(var2_type =="categorical" && !is.null(collapse_var2)){
+      if(! (collapse_var2 %in% data$Var2)){ 
+        print("Warning: categorical value does not exist in data, please input the correct level of the categorical variables for variable1.")
+      }else{
+        data$Var2 <- fct_other(data$Var2,keep = collapse_var2)
+      }
+    }
+    
+    ## association test based on the types
+    
+    # for continues vs continues
+    if(var1_type == 'continuous' & var2_type == 'continuous'){
+      # supported types: "parametric", "nonparametric", "robust", "bayes", "skit
+      supported_types <- c("parametric", "nonparametric", "robust", "bayes", "skit")
+      if(!(type %in% supported_types)){
+        print("Warning: selected statistic parameter type does not supported for selected data types, use the default parameteric type")
+        type = "parametric"
+      }
+      
+      if(type == "skit"){
+        skit_res <- SKIT::skit(data$Var1,data$Var2,nboot = 1000)
+        skit_res <- skit_res$pvalues[1]
+        skit_lab <- paste0("P-value by SKIT test: ",if_else(skit_res <= 1/1000, "<1e-03",as.character(scientific(skit_res,digits = 3))))
+        xlab=paste0(xlab,"\n",skit_lab)
+        type = "parametric"
+      }
+      
+      p <-  ggstatsplot::ggscatterstats(
+        data = data,
+        x = Var1,
+        y = Var2, 
+        xlab= xlab,
+        ylab = ylab,
+        marginal.type = "boxplot",
+        xfill = "#009E73",
+        yfill = "#D55E00",
+        ggtheme = hrbrthemes::theme_ipsum_rc(),
+        type=type
+      )
+      
+    }
+    
+    # for categorical vs categorical
+    if(var1_type == 'categorical' & var2_type == 'categorical'){
+      # supported types: "parametric", "nonparametric", "robust", "bayes"
+      supported_types <- c("parametric", "nonparametric", "robust", "bayes","fisher")
+      if(!(type %in% supported_types)){
+        print("Warning: selected statistic parameter type does not supported for selected data types, use the default parameteric type")
+        type = "parametric"
+      }
+      
+      if(type == "fisher"){
+        fisher_res <- tidy(fisher.test(data$Var1,data$Var2))
+        if("estimate" %in% colnames(fisher_res)){
+          fisher_lab <- paste0("Fisher Exact Test: P-value =", scientific(fisher_res$p.value,digits = 3),", OR = ",number_format(accuracy = 0.01)(fisher_res$estimate))
+        }else{
+          fisher_lab <- paste0("Fisher Exact Test: P-value =", scientific(fisher_res$p.value,digits = 3))
+        }
+        xlab=paste0(xlab,"\n",fisher_lab)
+        type = "parametric"
+      }
+      
+      p <-  ggstatsplot::ggbarstats(
+        data = data,
+        x = Var1,
+        y = Var2, 
+        xlab= xlab,
+        legend.title = ylab,
+        ggtheme = hrbrthemes::theme_ipsum_rc(),
+        type=type
+      )
+    }
+    
+    # for categorical vs continues 
+    if(var1_type != var2_type ){
+      # supported types: "parametric", "nonparametric", "robust", "bayes"
+      # switch the name if Var2 is categorical
+      if(var2_type == 'categorical'){
+        p <-  ggstatsplot::ggbetweenstats(
+          data = data,
+          x = Var2,
+          y = Var1, 
+          xlab= xlab,
+          ylab = ylab,
+          ggtheme = hrbrthemes::theme_ipsum_rc(),
+          type=type
+        )
+        
+      }else {
+        p <-  ggstatsplot::ggbetweenstats(
+          data = data,
+          x = Var1,
+          y = Var2, 
+          xlab= xlab,
+          ylab = ylab,
+          ggtheme = hrbrthemes::theme_ipsum_rc(),
+          type=type
+        )
+        
+      }
+    }
+    
+  } 
+  
+  if(is.null(output_plot)){
+    return(p)
+  }else{
+    ggsave(filename = output_plot,plot = p,width = plot_width,height = plot_height)
+    return(p)
+  }
+}
+
