@@ -43,7 +43,7 @@ def perm(n, seq):
 
 
 
-def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_file=None, chrom_based=False, plot=False, tsb_stat=False, seqInfo=False, cushion=100, gs=False):
+def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_file=None, chrom_based=False, plot=False, tsb_stat=False, seqInfo=True, cushion=100, gs=False):
 	'''
 	Allows for the import of the sigProfilerMatrixGenerator.py function. Returns a dictionary
 	with each context serving as the first level of keys. 
@@ -75,6 +75,9 @@ def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_
 	'''
 
 	# Instantiates all of the required variables and references
+	if not os.path.exists(vcfFiles):
+		print("The given project path does not appear to exist. Please check that the specified path exists before proceeding...\n\t" + vcfFiles)
+		return()
 	if gs:
 		print("The Gene Strand Bias is not yet supported! Continuing with the matrix generation.")
 		gs = False
@@ -250,8 +253,9 @@ def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_
 	# Organizes all of the reference directories for later reference:
 	ref_dir, tail = os.path.split(os.path.dirname(os.path.abspath(__file__)))
 	chrom_path =ref_dir + '/references/chromosomes/tsb/' + genome + "/"
+	if 'havana' in genome:
+		genome = genome.split("_")[0]
 	transcript_path = ref_dir + '/references/chromosomes/transcripts/' + genome + "/"
-
 
 
 	# Terminates the code if the genome reference files have not been created/installed
@@ -301,6 +305,7 @@ def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_
 		os.remove(error_file)
 	if os.path.exists(log_file):
 		 os.remove(log_file)
+	tempErr = sys.stderr
 	sys.stderr = open(error_file, 'w')
 	log_out = open(log_file, 'w')
 	log_out.write("THIS FILE CONTAINS THE METADATA ABOUT SYSTEM AND RUNTIME\n\n\n")
@@ -309,7 +314,7 @@ def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_
 	log_out.write("\n-------Python and Package Versions------- \n")
 	log_out.write("Python Version: "+str(platform.sys.version_info.major)+"."+str(platform.sys.version_info.minor)+"."+str(platform.sys.version_info.micro)+"\n")
 	log_out.write("SigProfilerMatrixGenerator Version: "+sig.__version__+"\n")
-	#log_out.write("SigProfilerPlotting version: "+sigPlt.__version__+"\n")
+	log_out.write("SigProfilerPlotting version: "+sigPlt.__version__+"\n")
 	log_out.write("matplotlib version: "+plt.__version__+"\n")
 	log_out.write("statsmodels version: "+statsmodels.__version__+"\n")
 	log_out.write("scipy version: "+scipy.__version__+"\n")
@@ -426,6 +431,8 @@ def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_
 		if i != 1:
 			for file in vcf_files:
 				chrom = file.split("_")[0]
+				if not os.path.exists(chrom_path + chrom + ".txt"):
+					continue
 				if genome == 'ebv':
 					chrom = "_".join([x for x in file.split("_")[:-1]])
 				with open(vcf_path + file) as f:
@@ -454,8 +461,8 @@ def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_
 				with open(vcf_path + "exome_temp.txt") as f:
 					lines = [line.strip().split() for line in f]
 				output = open(vcf_path + "exome_temp.txt", 'w')
-				for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605', 'I','II','III','IV','V','chrI','chrII','chrIII','chrIV','chrV','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
-                                                            '25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA'].index(x[1]), int(x[2]))):
+				for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605', 'I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
+															'25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA', 'chrM'].index(x[1]), int(x[2]))):
 					print('\t'.join(line), file=output)
 				output.close()
 				mutation_pd = {}
@@ -468,8 +475,8 @@ def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_
 				with open(vcf_path + "bed_temp.txt") as f:
 					lines = [line.strip().split() for line in f]
 				output = open(vcf_path + "bed_temp.txt", 'w')
-				for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605', 'I','II','III','IV','V','chrI','chrII','chrIII','chrIV','chrV','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
-                                                            '25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA'].index(x[1]), int(x[2]))):
+				for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605', 'I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
+															'25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA', 'chrM'].index(x[1]), int(x[2]))):
 					print('\t'.join(line), file=output)
 				output.close()
 
@@ -489,8 +496,8 @@ def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_
 					with open(vcf_path + "exome_temp_context_tsb_DINUC.txt") as f:
 						lines = [line.strip().split() for line in f]
 					output = open(vcf_path + "exome_temp_context_tsb_DINUC.txt", 'w')
-					for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605','I','II','III','IV','V','chrI','chrII','chrIII','chrIV','chrV','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
-                                                            '25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA'].index(x[1]), int(x[2]))):
+					for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605', 'I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
+															'25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA', 'chrM'].index(x[1]), int(x[2]))):
 							print('\t'.join(line), file=output)
 					output.close()
 
@@ -501,8 +508,8 @@ def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_
 					with open(vcf_path + "bed_temp_context_tsb_DINUC.txt") as f:
 						lines = [line.strip().split() for line in f]
 					output = open(vcf_path + "bed_temp_context_tsb_DINUC.txt", 'w')
-					for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605','I','II','III','IV','V','chrI','chrII','chrIII','chrIV','chrV','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
-                                                            '25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA'].index(x[1]), int(x[2]))):
+					for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605', 'I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
+															'25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA', 'chrM'].index(x[1]), int(x[2]))):
 						print('\t'.join(line), file=output)
 					output.close()
 
@@ -541,8 +548,8 @@ def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_
 				with open(vcf_path + "exome_temp.txt") as f:
 					lines = [line.strip().split() for line in f]
 				output = open(vcf_path + "exome_temp.txt", 'w')
-				for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605','I','II','III','IV','V','chrI','chrII','chrIII','chrIV','chrV','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
-                                                            '25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA'].index(x[1]), int(x[2]))):
+				for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605', 'I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
+															'25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA', 'chrM'].index(x[1]), int(x[2]))):
 					print('\t'.join(line), file=output)
 				output.close()
 
@@ -554,8 +561,8 @@ def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_
 				with open(vcf_path + "exome_temp_simple.txt") as f:
 					lines = [line.strip().split() for line in f]
 				output = open(vcf_path + "exome_temp_simple.txt", 'w')
-				for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605','I','II','III','IV','V','chrI','chrII','chrIII','chrIV','chrV','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
-                                                            '25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA'].index(x[1]), int(x[2]))):
+				for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605', 'I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
+															'25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA', 'chrM'].index(x[1]), int(x[2]))):
 					print('\t'.join(line), file=output)
 				output.close()
 
@@ -566,8 +573,8 @@ def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_
 				with open(vcf_path + "exome_temp_tsb.txt") as f:
 					lines = [line.strip().split() for line in f]
 				output = open(vcf_path + "exome_temp_tsb.txt", 'w')
-				for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605','I','II','III','IV','V','chrI','chrII','chrIII','chrIV','chrV','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
-                                                            '25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA'].index(x[1]), int(x[2]))):
+				for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605', 'I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
+															'25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA', 'chrM'].index(x[1]), int(x[2]))):
 					print('\t'.join(line), file=output)
 				output.close()
 
@@ -579,8 +586,8 @@ def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_
 				with open(vcf_path + "bed_temp.txt") as f:
 					lines = [line.strip().split() for line in f]
 				output = open(vcf_path + "bed_temp.txt", 'w')
-				for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605','I','II','III','IV','V','chrI','chrII','chrIII','chrIV','chrV','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
-                                                            '25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA'].index(x[1]), int(x[2]))):
+				for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605', 'I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
+															'25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA', 'chrM'].index(x[1]), int(x[2]))):
 					print('\t'.join(line), file=output)
 				output.close()
 
@@ -592,8 +599,8 @@ def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_
 				with open(vcf_path + "bed_temp_simple.txt") as f:
 					lines = [line.strip().split() for line in f]
 				output = open(vcf_path + "bed_temp_simple.txt", 'w')
-				for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605','I','II','III','IV','V','chrI','chrII','chrIII','chrIV','chrV','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
-                                                            '25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA'].index(x[1]), int(x[2]))):
+				for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605', 'I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
+															'25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA', 'chrM'].index(x[1]), int(x[2]))):
 					print('\t'.join(line), file=output)
 				output.close()
 
@@ -604,8 +611,8 @@ def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_
 				with open(vcf_path + "bed_temp_tsb.txt") as f:
 					lines = [line.strip().split() for line in f]
 				output = open(vcf_path + "bed_temp_tsb.txt", 'w')
-				for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605','I','II','III','IV','V','chrI','chrII','chrIII','chrIV','chrV','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
-                                                            '25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA'].index(x[1]), int(x[2]))):
+				for line in sorted(lines, key = lambda x: (['gi_82503188_ref_NC_007605', 'I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','X','Y','1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23','24',
+															'25','26','27','28','29','30','31','32','33','34','35','36','37','38','39', 'MT', 'M', 'MtDNA', 'chrM'].index(x[1]), int(x[2]))):
 					print('\t'.join(line), file=output)
 				output.close()
 
@@ -626,7 +633,14 @@ def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_
 		print("Completed! Elapsed time: " + str(round(end, 2)) + " seconds.")
 
 	sys.stderr.close()
+	sys.stderr = tempErr
 	# Prints a summary for the given run (total samples, skipped mutations, etc.)
+	# if not chrom_based:
+		# print("Matrices generated for " + str(sample_count_high) + " samples with " + str(skipped_muts) + " errors. Total of " + str(analyzed_muts[0]) + " SNVs, " + str(analyzed_muts[1]) + " DINUCs, and " + str(analyzed_muts[2]) + " INDELs were successfully analyzed.")
+	# return(matrices)
+	
+	####### Modified By Jian Sang
+	####### Modified Start
 	if not chrom_based:
 		print("Matrices generated for " + str(sample_count_high) + " samples with " + str(skipped_muts) + " errors. Total of " + str(analyzed_muts[0]) + " SNVs, " + str(analyzed_muts[1]) + " DINUCs, and " + str(analyzed_muts[2]) + " INDELs were successfully analyzed.")
 		Output_String = "Total of " + str(analyzed_muts[0]) + " SNVs, " + str(analyzed_muts[1]) + " DINUCs, and " + str(analyzed_muts[2]) + " INDELs were successfully analyzed."
@@ -636,3 +650,10 @@ def SigProfilerMatrixGeneratorFunc (project, genome, vcfFiles, exome=False, bed_
 		Output_Statistics_File.close()
 
 	return(matrices)
+	####### Modified End
+
+	
+	
+	
+	
+	
