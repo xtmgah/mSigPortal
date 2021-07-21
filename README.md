@@ -10,7 +10,7 @@ https://github.com/xtmgah/SigProfilerMatrixGenerator<br>
 https://github.com/xtmgah/mSigPortal
 
 2-1 Download the updated script: SigProfilerMatrixGeneratorFunc.py
-2-2 Download the updated script: sigProfilerPlotting.py
+2-2 Download the updated script: sigProfilerPlotting.py<br>
 
 3. Install the two Packages locally based on the following order:
 
@@ -25,7 +25,7 @@ from SigProfilerMatrixGenerator import install as genInstall <br>
 genInstall.install('GRCh37', rsync=False, bash=True)<br>
 
 
-5-1 Replace the script [SigProfilerMatrixGeneratorFunc.py] in https://github.com/AlexandrovLab/SigProfilerMatrixGenerator/tree/master/SigProfilerMatrixGenerator/scripts, with the updated one from our github portal.
+5-1 Replace the script [SigProfilerMatrixGeneratorFunc.py] in https://github.com/AlexandrovLab/SigProfilerMatrixGenerator/tree/master/SigProfilerMatrixGenerator/scripts, with the updated one from our github portal.<br>
 5-2 Replace the script [sigProfilerPlotting.py] in https://github.com/AlexandrovLab/SigProfilerPlotting/tree/master/sigProfilerPlotting/sigProfilerPlotting.py
  
 
