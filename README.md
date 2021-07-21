@@ -25,8 +25,8 @@ from SigProfilerMatrixGenerator import install as genInstall <br>
 genInstall.install('GRCh37', rsync=False, bash=True)<br>
 
 
-5-1 Replace the script [SigProfilerMatrixGeneratorFunc.py] in https://github.com/AlexandrovLab/SigProfilerMatrixGenerator/tree/master/SigProfilerMatrixGenerator/scripts, with the updated one from our github portal.<br>
-5-2 Replace the script [sigProfilerPlotting.py] in https://github.com/AlexandrovLab/SigProfilerPlotting/tree/master/sigProfilerPlotting/sigProfilerPlotting.py
+5-1 Replace the script [SigProfilerMatrixGeneratorFunc.py] in https://github.com/AlexandrovLab/SigProfilerMatrixGenerator/tree/master/SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py, with the updated one from our github portal.<br>
+5-2 Replace the script [sigProfilerPlotting.py] in https://github.com/AlexandrovLab/SigProfilerPlotting/tree/master/sigProfilerPlotting/sigProfilerPlotting.py , with the updated one from our github portal<br>
  
 
 6. Run Script:
