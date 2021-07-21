@@ -63,6 +63,10 @@ if(Data_Source == "Public_Data"){
   
   data_input <- left_join(vardata_refdata_selected,exposure_refdata_selected)
   
+  ## dropdown list for collapse_var1 and collapse_var2 
+  collapse_var1_list <- levels(data_input[[2]])
+  collapse_var2_list <- levels(data_input[[3]])
+  
   mSigPortal_associaiton(data=data_input,Var1 = Association_varinput_name, Var2=Exposure_varinput,type = "parametric",xlab=Association_varinput_name, ylab=Exposure_varinput,filter_zero1=FALSE, filter_zero2=FALSE,log1=FALSE,log2=TRUE, type="parametric", collapse_var1=NULL, collapse_var2=NULL, file = "association_result.svg")
   
   ## asssociation_data.txt will output as download text file. 
