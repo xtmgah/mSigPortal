@@ -47,29 +47,45 @@ if(Data_Source == "Public_Data"){
   # expsorue variant list
   Exposure_varlist <- colnames(exposure_refdata_selected)[-c(1:2)]
   #Association_varlist, # load corresponding json file as the paramters for variant  
+  #Signature_name_input <- 'SBS4'
   Exposure_varinput <- "Signature_exposure_ratio"
-  Association_varinput_source <- 'genomic data'
-  Association_varinput_type <- 'evolution_and_heterogeneity'
-  Association_varinput_name <- 'purity'
+  exposure_refdata_selected <- exposure_refdata_selected%>% select(Sample,Signature_name,Exposure_varinput)
   
-  exposure_refdata_selected <- exposure_refdata_selected %>% select(Sample,Exposure_varinput)
-  vardata_refdata_selected <- vardata_refdata_selected %>%
-    filter(data_source==Association_varinput_source, data_type==Association_varinput_type,variable_name==Association_varinput_name)  
+  if(regression == TRUE) {
+    ### will add codes for the regression analysis / multivariate analysis 
+  }else
+  {
+    Association_varinput_source <- 'genomic data'
+    Association_varinput_type <- 'evolution_and_heterogeneity'
+    Association_varinput_name <- 'purity'
+    vardata_refdata_selected <- vardata_refdata_selected %>%
+      filter(data_source==Association_varinput_source, data_type==Association_varinput_type,variable_name==Association_varinput_name)  
     
-  if(unique(vardata_refdata_selected$variable_value_type) == "numeric") { vardata_refdata_selected$variable_value <- as.numeric(vardata_refdata_selected$variable_value )} 
+    if(unique(vardata_refdata_selected$variable_value_type) == "numeric") { vardata_refdata_selected$variable_value <- as.numeric(vardata_refdata_selected$variable_value )} 
     
-  vardata_refdata_selected <- vardata_refdata_selected %>% 
-    pivot_wider(id_cols = Sample,names_from = variable_name,values_from = variable_value)
-  
-  data_input <- left_join(vardata_refdata_selected,exposure_refdata_selected)
-  
-  ## dropdown list for collapse_var1 and collapse_var2 
-  collapse_var1_list <- levels(data_input[[2]])
-  collapse_var2_list <- levels(data_input[[3]])
-  
-  mSigPortal_associaiton(data=data_input,Var1 = Association_varinput_name, Var2=Exposure_varinput,type = "parametric",xlab=Association_varinput_name, ylab=Exposure_varinput,filter_zero1=FALSE, filter_zero2=FALSE,log1=FALSE,log2=TRUE, type="parametric", collapse_var1=NULL, collapse_var2=NULL, file = "association_result.svg")
-  
-  ## asssociation_data.txt will output as download text file. 
-  data_input %>% write_delim(file = 'asssociation_data.txt',delim = '\t',col_names = T,na = '')
+    vardata_refdata_selected <- vardata_refdata_selected %>% 
+      pivot_wider(id_cols = Sample,names_from = variable_name,values_from = variable_value)
+    
+    ### combined dataset
+    data_input <- left_join(vardata_refdata_selected,exposure_refdata_selected) %>% select(-Sample)
+    
+    ## dropdown list for collapse_var1 and collapse_var2 
+    collapse_var1_list <- levels(data_input[[Association_varinput_name]])
+    collapse_var2_list <- levels(data_input[[Exposure_varinput]])
+    
+    ## association test by group of signature name
+    result <- mSigPortal_associaiton_group(data=data_input,Group_Var = "Signature_name",Var1 = Association_varinput_name, Var2=Exposure_varinput,type = "parametric",filter_zero1=FALSE, filter_zero2=FALSE,log1=FALSE,log2=FALSE,  collapse_var1=NULL, collapse_var2=NULL)
+    ## put result as a short table above the figure
+    
+    signature_name_list <- unique(result[[1]]) ## dropdown list for the signature name
+    signature_name_input <- signature_name_list[1]  ## by default, select the first signature name
+    
+    data_input <- data_input %>% filter(Signature_name == signature_name_input) %>% select(-Signature_name)
+    
+    mSigPortal_associaiton(data=data_input,Var1 = Association_varinput_name, Var2=Exposure_varinput,type = "parametric",xlab=Association_varinput_name, ylab=Exposure_varinput,filter_zero1=FALSE, filter_zero2=FALSE,log1=FALSE,log2=FALSE,  collapse_var1=NULL, collapse_var2=NULL, output_plot = "association_result.svg")
+    
+    ## asssociation_data.txt will output as download text file. 
+    data_input %>% write_delim(file = 'asssociation_data.txt',delim = '\t',col_names = T,na = '')
+  }
 }
 

@@ -3077,9 +3077,15 @@ change_data_type <- function(data){
   return(data)
 }
 
-validate_vardf <- function(data, forces=NULL, nachars=c("","na","Na","NA","nan","NAN","Nan"), Nmin=5, Nmin_drop=FALSE){
+validate_vardf <- function(data, forces=NULL, nachars=c("","na","Na","NA","nan","NAN","Nan"), Nmin=5, Nmin_drop=FALSE,excludes=NULL){
   #names_oringal <- colnames(data)
   # force data type
+  if(!is.null(excludes)){
+    names_all <- colnames(data)
+    data_excludes <- data  %>% dplyr::select(one_of(excludes))
+    data <- data %>% dplyr::select(-one_of(excludes))
+  }
+  
   if(!is.null(forces)){ 
     data <- data %>% mutate(across(one_of(forces),change_data_type))  
   }
@@ -3092,10 +3098,10 @@ validate_vardf <- function(data, forces=NULL, nachars=c("","na","Na","NA","nan",
   
   # convertt numbers to characters if less than xx unique value
   #data %>% mutate(across(where(is.numeric), ~ if_else(n_distinct(.) < Nmin, .x, .x)))
-  Nmin_names <- data %>% summarise(across(where(is.numeric),n_distinct)) %>% select_if(function(x) x<Nmin) %>% colnames()
+  Nmin_names <- data %>% summarise(across(where(is.numeric),n_distinct)) %>% dplyr::select_if(function(x) x<Nmin) %>% colnames()
   if(length(Nmin_names)>0){
     if(Nmin_drop){
-      data <- data %>% select(-one_of(Nmin_names))
+      data <- data %>% dplyr::select(-one_of(Nmin_names))
       #names_oringal <- names_oringal[!(names_oringal %in% Nmin_names)]
     }
     else{
@@ -3108,6 +3114,13 @@ validate_vardf <- function(data, forces=NULL, nachars=c("","na","Na","NA","nan",
   
   # if change the order
   #data <- data %>% select(names_oringal)
+  
+  if(!is.null(excludes)){
+    names_keep <- c(colnames(data),colnames(data_excludes))
+    names_all <- names_all[names_all %in% names_keep]
+    data <- bind_cols(data_excludes,data) %>% select(one_of(names_all))
+  }
+  
   return(as_tibble(data))
 }
 
@@ -3213,7 +3226,7 @@ mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=N
         marginal.type = "boxplot",
         xfill = "#009E73",
         yfill = "#D55E00",
-        ggtheme = hrbrthemes::theme_ipsum_rc(),
+        ggtheme = hrbrthemes::theme_ipsum_rc(axis_title_just = 'm',axis_title_size = 14),
         type=type
       )
       
@@ -3245,7 +3258,7 @@ mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=N
         y = Var2, 
         xlab= xlab,
         legend.title = ylab,
-        ggtheme = hrbrthemes::theme_ipsum_rc(),
+        ggtheme = hrbrthemes::theme_ipsum_rc(axis_title_just = 'm',axis_title_size = 14),
         type=type
       )
     }
@@ -3261,7 +3274,7 @@ mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=N
           y = Var1, 
           xlab= xlab,
           ylab = ylab,
-          ggtheme = hrbrthemes::theme_ipsum_rc(),
+          ggtheme = hrbrthemes::theme_ipsum_rc(axis_title_just = 'm',axis_title_size = 14),
           type=type
         )
         
@@ -3272,7 +3285,7 @@ mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=N
           y = Var2, 
           xlab= xlab,
           ylab = ylab,
-          ggtheme = hrbrthemes::theme_ipsum_rc(),
+          ggtheme = hrbrthemes::theme_ipsum_rc(axis_title_just = 'm',axis_title_size = 14),
           type=type
         )
         
@@ -3287,5 +3300,155 @@ mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=N
     ggsave(filename = output_plot,plot = p,width = plot_width,height = plot_height)
     return(p)
   }
+}
+
+
+
+mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression=FALSE, formula=NULL, filter_zero1=FALSE, filter_zero2=FALSE,log1=FALSE,log2=FALSE, type="parametric", collapse_var1=NULL, collapse_var2=NULL) {
+  
+  data <- validate_vardf(data,excludes = Group_Var)
+  
+  if(regression){
+    ## for regression module
+    supported_types <- c("lm", "glm")
+    
+    if(is.null(formula)|!str_detect(formula,"~")){
+      stop("Please check your formula for regression, for example, lm( mpg ~ vs + gear")
+    }
+    
+    colnames(data)[colnames(data) == Group_Var] <- 'Group'
+    
+    if(type == "lm"){
+      result <- data %>% group_by(Group) %>% do(tidy(lm(formula,data=.))) %>% ungroup() %>% filter(term!="(Intercept)") %>% filter(!is.na(p.value))
+    }
+    
+    if(type == "glm"){
+      result <- data %>% group_by(Group) %>% do(tidy(glm(formula,data=.))) %>% ungroup() %>% filter(term!="(Intercept)") %>% filter(!is.na(p.value))
+    }
+    
+    colnames(result)[1] <- tolower(Group_Var)
+    result <- result %>% ungroup() %>% group_by(term) %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH") %>% mutate(formula=formula)
+    
+  }else{
+    
+    ## subset data
+    data <- data %>% select(one_of(c(Group_Var,Var1,Var2)))
+    colnames(data) <- c("Group","Var1","Var2")
+    var1_type <- if_else(is.factor(data[["Var1"]]),"categorical", if_else(is.numeric(data[["Var1"]]),"continuous",NA_character_))
+    var2_type <- if_else(is.factor(data[["Var2"]]),"categorical", if_else(is.numeric(data[["Var2"]]),"continuous",NA_character_))
+    
+    if(is.na(var1_type)|is.na(var2_type)){
+      stop("Please check your data type of these two selected variables")
+    }
+    
+    # process data or filtering data
+    if(filter_zero1 & var1_type == 'continuous') {
+      data <- data %>% filter(Var1 != 0)
+    }
+    
+    if(filter_zero2 & var2_type == 'continuous') {
+      data <- data %>% filter(Var2 != 0)
+    }
+    
+    if(log1 & var1_type == 'continuous') {
+      data <- data %>% filter(Var1>0) %>% mutate(Var1 = log2(Var1))
+    }
+    
+    if(log2 & var2_type == 'continuous') {
+      data <- data %>% filter(Var2>0) %>% mutate(Var2 = log2(Var2))
+    }
+    
+    if(var1_type =="categorical" && !is.null(collapse_var1)){
+      if(! (collapse_var1 %in% data$Var1)){ 
+        print("Warning: categorical value does not exist in data, please input the correct level of the categorical variables for variable1.")
+      }else{
+        data$Var1 <- fct_other(data$Var1,keep = collapse_var1)
+      }
+    }
+    
+    if(var2_type =="categorical" && !is.null(collapse_var2)){
+      if(! (collapse_var2 %in% data$Var2)){ 
+        print("Warning: categorical value does not exist in data, please input the correct level of the categorical variables for variable1.")
+      }else{
+        data$Var2 <- fct_other(data$Var2,keep = collapse_var2)
+      }
+    }
+    
+    ## association test based on the types
+    
+    # for continues vs continues
+    if(var1_type == 'continuous' & var2_type == 'continuous'){
+      # supported types: "parametric", "nonparametric", "robust", "bayes", "skit
+      supported_types <- c("parametric", "nonparametric", "robust", "bayes", "skit")
+      if(!(type %in% supported_types)){
+        print("Warning: selected statistic parameter type does not supported for selected data types, use the default parameteric type")
+        type = "parametric"
+      }
+      
+      if(type == "skit"){
+        
+        result <- tibble(Group=character(),parameter1=character(),parameter2=character(),p.value=numeric(), method=character(), n.obs=integer())
+        for(sig in unique(data$Group)){
+          tmp <- data %>% filter(Group==sig)
+          skit_res <- SKIT::skit(tmp$Var1,tmp$Var2,nboot = 1000)
+          skit_res <- as.numeric(skit_res$pvalues[1])
+          nobs <- tmp %>% filter(!is.na(Var1),!is.na(Var2)) %>% dim() %>% .[[1]]
+          result <- tibble(Group=sig,parameter1="Var1",parameter2="Var2",p.value=skit_res, method="SKIT test", n.obs=nobs) %>% 
+            bind_rows(result)
+        }
+        
+      }else{
+        result <- data %>% group_by(Group) %>% group_modify(~statsExpressions::corr_test(data = .,x=Var1,y=Var2,type=type) %>% select(-expression)) %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH")
+      }
+      
+      result$parameter1 <- Var1
+      result$parameter2 <- Var2
+      colnames(result)[1:3] <- c(tolower(Group_Var),"variable_name1","varible_name2")
+      
+    }
+    
+    # for categorical vs categorical
+    if(var1_type == 'categorical' & var2_type == 'categorical'){
+      # supported types: "parametric", "nonparametric", "robust", "bayes"
+      supported_types <- c("parametric", "nonparametric", "robust", "bayes","fisher")
+      if(!(type %in% supported_types)){
+        print("Warning: selected statistic parameter type does not supported for selected data types, use the default parameteric type")
+        type = "parametric"
+      }
+      
+      tmp <- data %>% count(Group,Var1,Var2) %>% count(Group) %>% filter(n>2) %>% pull(Group)
+      
+      if(type == "fisher"){
+        result <-  data %>% filter(Group %in% tmp) %>%  nest_by(Group) %>% mutate(test=list(fisher.test(data$Var1,data$Var2))) %>% summarise(tidy(test)) %>% arrange(p.value) %>% ungroup() %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% ungroup() 
+      }else{
+        result <- data %>% filter(Group %in% tmp) %>%  group_by(Group) %>% group_modify(~tryCatch(expr = statsExpressions::contingency_table(data = .,x=Var1,y=Var2,type=type), error = function(e) NULL)) %>% select(-expression) %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH")
+      }
+      result <- result %>% mutate(variable_name1=Var1, variable_name2 = Var2) %>% select(Group,variable_name1,variable_name2,everything())
+      colnames(result)[1] <- c(tolower(Group_Var))
+    }
+    
+    # for categorical vs continues 
+    if(var1_type != var2_type ){
+      # supported types: "parametric", "nonparametric", "robust", "bayes"
+      # switch the name if Var2 is categorical
+      ## remove unique value
+      tmp <- data %>% group_by(Group) %>% summarise(n1=n_distinct(Var1),n2=n_distinct(Var2)) %>% filter(n1==1|n2==1) %>% pull(Group)
+      
+      if(var1_type=="categorical"){
+        result <- data  %>% filter(!Group %in% tmp) %>%   group_by(Group) %>% group_modify(~statsExpressions::two_sample_test(data = .,x=Var1,y=Var2,type=type)) %>% select(-expression) %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH")  
+        result$parameter1 <- Var1
+        result$parameter2 <- Var2
+        colnames(result)[1:3] <- c(tolower(Group_Var),"variable_name1","varible_name2")
+      }else{
+        result <- data  %>% filter(!Group %in% tmp) %>%   group_by(Group) %>% group_modify(~statsExpressions::two_sample_test(data = .,x=Var2,y=Var1,type=type)) %>% select(-expression) %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH")  
+        result$parameter1 <- Var2
+        result$parameter2 <- Var1
+        colnames(result)[1:3] <- c(tolower(Group_Var),"variable_name1","varible_name2")
+      }
+    }
+    
+  } 
+  
+  return(result)
 }
 
