@@ -8,8 +8,8 @@ if(Data_Source == "Public_Data"){
   # parameters for all the tables
   study_input <- "PCAWG"
   dataset_input <- "WGS"
-  signature_set_name_input <- "COSMIC v3 Signatures (SBS)" 
-  cancer_type_input <- "Lung-AdenoCA"
+  signature_set_name_input <- "COSMIC_v3_Signatures_GRCh37_SBS96" 
+  cancer_type_input <- "Panc-AdenoCA"
   # load exposure data files
   exposure_data_file <- paste0('../Database/Exposure/',study_input,"_",dataset_input,'_exposure_refdata.RData')
   association_data_file <- paste0('../Database/Association/',study_input,'_vardata.RData')
@@ -51,13 +51,23 @@ if(Data_Source == "Public_Data"){
   Exposure_varinput <- "Signature_exposure_ratio"
   exposure_refdata_selected <- exposure_refdata_selected%>% select(Sample,Signature_name,Exposure_varinput)
   
+  
+  ## extract the variable information
+  clist <- vardata_refdata_selected %>% select(data_source,data_type,variable_name,variable_value_type) %>% unique()
+  # clist will be used for the Assocaition Variable Data and Select Variables. 
+  
   if(regression == TRUE) {
     ### will add codes for the regression analysis / multivariate analysis 
+    
+    
   }else
   {
     Association_varinput_source <- 'genomic data'
-    Association_varinput_type <- 'evolution_and_heterogeneity'
-    Association_varinput_name <- 'purity'
+    Association_varinput_type <- 'panorama driver mutations'
+    Association_varinput_name <- 'TSC1'
+    # Association_varinput_source <- 'genomic data'
+    # Association_varinput_type <- 'evolution_and_heterogeneity'
+    # Association_varinput_name <- 'purity'
     vardata_refdata_selected <- vardata_refdata_selected %>%
       filter(data_source==Association_varinput_source, data_type==Association_varinput_type,variable_name==Association_varinput_name)  
     
@@ -65,6 +75,21 @@ if(Data_Source == "Public_Data"){
     
     vardata_refdata_selected <- vardata_refdata_selected %>% 
       pivot_wider(id_cols = Sample,names_from = variable_name,values_from = variable_value)
+    
+    
+    ## check data integration
+    vardata_refdata_selected <- exposure_refdata_selected %>% select(Sample) %>% unique() %>% left_join(vardata_refdata_selected)
+    ## including NA
+    if(length(unique(vardata_refdata_selected[[2]])) == 1 ) {
+      stop(paste0("mSigPortal Association failed: the selected variable name ",Association_varinput_name," have only unique value: ", unique(vardata_refdata_selected[[2]]),'.'))
+    }
+    tmpdata <- vardata_refdata_selected
+    colnames(tmpdata)[2] <- 'Variable'
+    tmpvalue <- tmpdata %>% count(Variable) %>% filter(n<2) %>% dim() %>% .[[1]]
+    
+    if(tmpvalue !=0){
+      stop(paste0("mSigPortal Association failed: the selected variable name ",Association_varinput_name," have not enough obsevations for both levels."))
+    }
     
     ### combined dataset
     data_input <- left_join(vardata_refdata_selected,exposure_refdata_selected) %>% select(-Sample)

@@ -245,7 +245,8 @@ if(Data_Source != "Public_Data"){
   profile1 <- data_input %>% select(MutationType,one_of(sample_name_input1))
   profile2 <- data_input %>% select(MutationType,one_of(sample_name_input2))
   # put the plot on the web
-  plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,output_plot = 'tmp.svg')
+  plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,output_plot = 'tmp.svg',output_data = 'tmp.txt')
+  
 }else {
   sample_name_input1 <-  "SP90989"
   sample_name_input2 <-  "SP90725"
@@ -256,7 +257,7 @@ if(Data_Source != "Public_Data"){
   
   profile1 <- data_input %>% select(MutationType,one_of(sample_name_input1))
   profile2 <- data_input %>% select(MutationType,one_of(sample_name_input2))
-  plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,output_plot = 'tmp.svg')
+  plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,output_plot = 'tmp.svg',output_data = 'tmp.txt')
 }
 
 
@@ -298,7 +299,7 @@ if(Data_Source != "Public_Data"){
   profile1 <- data_input %>% select(MutationType,one_of(sample_name_input))
   profile_names = c(colnames(profile1)[2],colnames(profile2)[2])
   
-  plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,profile_names = profile_names,output_plot = 'tmp.svg')
+  plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,profile_names = profile_names,output_plot = 'tmp.svg',output_data = 'tmp.txt')
 }else {
   sample_name_input <-  "SP90989"
   profile1 <- seqmatrix_refdata_public %>% filter(Profile==profile_name) %>% 
@@ -307,7 +308,7 @@ if(Data_Source != "Public_Data"){
     pivot_wider(id_cols = MutationType,names_from=Sample,values_from=Mutations)
   profile_names = c(colnames(profile1)[2],colnames(profile2)[2])
   
-  plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,profile_names = profile_names,output_plot = 'tmp.svg')
+  plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,profile_names = profile_names,output_plot = 'tmp.svg',output_data = 'tmp.txt')
 }
 
 
@@ -336,7 +337,7 @@ if(Data_Source != "Public_Data"){
     pivot_wider(names_from = Sample,values_from=Mutations) 
   
   # put the plot on the web
-  plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,output_plot = 'tmp.svg')
+  plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,output_plot = 'tmp.svg',output_data = 'tmp.txt')
 }
 
 

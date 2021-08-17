@@ -636,7 +636,8 @@ plot_sbs_96_profile <- function(data,samplename=NULL,totalmut=NULL,samplename_pl
     p2 <- p2+annotate("text", x = 78, y = ymax*0.88, label = paste0("Total Mutations: ",totalmut),size=6.5,fontface =2,hjust = 0)
   }
   
-  invisible(capture.output(p2 = flush_ticks(p2)+theme(axis.text.x = element_blank())))
+  #invisible(capture.output(p2 = flush_ticks(p2)+theme(axis.text.x = element_blank())))
+  p2 = flush_ticks(p2)+theme(axis.text.x = element_blank())
   
   p3 <- data00 %>% 
     ggplot(aes(Seq))+
@@ -675,7 +676,7 @@ plot_sbs_96_profile <- function(data,samplename=NULL,totalmut=NULL,samplename_pl
   if(is.null(filename)){
     return(pcomb)
   } else {
-    ggsave(filename,width = 18,height = 4,device = cairo_pdf)
+    ggsave(filename,width = 18,height = 4.5)
   }
   
 }
@@ -805,13 +806,16 @@ plot_dbs_78_profile <- function(data,samplename=NULL,samplename_plot=TRUE, filen
 plot_profile_logo <- function (profile, colors = NULL, condensed = FALSE,output_plot = NULL,plot_width=NULL, plot_height=NULL) 
 {
   ## profile 1 and profile 2 will be the dataframe with two columns: MutationType and value
+  colnames(profile) <- c('MutationType','Value')
   
+  COLORS2 = c('#1B4564','#D03D32')
   COLORS6 = c("#03BCEE", "#010101", "#E32926", "#CAC9C9", "#A1CE63", "#EBC6C4")
   COLORS10 = c("#03BCEE", "#0366CB", "#A1CE63", "#016601", "#FE9898", "#E32926", "#FEB166", "#FE8001", "#CB98FE", "#4C0198")
   COLORS16=c("#FCBD6F", "#FE8002", "#AFDC8A", "#36A02E", "#FCC9B4", "#FB896A", "#F04432", "#BB191A", "#CFE0F1", "#93C3DE", "#4A97C8", "#1764AA", "#E1E1EE", "#B5B5D7", "#8582BC", "#62409A")
   
   typelength = dim(profile)[1]
   if (is.null(colors)) {
+    if(typelength == 192){colors = COLORS2; }
     if(typelength == 96){colors = COLORS6; }
     if(typelength == 78){colors = COLORS10;}
     if(typelength == 83){colors = COLORS16;}
@@ -822,20 +826,38 @@ plot_profile_logo <- function (profile, colors = NULL, condensed = FALSE,output_
   indel_short <-  FALSE
   if(typelength == 83) {indel_short = TRUE}
   profile <- profile_format_df(profile,factortype = TRUE,indel_short = indel_short) 
-  names(colors) <- levels(profile$Type)
+  
+  if(typelength == 192){
+    names(colors) <- levels(profile$Strand) 
+    profile[,5] <- profile[,5]/sum(profile[,5])  
+    plot <- ggplot(data = profile, aes(x = SubType, y = Value,  fill = Strand, width = 0.5)) + 
+      geom_bar(stat = "identity", position = "dodge", colour = NA, size = 0) + 
+      scale_fill_manual(values = colors) + 
+      facet_grid(. ~ Type, scales = "free",space = "free_x") +
+      guides(fill = "none") + 
+      scale_x_discrete(expand = expansion(add = 0))+
+      scale_y_continuous(expand = expansion(mult = c(0,0.1)))+
+      theme(axis.ticks = element_blank(),axis.title = element_blank(), axis.text = element_blank(),panel.background = element_blank(),panel.grid = element_blank(),strip.text.x = element_blank(),panel.spacing.x = unit(0, "lines"),axis.line.x = element_line(colour = 'black',size = 0.05))
+    
+    
+  }else{
+    names(colors) <- levels(profile$Type)
+    profile[,4] <- profile[,4]/sum(profile[,4])  
+    plot <- ggplot(data = profile, aes(x = SubType, y = Value,  fill = Type, width = 0.5)) + 
+      geom_bar(stat = "identity", position = "identity", colour = NA, size = 0) + 
+      scale_fill_manual(values = colors) + 
+      facet_grid(. ~ Type, scales = "free",space = "free_x") +
+      guides(fill = "none") + 
+      scale_x_discrete(expand = expansion(add = 0))+
+      scale_y_continuous(expand = expansion(mult = c(0,0.1)))+
+      theme(axis.ticks = element_blank(),axis.title = element_blank(), axis.text = element_blank(),panel.background = element_blank(),panel.grid = element_blank(),strip.text.x = element_blank(),panel.spacing.x = unit(0, "lines"),axis.line.x = element_line(colour = 'black',size = 0.05))
+  }
+  
   
   #print(colors)
   
-  profile[,4] <- profile[,4]/sum(profile[,4])  
   
-  plot <- ggplot(data = profile, aes(x = SubType, y = Value,  fill = Type, width = 0.5)) + 
-    geom_bar(stat = "identity", position = "identity", colour = NA, size = 0) + 
-    scale_fill_manual(values = colors) + 
-    facet_grid(. ~ Type, scales = "free",space = "free_x") +
-    guides(fill = FALSE) + 
-    scale_x_discrete(expand = expansion(add = 0))+
-    scale_y_continuous(expand = expansion(mult = c(0,0.1)))+
-    theme(axis.ticks = element_blank(),axis.title = element_blank(), axis.text = element_blank(),panel.background = element_blank(),panel.grid = element_blank(),strip.text.x = element_blank(),panel.spacing.x = unit(0, "lines"),axis.line.x = element_line(colour = 'black',size = 0.05))
+  
   #element_text(size = 0,margin = margin(1.5,0,1.5,0))
   
   # ## add background color for strip
@@ -1241,6 +1263,10 @@ profile_format_df <- function(data,factortype=FALSE,indel_short=FALSE){
     data <- data %>% mutate(Type=str_sub(MutationType,1,7),SubType=str_sub(MutationType,9,9)) %>% select(Type,SubType,MutationType,everything()) %>% mutate(Type=factor(Type,levels = idtypeorder)) %>% arrange(Type,SubType) %>% mutate(Type=as.character(Type))
   }
   
+  if(dim(data)[1]==192){
+    data <- data %>% separate(MutationType,into = c('Strand','MutationType'),sep = ':')%>% mutate(Type=str_sub(MutationType,3,5),SubType=paste0(str_sub(MutationType,1,1),str_sub(MutationType,3,3),str_sub(MutationType,7,7))) %>% select(Type,SubType,MutationType,everything()) %>% arrange(Type,SubType)
+  }
+  
   if(factortype){
     
     if(dim(data)[1]==83){
@@ -1260,6 +1286,7 @@ profile_format_df <- function(data,factortype=FALSE,indel_short=FALSE){
       data <- data %>% mutate(Type=factor(Type,levels = tmplev))
     }
     
+    if(dim(data)[1]==192){ data <- data %>% mutate(Strand=factor(Strand, levels = c('T','U')))}
     
     #tmplev <- unique(data$SubType)
     #data <- data %>% mutate(SubType=factor(SubType,levels = tmplev))
@@ -1511,7 +1538,7 @@ plot_cosine_heatmap_df <- function (cos_sim_df, col_order, cluster_rows = TRUE, 
 
 
 # Plot two profile difference for SBS96, ID83 and DBS78 ---------------------------------------------
-plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL, profile_ymax = NULL, diff_ylim = NULL, colors = NULL, condensed = FALSE,output_plot = NULL,plot_width=NULL, plot_height=NULL) 
+plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL, profile_ymax = NULL, diff_ylim = NULL, colors = NULL, condensed = FALSE,output_plot = NULL,plot_width=NULL, plot_height=NULL, output_data=NULL) 
 {
   ## profile 1 and profile 2 will be the dataframe with two columns: MutationType and value
   
@@ -1590,7 +1617,7 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
       scale_fill_manual(values = colors) + 
       facet_grid(name ~ Type, scales = "free",space = "free_x") +
       ylab("Relative contribution") +
-      guides(fill = FALSE) + 
+      guides(fill = 'none') + 
       labs(x="")+
       scale_y_continuous(labels = scales::number_format(accuracy = 0.01))+
       #scale_y_continuous(expand = c(0,0))+
@@ -1614,6 +1641,10 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
   }
   plot <- as_ggplot(g)
   
+  # output data
+  if(!is.null(output_data)){
+    df %>% pivot_wider() %>% write_delim(file = output_data,delim = '\t',col_names = T)
+  }
   
   
   if(is.null(output_plot)){
@@ -3077,7 +3108,7 @@ change_data_type <- function(data){
   return(data)
 }
 
-validate_vardf <- function(data, forces=NULL, nachars=c("","na","Na","NA","nan","NAN","Nan"), Nmin=5, Nmin_drop=FALSE,excludes=NULL){
+validate_vardf <- function(data, forces=NULL, nachars=c("","na","Na","NA","nan","NAN","Nan"), nacode='NA',Nmin=5, Nmin_drop=FALSE,excludes=NULL, lump=TRUE){
   #names_oringal <- colnames(data)
   # force data type
   if(!is.null(excludes)){
@@ -3092,11 +3123,12 @@ validate_vardf <- function(data, forces=NULL, nachars=c("","na","Na","NA","nan",
   
   # process na
   data <- data %>% mutate(across(where(is.character), ~  if_else(.x %in% nachars, NA_character_, .x)))
+  data <- data %>% mutate(across(where(is.character), ~  if_else(is.na(.x), nacode, .x)))
   
   # process the integer
   data <- data %>% mutate(across(where(is.integer), as.numeric))
   
-  # convertt numbers to characters if less than xx unique value
+  # convert numbers to characters if less than xx unique value
   #data %>% mutate(across(where(is.numeric), ~ if_else(n_distinct(.) < Nmin, .x, .x)))
   Nmin_names <- data %>% summarise(across(where(is.numeric),n_distinct)) %>% dplyr::select_if(function(x) x<Nmin) %>% colnames()
   if(length(Nmin_names)>0){
@@ -3110,8 +3142,11 @@ validate_vardf <- function(data, forces=NULL, nachars=c("","na","Na","NA","nan",
   }
   
   ## make the factors and reorder the levels
-  data <- data %>% mutate(across(where(is.character),~ fct_lump(fct_infreq(as.factor(.x)),prop = 0.2)))
-  
+  ## exclude for the all unique value columns
+  #data <- data %>% mutate(across(where(is.character),~ fct_lump(fct_infreq(as.factor(.x)),prop = 0.2)))
+  if(lump){
+    data <- data %>% mutate(across(where(~ is.character(.) & (n_distinct(.) < 0.8*n())),~ fct_lump(fct_infreq(as.factor(.x)),prop = 0.2)))
+  }
   # if change the order
   #data <- data %>% select(names_oringal)
   
@@ -3136,7 +3171,7 @@ mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=N
   
   if(regression){
     ## for regression module
-    supported_types <- c("lm", "glm", "annov  ", "bayes", "skit")
+    supported_types <- c("lm", "glm")
     
     if(!str_detect(formula,"~")){
       stop("Please check your formula for regression, for example, lm( mpg ~ vs + gear")

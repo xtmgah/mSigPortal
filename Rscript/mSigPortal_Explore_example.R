@@ -133,7 +133,7 @@ profile2 <- signature_refsets %>%
   select(MutationType,one_of(signature_name2))
 
 # put this plot on the web:
-plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,output_plot = 'tmp.pdf')
+plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,output_plot = 'tmp.pdf',output_data = 'tmp.txt')
 
 
 
