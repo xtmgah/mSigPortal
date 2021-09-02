@@ -3165,7 +3165,7 @@ rowAny <- function(x) rowSums(x) > 0
 
 
 # mSigPortal_associaiton --------------------------------------------------
-mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=NULL, xlab="Variable1", ylab="Variable2",filter_zero1=FALSE, filter_zero2=FALSE,log1=FALSE,log2=FALSE, type="parametric", collapse_var1=NULL, collapse_var2=NULL, output_plot=NULL,plot_width=8,plot_height=8) {
+mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=NULL, xlab="Variable1", ylab="Variable2",filter1=NULL, filter2=NULL,log1=FALSE,log2=FALSE, type="parametric", collapse_var1=NULL, collapse_var2=NULL, output_plot=NULL,plot_width=8,plot_height=8) {
   
   data <- validate_vardf(data)
   
@@ -3201,13 +3201,21 @@ mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=N
     }
     
     # process data or filtering data
-    if(filter_zero1 & var1_type == 'continuous') {
-      data <- data %>% filter(Var1 != 0)
+    if(!is.null(filter1) & var1_type == 'continuous') {
+      filter1 <-  as.numeric(filter1)
+      if(!is.na(filter1)){
+        data <- data %>% filter(Var1 > filter1)
+      }
+      
     }
     
-    if(filter_zero2 & var2_type == 'continuous') {
-      data <- data %>% filter(Var2 != 0)
+    if(!is.null(filter2) & var2_type == 'continuous') {
+      filter2 <-  as.numeric(filter2)
+      if(!is.na(filter2)){
+        data <- data %>% filter(Var2 > filter2)
+      }
     }
+    
     
     if(log1 & var1_type == 'continuous') {
       data <- data %>% filter(Var1>0) %>% mutate(Var1 = log2(Var1))
@@ -3307,8 +3315,8 @@ mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=N
           data = data,
           x = Var2,
           y = Var1, 
-          xlab= xlab,
-          ylab = ylab,
+          xlab= ylab,
+          ylab = xlab,
           ggtheme = hrbrthemes::theme_ipsum_rc(axis_title_just = 'm',axis_title_size = 14),
           type=type
         )
@@ -3339,7 +3347,7 @@ mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=N
 
 
 
-mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression=FALSE, formula=NULL, filter_zero1=FALSE, filter_zero2=FALSE,log1=FALSE,log2=FALSE, type="parametric", collapse_var1=NULL, collapse_var2=NULL) {
+mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression=FALSE, formula=NULL, filter1=NULL, filter2=NULL,log1=FALSE,log2=FALSE,type="parametric", collapse_var1=NULL, collapse_var2=NULL) {
   
   data <- validate_vardf(data,excludes = Group_Var)
   
@@ -3377,12 +3385,19 @@ mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression
     }
     
     # process data or filtering data
-    if(filter_zero1 & var1_type == 'continuous') {
-      data <- data %>% filter(Var1 != 0)
+    if(!is.null(filter1) & var1_type == 'continuous') {
+      filter1 <-  as.numeric(filter1)
+      if(!is.na(filter1)){
+        data <- data %>% filter(Var1 > filter1)
+      }
+      
     }
     
-    if(filter_zero2 & var2_type == 'continuous') {
-      data <- data %>% filter(Var2 != 0)
+    if(!is.null(filter2) & var2_type == 'continuous') {
+      filter2 <-  as.numeric(filter2)
+      if(!is.na(filter2)){
+        data <- data %>% filter(Var2 > filter2)
+      }
     }
     
     if(log1 & var1_type == 'continuous') {

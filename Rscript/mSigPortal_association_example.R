@@ -54,6 +54,7 @@ if(Data_Source == "Public_Data"){
   
   ## extract the variable information
   clist <- vardata_refdata_selected %>% select(data_source,data_type,variable_name,variable_value_type) %>% unique()
+  vardata_refdata_selected %>% write_delim('vardata_refdata_selected.txt',delim = '\t',col_names = T)
   # clist will be used for the Assocaition Variable Data and Select Variables. 
   
   if(regression == TRUE) {
@@ -99,7 +100,7 @@ if(Data_Source == "Public_Data"){
     collapse_var2_list <- levels(data_input[[Exposure_varinput]])
     
     ## association test by group of signature name
-    result <- mSigPortal_associaiton_group(data=data_input,Group_Var = "Signature_name",Var1 = Association_varinput_name, Var2=Exposure_varinput,type = "parametric",filter_zero1=FALSE, filter_zero2=FALSE,log1=FALSE,log2=FALSE,  collapse_var1=NULL, collapse_var2=NULL)
+    result <- mSigPortal_associaiton_group(data=data_input,Group_Var = "Signature_name",Var1 = Association_varinput_name, Var2=Exposure_varinput,type = "parametric",filter1=NULL, filter2=NULL,log1=FALSE,log2=FALSE,  collapse_var1=NULL, collapse_var2=NULL)
     ## put result as a short table above the figure
     
     signature_name_list <- unique(result[[1]]) ## dropdown list for the signature name
@@ -107,7 +108,7 @@ if(Data_Source == "Public_Data"){
     
     data_input <- data_input %>% filter(Signature_name == signature_name_input) %>% select(-Signature_name)
     
-    mSigPortal_associaiton(data=data_input,Var1 = Association_varinput_name, Var2=Exposure_varinput,type = "parametric",xlab=Association_varinput_name, ylab=Exposure_varinput,filter_zero1=FALSE, filter_zero2=FALSE,log1=FALSE,log2=FALSE,  collapse_var1=NULL, collapse_var2=NULL, output_plot = "association_result.svg")
+    mSigPortal_associaiton(data=data_input,Var1 = Association_varinput_name, Var2=Exposure_varinput,type = "parametric",xlab=Association_varinput_name, ylab=Exposure_varinput,filter1=NULL, filter2=NULL,log1=FALSE,log2=FALSE, collapse_var1=NULL, collapse_var2=NULL, output_plot = "association_result.svg")
     
     ## asssociation_data.txt will output as download text file. 
     data_input %>% write_delim(file = 'asssociation_data.txt',delim = '\t',col_names = T,na = '')
