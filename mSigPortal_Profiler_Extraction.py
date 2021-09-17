@@ -8,8 +8,8 @@ from zipfile import ZipFile
 '''
 Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
-Version:	1.30
-Date:		May-01-2021
+Version:	1.31
+Date:		September-01-2021
 Update:		(01) Generate seqInfo for downloading (seqInfo=True)
 			(02) Generate Compressed Dir: DBS.tar.gz;ID.tar.gz;plots.tar.gz;SBS.tar.gz;vcf_files.tar.gz;
 			(03) Generate Statistics.txt (need to update: github:SigProfilerMatrixGenerator-master/SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py)
@@ -45,7 +45,7 @@ Usage:	 	python3 mSigPortal_Profiler_Extraction.py [options]
 
 Required Options:
   -f		(--Input_Format) Define the format of Input files. 
-		   Only 'vcf', 'csv', 'tsv', 'catalog_tsv', 'catalog_csv' are supported.
+		   Only 'vcf', 'csv', 'tsv', 'maf', 'catalog_tsv', 'catalog_csv' are supported.
   -i		(--Input_Path) Absolute path for input file.
   -p		(--Project_ID) Project ID.
   -o		(--Output_Dir) Absolute path for output Directory.
@@ -72,7 +72,7 @@ Optional Options:
 ####### 01-1 Get Options
 def Parser():
 	parser = argparse.ArgumentParser(add_help=False)
-	parser.add_argument('-f', '--Input_Format', required=True, type=str, help = "Define the formats of input data. Only 'vcf', 'csv', 'tsv', 'catalog_tsv', 'catalog_csv' are supported.")
+	parser.add_argument('-f', '--Input_Format', required=True, type=str, help = "Define the formats of input data. Only 'vcf', 'csv', 'tsv', 'maf', 'catalog_tsv' and 'catalog_csv' are supported.")
 	parser.add_argument('-i', '--Input_Path', required=True, type=str, help = "Define the absolute path for input file")
 	parser.add_argument('-p', '--Project_ID', required=True, type=str, help = "Define the ID of Project")
 	parser.add_argument('-o', '--Output_Dir', required=True, nargs='?', const='mSigPortal_%s' % time.strftime('%Y%m%d%H%M%S',time.localtime(time.time())),type=str, help = "Define the absolute path for Output Dir")
@@ -276,8 +276,30 @@ def Parse_Options():
 			String = "Finish Running Collapse Step"
 			print(String)
 
+
+	elif Input_Format == "maf":
+		
+		if vcf_split_all_filter != None:
+			print("Error: -s option only supports csv, tsv and vcf format")
+			sys.exit()
+
+		if Filter == None:
+			maf_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse)
+		else:
+			String = "Error, \"%s\" format do not support option \"-F/--Filter\"" % (Input_Format)
+			print(String)
+			sys.exit()
+
+
+		###### Only if Collapse option is given, tsv_Convert_collpase will run
+		if Collapse == "True":
+			Convert_Collapse(Output_Dir,Collapse,Project_ID)
+			String = "Finish Running Collapse Step"
+			print(String)
+
+
 	else:
-		String = "Error in Format: Only 'vcf', 'csv', 'tsv', 'catalog_csv', 'catalog_tsv' are validated formats!"
+		String = "Error in Format: Only 'vcf', 'csv', 'tsv', 'maf','catalog_csv', 'catalog_tsv' are validated formats!"
 		print(String)
 		sys.exit()
 
@@ -307,6 +329,66 @@ def Parse_Options():
 def GenerateDir(Dir):
 	if not os.path.exists(Dir):
 		os.system("mkdir %s" % Dir)
+
+####### 31-1 maf_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
+def maf_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse):
+	GenerateDir(Output_Dir)
+	print('******* Your Input File is in MAF format. ******* ')
+
+	####### 01-3-0 Output_Path:
+	mSigPortal_Format_SNV_Path = "%s/%s_mSigPortal_SNV.txt" %  (Output_Dir,Project_ID)
+	mSigPortal_Format_INDEL_Path = "%s/%s_mSigPortal_INDEL.txt" % (Output_Dir,Project_ID)
+
+	mSigPortal_Format_SNV_File = open(mSigPortal_Format_SNV_Path,'w')
+	mSigPortal_Format_INDEL_File = open(mSigPortal_Format_INDEL_Path,'w')
+
+	####### 01-3-1 Parse File 
+	Input_File = open(Input_Path)
+	Header = "Hugo_Symbol	Entrez_Gene_Id	Center	NCBI_Build	Chromosome	Start_position	End_position	Strand	Variant_Classification	Variant_Type	Reference_Allele	Tumor_Seq_Allele1	Tumor_Seq_Allele2	dbSNP_RS	dbSNP_Val_Status	Tumor_Sample_Barcode"
+	String_File = ""
+	Count = 1
+	for line in Input_File:
+		ss = line.split(",")
+		String_File += line
+
+	if Header not in String_File:
+		print("Error 233: Pleas make sure the at least the first 16 columns from your MAF file is in the following order:")
+		print("%s" % Header)
+		sys.exit()
+
+
+	####### 01-3-2 Generate Result
+	ff = String_File.split("\n")
+	for f in ff:
+		if re.match(r'Hugo_Symbol',f):
+			pass
+		else:
+			ss = f.strip().split("\t")
+			if len(ss) > 16:
+				Sample_ID = ss[15]
+				Chr = ss[4]
+				Start = ss[5]
+				End = ss[6]
+				REF = ss[11]
+				ALT = ss[12]
+					
+				if "," in ALT:
+					pass
+				else:
+					if "-" in REF or "-" in ALT:
+						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						mSigPortal_Format_INDEL_File.write(Output_String)
+					elif len(REF) != len(ALT):
+						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						mSigPortal_Format_INDEL_File.write(Output_String)
+					else:
+						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						mSigPortal_Format_SNV_File.write(Output_String)
+
+
+	mSigPortal_Format_SNV_File.close()
+	mSigPortal_Format_INDEL_File.close()
+
 
 ####### 01-5 csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
 def csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse):
@@ -364,6 +446,8 @@ def csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
 						mSigPortal_Format_INDEL_File.write(Output_String)
 	Input_File.close()
+	mSigPortal_Format_SNV_File.close()
+	mSigPortal_Format_INDEL_File.close()
 
 
 ####### 01-6 csv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse)
@@ -1360,7 +1444,7 @@ def gzip_Output(Output_Dir):
 ####### 01-17 sigProfilerPlotting
 def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, Bed):
 
-	Input_Format_arr_1 = ['vcf', 'csv', 'tsv']
+	Input_Format_arr_1 = ['vcf', 'csv', 'tsv', 'maf']
 	Input_Format_arr_2 = ['catalog_csv', 'catalog_tsv']
 	
 	SBS_Arr = [6, 24, 96, 384, 1536, 6144]
@@ -1675,7 +1759,7 @@ if __name__ == "__main__":
 
 
 ### Usage for csv
-# python mSigPortal_Profiler_Extraction_v30.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction.py -f csv -i Demo_input/demo_input_multi.csv -p Project -o Test_Output -g GRCh37 -t WGS
 
 ### Usage for tsv
 # python mSigPortal_Profiler_Extraction.py -f tsv -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output -g GRCh37 -t WGS
@@ -1730,5 +1814,6 @@ if __name__ == "__main__":
 # python mSigPortal_Profiler_Extraction_v30.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv -p Project -o Test_Output_Catlog_TSV -g GRCh37 -t WGS
 
 
-
+### Usage for maf
+# python mSigPortal_Profiler_Extraction_v31.py -f maf -i Demo_input/demo_input_multi_MAF.txt -p Project -o Test_Output_MAF -g GRCh37 -t WGS
 
