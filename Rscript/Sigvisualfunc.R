@@ -1598,7 +1598,10 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
   }
   
   if(is.null(diff_ylim)){
-    diff_ylim <- range(diff)*1.1
+    #diff_ylim <- range(diff)*1.5
+    diff_ylim <- range(diff)
+    diff_ylim[1] <- if_else(diff_ylim[1] > -0.02, -0.02,diff_ylim[1])
+    diff_ylim[2] <- if_else(diff_ylim[2] < 0.02, 0.02,diff_ylim[2])
   }
   dftmp = tibble(Type = rep(levels(profile1$Type)[1], 4), SubType = rep((profile1$SubType)[1], 4), name = c(profile_names, "Difference", "Difference"), value = c(profile_ymax, profile_ymax, diff_ylim[1], diff_ylim[2])) %>% mutate(name=factor(name,levels = c(profile_names,"Difference"))) %>% mutate(Type=factor(Type,levels = names(colors)))
   
@@ -1616,7 +1619,7 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
       #scale_y_continuous(expand = c(0,0))+
       theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
       ggtitle(paste("RSS = ", RSS, "; Cosine Similarity = ", cosine_sim, sep = ""))+
-      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 10,hjust = 0.5,colour = "white", margin = margin(0.1,0.1,0.1,0.1,unit = 'cm')), strip.text.y = element_text(size = 10,hjust = 0.5,margin = margin(0.1,0.1,0.1,0.1,unit = 'cm')),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5)+geom_vline(xintercept = Inf,colour = 'black',size = 0.5)#axis.line.x = element_line(colour = 'black',size = 0.25),
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 8,face = 'bold',angle = 90, vjust = 0.5), strip.text.x = element_text(size = 10,hjust = 0.5,face = 'bold',colour = "white", margin = margin(0.1,0.1,0.1,0.1,unit = 'cm')), strip.text.y = element_text(size = 11,hjust = 0.5,margin = margin(0.1,0.15,0.1,0.15,unit = 'cm')),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(size=15,face = 'bold',hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5)+geom_vline(xintercept = Inf,colour = 'black',size = 0.5)#axis.line.x = element_line(colour = 'black',size = 0.25),
     #panel_border(color = gray(0.5),size = 0.3)
   }
   else {
@@ -1632,7 +1635,7 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
       #scale_y_continuous(expand = c(0,0))+
       theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
       ggtitle(paste("RSS = ", RSS, "; Cosine Similarity = ", cosine_sim, sep = ""))+
-      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5), strip.text.x = element_text(size = 10,hjust = 0.5,colour = "white", margin = margin(0.1,0.1,0.1,0.1,unit = 'cm')), strip.text.y = element_text(size = 10,hjust = 0.5,margin = margin(0.1,0.1,0.1,0.1,unit = 'cm')),strip.background = element_rect(fill = "#f0f0f0",), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5) +geom_vline(xintercept = Inf,colour = 'black',size = 0.5) #,axis.line.x = element_line(colour = 'black',size = 0.25)
+      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 8,face = 'bold', angle = 90, vjust = 0.5), strip.text.x = element_text(size = 10,hjust = 0.5,face = 'bold',colour = "white", margin = margin(0.1,0.1,0.1,0.1,unit = 'cm')), strip.text.y = element_text(size = 11,hjust = 0.5,margin = margin(0.1,0.15,0.1,0.15,unit = 'cm')),strip.background = element_rect(fill = "#f0f0f0",), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(size=15,face = 'bold',hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5) +geom_vline(xintercept = Inf,colour = 'black',size = 0.5) #,axis.line.x = element_line(colour = 'black',size = 0.25)
     #     panel_border(color = gray(0.5),size = 0.3)
   }
   
@@ -1659,7 +1662,7 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
   if(is.null(output_plot)){
     return(plot)
   }else{
-    xleng <- 14
+    xleng <- 15
     yleng <- 7
     if(is.null(plot_width)){ plot_width <-  xleng}
     if(is.null(plot_height)){ plot_height <-  yleng}
@@ -2944,7 +2947,7 @@ katPoint <- function(data, sample = "sample", min.mut = 5, max.dis = 1000,
 
 # Kataegis plot -----------------------------------------------------------
 
-kataegis_rainfall_plot <- function(mutdata,sample_name="sample",genome_build = "hg19",reference_data_folder=NULL, chromsome=NULL,kataegis_highligh=FALSE,min.mut = 5,max.dis = 1000,filename=NULL){
+kataegis_rainfall_plot <- function(mutdata,sample_name="sample",genome_build = "hg19",reference_data_folder=NULL, chromsome=NULL,kataegis_highligh=FALSE,min.mut = 5,max.dis = 1000,min.dis = 10, filename=NULL){
   require(tidyverse)
   require(ggsci)
   require(hrbrthemes)
@@ -2997,13 +3000,14 @@ kataegis_rainfall_plot <- function(mutdata,sample_name="sample",genome_build = "
   mutSNP$context <- ""
   katdata <- NA
   try({
-    katdata <- katPoint(mutSNP,txdb = TxDb.Hsapiens,sample = sample_name,min.mut = min.mut,max.dis = max.dis)
-  },silent = TRUE)
+    katdata <- katPoint(mutSNP %>% filter(dis > min.dis),txdb = TxDb.Hsapiens,sample = sample_name,min.mut = min.mut,max.dis = max.dis)
+  },silent = FALSE)
   #print(katdata)
   
+  # extend the min.dist for capture the DBS or MBS; number.mut will still be the mutations > min.dist
   if(is.data.frame(katdata)){
     if(dim(katdata)[1]>0){
-      katdata <- katdata %>% mutate(start=as.integer(start),end=as.integer(end)) %>% left_join(hgref,by=c('chrom'='chr'))
+      katdata <- katdata %>% mutate(start=as.integer(start),end=as.integer(end)) %>% mutate(start=start-min.dis, end=end+min.dis) %>% left_join(hgref,by=c('chrom'='chr'))
       for(i in 1:dim(katdata)[1]){
         kchr <- katdata$chrom[i]
         kstart <- katdata$start[i]
@@ -3524,7 +3528,7 @@ multivariable_inputs <- function(data,listpars) {
     # data format: data_source     data_type          variable_name variable_value variable_value_type
     # parameters: c('quality control', 'sequencing metrics', 'FWHM_Normal',NULL, FALSE, NULL)
     datav <- data %>%
-      filter(data_source == Var[1], data_type == Var[2], variable_name == Var[3])
+      filter(data_source == Var$source, data_type == Var$type, variable_name == Var$name)
     
     var_type <- if_else(unique(datav$variable_value_type) == "character","categorical", if_else(unique(datav$variable_value_type) == "numeric","continuous",NA_character_))
     
@@ -3533,9 +3537,9 @@ multivariable_inputs <- function(data,listpars) {
     if(var_type == 'categorical') { datav$variable_value = as.factor(datav$variable_value)}
     
     # process data or filtering data
-    if(!is.na(Var[4]) & var_type == 'continuous') {
-      Var[4] <-  as.numeric(Var[4])
-      if(!is.na(Var[4])){
+    if(!is.null(Var$filter) & var_type == 'continuous') {
+      Var$filter <-  as.numeric(Var$filter)
+      if(!is.na(Var$filter)){
         datav <- datav %>% filter(Var1 > filter1)
       }
       
@@ -3543,20 +3547,21 @@ multivariable_inputs <- function(data,listpars) {
     
     ## Var[5] shown as character
     
-    if(Var[5]== "TRUE" & var_type == 'continuous') {
+    if(Var$log2== "TRUE" & var_type == 'continuous') {
       datav <- datav %>% filter(variable_value>0) %>% mutate(variable_value = log2(variable_value))
     }
     
-    if(var_type =="categorical" && !is.na(Var[6])){
-      if(! (Var[6] %in% datav$variable_value)){ 
+    if(var_type =="categorical" && !is.null(Var$collapse)){
+      if(! (Var$collapse %in% datav$variable_value)){ 
         print("Warning: categorical value does not exist in data, please input the correct level of the categorical variables for variable1.")
       }else{
-        datav$variable_value <- fct_other(datav$variable_value,keep = Var[6])
+        datav$variable_value <- fct_other(datav$variable_value,keep = Var$collapse)
       }
     }
     
     datav <- datav %>% select(Sample,variable_value) 
-    colnames(datav)[2] <- paste0('Variable',i)
+    #colnames(datav)[2] <- paste0('Variable',i)
+    colnames(datav)[2] <- Var$name
     
     if(is.null(result)){
       result <-  datav

@@ -59,13 +59,22 @@ if(Data_Source == "Public_Data"){
   
   if(regression == TRUE) {
     ## the threshold and collapse by default change to NA because the NULL is not working here
-    Var1 <- c('quality control', 'sequencing metrics', 'FWHM_Normal',NA, FALSE, NA)
-    Var2 <- c('genomic data', 'sv count', 'DEL',NA, TRUE, NA)
-    Var3 <- c('germline data', 'ancestry', 'EUR',NA, FALSE, NA)
+    # Var1 <- c('quality control', 'sequencing metrics', 'FWHM_Normal',NA, FALSE, NA)
+    # Var2 <- c('genomic data', 'sv count', 'DEL',NA, TRUE, NA)
+    # Var3 <- c('germline data', 'ancestry', 'EUR',NA, FALSE, NA)
+    Var1 <- list(source = 'quality control', type = 'sequencing metrics', name = 'FWHM_Normal', filter = NULL, log2 = FALSE, collapse = NULL)
+    Var2 <- list(source = 'genomic data', type = 'sv count', name = 'DEL', filter = NULL, log2 = TRUE, collapse = NULL)
+    #Var3 <- list(source = 'germline data', type = 'ancestry', name = 'EUR', filter = NULL, log2 = FALSE, collapse = NULL)
+    Var3 <- list(source = 'quality control', type = 'sequencing metrics', name = '%_of_paired_reads_mapping_to_different_chromosomes_Normal', filter = NULL, log2 = FALSE, collapse = NULL)
+    
     ### add more parameters according to user's input
     listpars <- list(Var1, Var2, Var3)
     vardata_refdata_selected <- multivariable_inputs(vardata_refdata_selected, listpars)
     data_input <- left_join(exposure_refdata_selected,vardata_refdata_selected) %>% select(-Sample)
+    
+    
+    ## change variable name if detected special chacters ## 
+    colnames(data_input)[-c(1:2)] <-  str_replace_all(str_replace(str_replace_all(colnames(data_input)[-c(1:2)],"[^[:alnum:]_ ]*", ""),"^[^[:alpha:]]*",""),"  *","_")
     
     rformula = paste0(Exposure_varinput, " ~ ",paste0(colnames(data_input)[-c(1:2)],collapse = ' + '))
     ## regressionby group of signature name
