@@ -39,6 +39,7 @@ signames <-
       "SBS9",
       "SBS10a",
       "SBS10b",
+      "SBS10c",
       "SBS11",
       "SBS12",
       "SBS13",
@@ -90,6 +91,8 @@ signames <-
       "SBS58",
       "SBS59",
       "SBS60",
+      "SBS84",
+      "SBS92",
       "SBS-others"
     ),
     Subsname=c(
@@ -107,6 +110,7 @@ signames <-
       "Signature Subs-09",
       "Signature Subs-10a",
       "Signature Subs-10b",
+      "Signature Subs-10c",
       "Signature Subs-11",
       "Signature Subs-12",
       "Signature Subs-13",
@@ -158,6 +162,8 @@ signames <-
       "Signature Subs-58",
       "Signature Subs-59",
       "Signature Subs-60",
+      "Signature Subs-84",
+      "Signature Subs-92",
       "Signature Subs-others"
       
     )
@@ -187,6 +193,7 @@ Subscolor <- c(
   "Signature Subs-09"='#f4a582',
   "Signature Subs-10a"='#8dd3c7',
   "Signature Subs-10b"='#5e4fa2',
+  "Signature Subs-10c"='#761429',
   'Signature Subs-12'='#ffed6f',
   'Signature Subs-13'='#e41a1c',
   'Signature Subs-14'='#ffffbf',
@@ -195,15 +202,15 @@ Subscolor <- c(
   'Signature Subs-17a'='#df4c7d',
   'Signature Subs-17b'='#08519c',
   'Signature Subs-18'='#b3de69',
-  'Signature Subs-19'='#4d4d4d',
+  'Signature Subs-19'='#dfc27d',
   'Signature Subs-20'='#b2182b',
-  'Signature Subs-22'='#d9ef8b',
-  'Signature Subs-21'='#e6f5d0',
+  'Signature Subs-22'='#01665e',
+  'Signature Subs-21'='#9ecae1',
   'Signature Subs-24'='#1c9099',
   'Signature Subs-25'='#35978f',
-  'Signature Subs-26'='#5e4fa2',
+  'Signature Subs-26'='#ec7014',
   'Signature Subs-28'='#de77ae',
-  'Signature Subs-30'='#5e4fa2',
+  'Signature Subs-30'='#d9d9d9',
   'Signature Subs-31'='#f781bf',
   'Signature Subs-32'='#dd1c77',
   'Signature Subs-33'='#b25d7e',
@@ -212,12 +219,14 @@ Subscolor <- c(
   'Signature Subs-39'='#636363',
   'Signature Subs-40'='#b15928',
   'Signature Subs-41'='#fccde5',
-  'Signature Subs-44'='#b3de69',
+  'Signature Subs-44'='#8c6bb1',
   'Signature Subs-46'='#e6f598',
   'Signature Subs-47'='#bababa',
   'Signature Subs-42'='#ae017e',
   'Signature Subs-54'='#fcc5c0',
   'Signature Subs-56'='#8c510a',
+  'Signature Subs-84'='#063C3C',
+  'Signature Subs-92'='#0E1844',
   'Signature Subs-others'='#cececa'
 )
 
@@ -3177,17 +3186,17 @@ mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=N
       stop("Please check your formula for regression, for example, lm( mpg ~ vs + gear")
     }
     
-    input_formula <- paste0("mod <- data %>% ",formula)
+    input_formula <- paste0("mod <- data %>% ",type, "(", formula,", data=.)")
     eval(parse(text=input_formula))
     
     p <- ggstatsplot::ggcoefstats(
       x= mod,
       point.args = list(color = "red", size = 3, shape = 15),
       exclude.intercept = TRUE,
-      title = formula,
-      ggtheme = hrbrthemes::theme_ipsum_rc()
+      #title = formula,
+      ggtheme = hrbrthemes::theme_ipsum_rc(axis_title_just = 'm',axis_title_size = 14)
     ) + # note the order in which the labels are entered
-      ggplot2::labs(x = "regression coefficient", y = NULL)
+      ggplot2::labs(x = "Regression Coefficient", y = NULL)
   }else{
     
     ## subset data
@@ -3341,7 +3350,7 @@ mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=N
     return(p)
   }else{
     ggsave(filename = output_plot,plot = p,width = plot_width,height = plot_height)
-    return(p)
+    #return(p)
   }
 }
 
@@ -3362,15 +3371,15 @@ mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression
     colnames(data)[colnames(data) == Group_Var] <- 'Group'
     
     if(type == "lm"){
-      result <- data %>% group_by(Group) %>% do(tidy(lm(formula,data=.))) %>% ungroup() %>% filter(term!="(Intercept)") %>% filter(!is.na(p.value))
+      result <- data %>% group_by(Group) %>% do(tidy(lm(formula,data=.))) %>% ungroup() %>% filter(term!="(Intercept)") %>% filter(!is.na(p.value)) %>% ungroup()
     }
     
     if(type == "glm"){
-      result <- data %>% group_by(Group) %>% do(tidy(glm(formula,data=.))) %>% ungroup() %>% filter(term!="(Intercept)") %>% filter(!is.na(p.value))
-    }
+      result <- data %>% group_by(Group) %>% do(tidy(glm(formula,data=.))) %>% ungroup() %>% filter(term!="(Intercept)") %>% filter(!is.na(p.value)) %>% ungroup()
+    } 
     
     colnames(result)[1] <- tolower(Group_Var)
-    result <- result %>% ungroup() %>% group_by(term) %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH") %>% mutate(formula=formula)
+    result <- result %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) #%>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH") #%>% mutate(formula=formula)
     
   }else{
     
@@ -3501,4 +3510,63 @@ mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression
   
   return(result)
 }
+
+
+
+
+
+multivariable_inputs <- function(data,listpars) {
+  
+  result <- NULL
+  
+  for(i in 1:length(listpars)){
+    Var <- listpars[[i]]
+    # data format: data_source     data_type          variable_name variable_value variable_value_type
+    # parameters: c('quality control', 'sequencing metrics', 'FWHM_Normal',NULL, FALSE, NULL)
+    datav <- data %>%
+      filter(data_source == Var[1], data_type == Var[2], variable_name == Var[3])
+    
+    var_type <- if_else(unique(datav$variable_value_type) == "character","categorical", if_else(unique(datav$variable_value_type) == "numeric","continuous",NA_character_))
+    
+    # change data type for regression
+    if(var_type == 'continuous') { datav$variable_value = as.numeric(datav$variable_value)}
+    if(var_type == 'categorical') { datav$variable_value = as.factor(datav$variable_value)}
+    
+    # process data or filtering data
+    if(!is.na(Var[4]) & var_type == 'continuous') {
+      Var[4] <-  as.numeric(Var[4])
+      if(!is.na(Var[4])){
+        datav <- datav %>% filter(Var1 > filter1)
+      }
+      
+    }
+    
+    ## Var[5] shown as character
+    
+    if(Var[5]== "TRUE" & var_type == 'continuous') {
+      datav <- datav %>% filter(variable_value>0) %>% mutate(variable_value = log2(variable_value))
+    }
+    
+    if(var_type =="categorical" && !is.na(Var[6])){
+      if(! (Var[6] %in% datav$variable_value)){ 
+        print("Warning: categorical value does not exist in data, please input the correct level of the categorical variables for variable1.")
+      }else{
+        datav$variable_value <- fct_other(datav$variable_value,keep = Var[6])
+      }
+    }
+    
+    datav <- datav %>% select(Sample,variable_value) 
+    colnames(datav)[2] <- paste0('Variable',i)
+    
+    if(is.null(result)){
+      result <-  datav
+    }else{
+      result <- left_join(result,datav)
+    }
+    
+  }
+  
+  return(result)
+}
+
 

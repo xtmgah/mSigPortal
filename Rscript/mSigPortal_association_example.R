@@ -58,14 +58,48 @@ if(Data_Source == "Public_Data"){
   # clist will be used for the Assocaition Variable Data and Select Variables. 
   
   if(regression == TRUE) {
+    ## the threshold and collapse by default change to NA because the NULL is not working here
+    Var1 <- c('quality control', 'sequencing metrics', 'FWHM_Normal',NA, FALSE, NA)
+    Var2 <- c('genomic data', 'sv count', 'DEL',NA, TRUE, NA)
+    Var3 <- c('germline data', 'ancestry', 'EUR',NA, FALSE, NA)
+    ### add more parameters according to user's input
+    listpars <- list(Var1, Var2, Var3)
+    vardata_refdata_selected <- multivariable_inputs(vardata_refdata_selected, listpars)
+    data_input <- left_join(exposure_refdata_selected,vardata_refdata_selected) %>% select(-Sample)
+    
+    rformula = paste0(Exposure_varinput, " ~ ",paste0(colnames(data_input)[-c(1:2)],collapse = ' + '))
+    ## regressionby group of signature name
+    result <- mSigPortal_associaiton_group(data=data_input,Group_Var = "Signature_name",type = "glm",regression = TRUE,formula = rformula )
+    ## put result as a short table above the figure
+    
+    signature_name_list <- unique(result[[1]]) ## drop-down list for the signature name
+    signature_name_input <- signature_name_list[1]  ## by default, select the first signature name
+    data_input <- data_input %>% filter(Signature_name == signature_name_input) %>% select(-Signature_name)
+
+    mSigPortal_associaiton(data=data_input,type = "glm",regression = TRUE,formula = rformula, output_plot = "association_result.svg")
+    data_input %>% write_delim(file = 'asssociation_data.txt',delim = '\t',col_names = T,na = '')
+    
     ### will add codes for the regression analysis / multivariate analysis 
+    
+    # input_formula <- 'lm(Signature_exposure ~ '
+    # 
+    # 
+    # exposure_refdata_selected
+    # 
+    # vardata_refdata_selected
+    # 
+    # Group_Var = "Signature_name",
+    # Var1 = args$associationVar$name, Var2 = args$exposureVar$name, type = args$associationVar$type,
+    # filter1 = args$associationVar$filter, filter2 = args$exposureVar$filter,
+    # log1 = args$associationVar$log2, log2 = args$exposureVar$log2,
+    # collapse_var1 = args$associationVar$collapse, collapse_var2 = NULL
     
     
   }else
   {
     Association_varinput_source <- 'genomic data'
-    Association_varinput_type <- 'panorama driver mutations'
-    Association_varinput_name <- 'TSC1'
+    Association_varinput_type <- 'consensus cnv features'
+    Association_varinput_name <- 'wgd_status'
     # Association_varinput_source <- 'genomic data'
     # Association_varinput_type <- 'evolution_and_heterogeneity'
     # Association_varinput_name <- 'purity'
