@@ -1207,9 +1207,9 @@ profile_heatmap_plot <- function(data,output_plot = NULL,plot_width=NULL, plot_h
       geom_point()+
       scale_color_d3()+
       scale_y_continuous(breaks = pretty_breaks())+
-      labs(x="Sample index",y="log10(Mutations)",color="Profile")+
+      labs(title = 'Number of Mutations Per Sample with Regard to Mutational Profile',x="Sample index",y="log10(Mutations)",color="Profile")+
       theme_ipsum_rc(grid = "XYy",ticks = TRUE,axis = FALSE,axis_title_just = 'm',axis_title_size = 14)+
-      theme(axis.text.x = element_blank(),axis.ticks.x = element_blank())+
+      theme(axis.text.x = element_blank(),axis.ticks.x = element_blank(),plot.title = element_text(hjust = 0.5))+
       panel_border(color = 'black')
     #,legend.direction = "vertical",legend.position = "top"
     
@@ -1220,9 +1220,9 @@ profile_heatmap_plot <- function(data,output_plot = NULL,plot_width=NULL, plot_h
       ggplot(aes(Sample,Profile,fill=(Mutations)))+
       geom_tile(col="white")+
       scale_fill_viridis_c(trans = "log10",label=comma_format(),na.value = 'black')+
-      labs(x="",y="",fill="Number of mutations\n")+
+      labs(title = 'Number of Mutations Per Sample with Regard to Mutational Profile',x="",y="",fill="Number of mutations\n")+
       theme_ipsum_rc(grid = FALSE,ticks = FALSE,axis = FALSE)+
-      theme(legend.key.width =unit(2, "cm"),legend.position = "top")
+      theme(legend.key.width =unit(2, "cm"),legend.position = "top",plot.title = element_text(hjust = 0.5))
     
     if(name_len<=80){
       plot_final <- plot_final + theme(axis.text.x = element_text(angle = angle_max,hjust = 1,vjust = vjust_max,size = 10))
@@ -1362,6 +1362,18 @@ cos_sim_df <- function (mut_df1, mut_df2, output_matrix=FALSE)
   colnames(mut_df1)[1] <- "MutationType"
   colnames(mut_df2)[1] <- "MutationType"
   
+  ### fix bug if only 1 profile 
+  if(dim(mut_df1)[2]==2) {
+    mut_df1 <- mut_df1[,c(1,2,2)]
+    colnames(mut_df1)[3] <- 'XXXXX'
+  }
+  
+  if(dim(mut_df2)[2]==2) {
+    mut_df2 <- mut_df2[,c(1,2,2)]
+    colnames(mut_df2)[3] <- 'YYYYY'
+  }
+  
+  
   if(identical(mut_df1,mut_df2)){
     # two identical matrix/df
     mut_matrix1 <- mut_df1 %>% 
@@ -1393,7 +1405,7 @@ cos_sim_df <- function (mut_df1, mut_df2, output_matrix=FALSE)
   if(output_matrix){
     return(res_matrix)
   }else {
-    res_matrix %>% as.data.frame() %>% rownames_to_column() %>% as_tibble()
+    res_matrix %>% as.data.frame() %>% rownames_to_column() %>% as_tibble() %>% select(-contains('XXXXX'),-contains('YYYYY')) %>% filter(!rowname %in% c('XXXXX','YYYYY'))
   }
   
 }
@@ -1547,7 +1559,7 @@ plot_cosine_heatmap_df <- function (cos_sim_df, col_order, cluster_rows = TRUE, 
 
 
 # Plot two profile difference for SBS96, ID83 and DBS78 ---------------------------------------------
-plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL, profile_ymax = NULL, diff_ylim = NULL, colors = NULL, condensed = FALSE,output_plot = NULL,plot_width=NULL, plot_height=NULL, output_data=NULL) 
+plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL, profile_ymax = NULL, diff_ylim = NULL, colors = NULL, condensed = FALSE,output_plot = NULL,plot_width=NULL, plot_height=NULL, output_data=NULL, normalize=TRUE) 
 {
   ## profile 1 and profile 2 will be the dataframe with two columns: MutationType and value
   
@@ -1573,9 +1585,11 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
   names(colors) <- levels(profile1$Type)
   
   #print(colors)
-  
-  profile1[,4] <- profile1[,4]/sum(profile1[,4])  
-  profile2[,4] <- profile2[,4]/sum(profile2[,4]) 
+  if(normalize){
+    profile1[,4] <- profile1[,4]/sum(profile1[,4])  
+    profile2[,4] <- profile2[,4]/sum(profile2[,4]) 
+  }
+
   diff = profile1[[4]] - profile2[[4]]
   RSS = sum(diff^2)
   RSS = format(RSS, scientific = TRUE, digits = 3)
@@ -2082,7 +2096,7 @@ signature_piechart <- function(data,colset, output_plot = NULL,plot_width=NULL, 
     facet_wrap(~Profile,nrow = 2)+
     coord_fixed()+
     labs(x="",y="")+
-    scale_fill_manual("Signature Set Name",values = colset)+
+    scale_fill_manual("Signature Set Name",values = colset)+ #breaks = names(colset)
     theme_ipsum_rc(axis = FALSE, grid = FALSE)+
     theme(axis.text.y = element_blank(),axis.text.x = element_blank(),strip.text = element_text(size = 14,hjust = 0.5,face = "bold"))
   
@@ -3178,7 +3192,7 @@ rowAny <- function(x) rowSums(x) > 0
 
 
 # mSigPortal_associaiton --------------------------------------------------
-mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=NULL, xlab="Variable1", ylab="Variable2",filter1=NULL, filter2=NULL,log1=FALSE,log2=FALSE, type="parametric", collapse_var1=NULL, collapse_var2=NULL, output_plot=NULL,plot_width=8,plot_height=8) {
+mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=NULL, xlab="Variable1", ylab="Variable2",filter1=NULL, filter2=NULL,log1=FALSE,log2=FALSE, type="parametric", collapse_var1=NULL, collapse_var2=NULL, output_plot=NULL,plot_width=12,plot_height=8) {
   
   data <- validate_vardf(data)
   

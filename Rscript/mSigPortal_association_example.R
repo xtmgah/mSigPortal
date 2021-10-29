@@ -65,7 +65,7 @@ if(Data_Source == "Public_Data"){
     Var1 <- list(source = 'quality control', type = 'sequencing metrics', name = 'FWHM_Normal', filter = NULL, log2 = FALSE, collapse = NULL)
     Var2 <- list(source = 'genomic data', type = 'sv count', name = 'DEL', filter = NULL, log2 = TRUE, collapse = NULL)
     #Var3 <- list(source = 'germline data', type = 'ancestry', name = 'EUR', filter = NULL, log2 = FALSE, collapse = NULL)
-    Var3 <- list(source = 'quality control', type = 'sequencing metrics', name = '%_of_paired_reads_mapping_to_different_chromosomes_Normal', filter = NULL, log2 = FALSE, collapse = NULL)
+    Var3 <- list(source = 'quality control', type = 'sequencing metrics', name = 'Mean_Coverage_Normal', filter = NULL, log2 = FALSE, collapse = NULL)
     
     ### add more parameters according to user's input
     listpars <- list(Var1, Var2, Var3)
@@ -137,10 +137,11 @@ if(Data_Source == "Public_Data"){
     
     ### combined dataset
     data_input <- left_join(vardata_refdata_selected,exposure_refdata_selected) %>% select(-Sample)
+    data_input <- validate_vardf(data_input)
     
     ## dropdown list for collapse_var1 and collapse_var2 
     collapse_var1_list <- levels(data_input[[Association_varinput_name]])
-    collapse_var2_list <- levels(data_input[[Exposure_varinput]])
+    #collapse_var2_list <- levels(data_input[[Exposure_varinput]])
     
     ## association test by group of signature name
     result <- mSigPortal_associaiton_group(data=data_input,Group_Var = "Signature_name",Var1 = Association_varinput_name, Var2=Exposure_varinput,type = "parametric",filter1=NULL, filter2=NULL,log1=FALSE,log2=FALSE,  collapse_var1=NULL, collapse_var2=NULL)
