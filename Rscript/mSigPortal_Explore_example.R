@@ -146,11 +146,17 @@ plot_compare_profiles_diff(profile1,profile2,condensed = FALSE,output_plot = 'tm
 if(Data_Source == "Public_Data"){
   # load exposure data files
   #load('../Database/Exposure/exposure_refdata.RData')
-  load('../Database/Signature/signature_refsets.RData')
-  #load('../Database/Seqmatrix/seqmatrix_refdata.RData')
   
   study_input <- "PCAWG"
   dataset_input <- "WGS"
+  
+  study_signature_file <- paste0('../Database/Exposure/Study_Signatures/',study_input,'_',dataset_input,'_signature_refsets')
+  if(file.exists(study_signature_file)){
+    load(study_signature_file)
+  }else{
+    load('../Database/Signature/signature_refsets.RData')
+  }
+  
   
   exposure_reffile <- paste0('../Database/Exposure/',study_input,'_',dataset_input,'_','exposure_refdata.RData')
   seqmatrix_reffile <- paste0('../Database/Seqmatrix/',study_input,'_',dataset_input,'_','seqmatrix_refdata.RData')
@@ -425,9 +431,9 @@ if(file.exists(seqmatrix_reffile)){
   plot_individual_samples(exposure_refdata_input = exposure_refdata_input,signature_refsets_input = signature_refsets_input,seqmatrix_refdata_input = seqmatrix_refdata_input,condensed = FALSE,output_plot = 'tmp.svg')  
   
   
-
   
-  }else{
+  
+}else{
   print('Warnning: Missing Mutation Profile Matrix File For Selected Study; This Function Will Not Working!')
 }
 
