@@ -12,25 +12,25 @@ Function:	Generate Input File for mSigPortal
 Version:	1.32
 Date:		November-01-2021
 Update:		(01) Generate seqInfo for downloading (seqInfo=True)
-		(02) Generate Compressed Dir: DBS.tar.gz;ID.tar.gz;plots.tar.gz;SBS.tar.gz;vcf_files.tar.gz;
-		(03) Generate Statistics.txt (need to update: github:SigProfilerMatrixGenerator-master/SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py)
-		(04) Solve the 'True' bug for Collpase Option 
-		(05) Fix the bug in Catalog format with -c function
-		(06) Generate Matrix_List.txt
-		(07) Solve the problem "The header is incorrectly displayed in the CSV/TSV File"
-		(08) Fix the bug of -F function in CSV/TSV format
-		(09) Filter the line of ALT with ","
-		(10) Improve the function of -F with "-" in CSV, TSV and VCF format 
-		(11) Improve the function of Collpase [The All_Samples@Filter]
-		(12) Fix the bug of "rm -rf /tmp"!
-		(13) Improve the output file: svg_files_list.txt
-		(14) Improve the output file: matrix_files_list.txt
-		(15) Improve argparse --help
-		(16) Change the ouptput structure for Catalog
-		(17) tar compressing without directory structure, This is very complicated better with zip not gzip, command is following:
-			cmd = "zip -jr %s/File_Dir_Name.zip %s/File_Dir_Name" % (zip_Dir,Original_Dir)
-		(18) Support MAF format ["Tumor_Sample_Barcode", "Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]
-		(19) Enable sigPlt to support percentage
+			(02) Generate Compressed Dir: DBS.tar.gz;ID.tar.gz;plots.tar.gz;SBS.tar.gz;vcf_files.tar.gz;
+			(03) Generate Statistics.txt (need to update: github:SigProfilerMatrixGenerator-master/SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py)
+			(04) Solve the 'True' bug for Collpase Option 
+			(05) Fix the bug in Catalog format with -c function
+			(06) Generate Matrix_List.txt
+			(07) Solve the problem "The header is incorrectly displayed in the CSV/TSV File"
+			(08) Fix the bug of -F function in CSV/TSV format
+			(09) Filter the line of ALT with ","
+			(10) Improve the function of -F with "-" in CSV, TSV and VCF format 
+			(11) Improve the function of Collpase [The All_Samples@Filter]
+			(12) Fix the bug of "rm -rf /tmp"!
+			(13) Improve the output file: svg_files_list.txt
+			(14) Improve the output file: matrix_files_list.txt
+			(15) Improve argparse --help
+			(16) Change the ouptput structure for Catalog
+			(17) tar compressing without directory structure, This is very complicated better with zip not gzip, command is following:
+				 cmd = "zip -jr %s/File_Dir_Name.zip %s/File_Dir_Name" % (zip_Dir,Original_Dir)
+			(18) Support MAF format ["Tumor_Sample_Barcode", "Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]
+			(19) Enable sigPlt to support percentage
 '''
 
 
@@ -390,23 +390,23 @@ def maf_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 				REF = ss[4]
 				ALT_1 = ss[5]
 				ALT_2 = ss[6]
-				REF_Final = ""
+				ALT_Final = ""
 				if ALT_1 == REF:
-					REF_Final = REF
+					ALT_Final = ALT_2
 				else:
-					REF_Final = ALT_1
+					ALT_Final = ALT_1
 				
 				if "," in REF:
 					pass
 				else:
 					if "-" in REF or "-" in ALT_2:
-						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF_Final,ALT_2)
+						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT_Final)
 						mSigPortal_Format_INDEL_File.write(Output_String)
 					elif len(REF) != len(ALT_2):
-						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF_Final,ALT_2)
+						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT_Final)
 						mSigPortal_Format_INDEL_File.write(Output_String)
 					else:
-						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF_Final,ALT_2)
+						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT_Final)
 						mSigPortal_Format_SNV_File.write(Output_String)
 
 
