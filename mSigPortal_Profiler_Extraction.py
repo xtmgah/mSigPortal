@@ -4,12 +4,13 @@ import re,os,argparse,sys,time
 from SigProfilerMatrixGenerator.scripts import SigProfilerMatrixGeneratorFunc as matGen
 import sigProfilerPlotting as sigPlt
 from zipfile import ZipFile
+import pandas as pd
 
 '''
 Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
-Version:	1.31
-Date:		September-01-2021
+Version:	1.32
+Date:		November-01-2021
 Update:		(01) Generate seqInfo for downloading (seqInfo=True)
 			(02) Generate Compressed Dir: DBS.tar.gz;ID.tar.gz;plots.tar.gz;SBS.tar.gz;vcf_files.tar.gz;
 			(03) Generate Statistics.txt (need to update: github:SigProfilerMatrixGenerator-master/SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py)
@@ -28,6 +29,8 @@ Update:		(01) Generate seqInfo for downloading (seqInfo=True)
 			(16) Change the ouptput structure for Catalog
 			(17) tar compressing without directory structure, This is very complicated better with zip not gzip, command is following:
 				 cmd = "zip -jr %s/File_Dir_Name.zip %s/File_Dir_Name" % (zip_Dir,Original_Dir)
+			(18) Support MAF format ["Tumor_Sample_Barcode", "Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]
+			(19) Enable sigPlt to support percentage
 '''
 
 
@@ -336,53 +339,74 @@ def maf_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 	print('******* Your Input File is in MAF format. ******* ')
 
 	####### 01-3-0 Output_Path:
+	mSigPortal_Format_Tem_Path = "%s/%s_mSigPortal_Tem.txt" %  (Output_Dir,Project_ID)
+
 	mSigPortal_Format_SNV_Path = "%s/%s_mSigPortal_SNV.txt" %  (Output_Dir,Project_ID)
 	mSigPortal_Format_INDEL_Path = "%s/%s_mSigPortal_INDEL.txt" % (Output_Dir,Project_ID)
 
 	mSigPortal_Format_SNV_File = open(mSigPortal_Format_SNV_Path,'w')
 	mSigPortal_Format_INDEL_File = open(mSigPortal_Format_INDEL_Path,'w')
 
-	####### 01-3-1 Parse File 
-	Input_File = open(Input_Path)
-	Header = "Hugo_Symbol	Entrez_Gene_Id	Center	NCBI_Build	Chromosome	Start_position	End_position	Strand	Variant_Classification	Variant_Type	Reference_Allele	Tumor_Seq_Allele1	Tumor_Seq_Allele2	dbSNP_RS	dbSNP_Val_Status	Tumor_Sample_Barcode"
+
+	####### 01-3-1 Check headers:
+	Check_headers_Arr = ["Tumor_Sample_Barcode", "Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]
+	
+	df = pd.read_table(Input_Path)
+	
+	
+	for cc in Check_headers_Arr:
+		if cc not in df.columns:
+			print("Error 233: The column of %s can not be found from your MAF file!" % (cc))
+			sys.exit()
+
+	####### 01-3-2 Build Clean df:
+	Clean_df = df[["Tumor_Sample_Barcode", "Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]]
+	print(Clean_df)
+
+	Clean_df.to_csv(mSigPortal_Format_Tem_Path, sep="\t", header=True, quoting=None, index=None)
+
+
+	####### 01-3-3 Parse File 
+	Input_File = open(mSigPortal_Format_Tem_Path)
 	String_File = ""
 	Count = 1
 	for line in Input_File:
 		ss = line.split(",")
 		String_File += line
+	Input_File.close()
 
-	if Header not in String_File:
-		print("Error 233: Pleas make sure the at least the first 16 columns from your MAF file is in the following order:")
-		print("%s" % Header)
-		sys.exit()
-
-
-	####### 01-3-2 Generate Result
+	####### 01-3-4 Generate Result
 	ff = String_File.split("\n")
 	for f in ff:
-		if re.match(r'Hugo_Symbol',f):
+		if re.match(r'Tumor_Sample_Barcode',f):
 			pass
 		else:
 			ss = f.strip().split("\t")
-			if len(ss) > 16:
-				Sample_ID = ss[15]
-				Chr = ss[4]
-				Start = ss[5]
-				End = ss[6]
-				REF = ss[11]
-				ALT = ss[12]
-					
-				if "," in ALT:
+			if len(ss) > 6:
+				Sample_ID = ss[0]
+				Chr = ss[1]
+				Start = ss[2]
+				End = ss[3]
+				REF = ss[4]
+				ALT_1 = ss[5]
+				ALT_2 = ss[6]
+				ALT_Final = ""
+				if ALT_1 == REF:
+					ALT_Final = ALT_2
+				else:
+					ALT_Final = ALT_1
+				
+				if "," in REF:
 					pass
 				else:
-					if "-" in REF or "-" in ALT:
-						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+					if "-" in REF or "-" in ALT_2:
+						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT_Final)
 						mSigPortal_Format_INDEL_File.write(Output_String)
-					elif len(REF) != len(ALT):
-						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+					elif len(REF) != len(ALT_2):
+						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT_Final)
 						mSigPortal_Format_INDEL_File.write(Output_String)
 					else:
-						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT)
+						Output_String = "%s	%s	%s	%s	SNV	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT_Final)
 						mSigPortal_Format_SNV_File.write(Output_String)
 
 
@@ -1592,7 +1616,7 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, B
 
 					#print(Type)
 					if Type in SBS_Arr:
-						sigPlt.plotSBS(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=False)
+						sigPlt.plotSBS(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=True)
 						FF_temp_Dir = "%s/SBS" % FF_Dir
 						FF_temp_cmd_1 = "mkdir %s" % FF_temp_Dir
 						FF_temp_cmd_2 = "cp %s %s/%s.SBS%s.all" % (matrix_path, FF_temp_Dir, Project_ID, Final_Type)
@@ -1610,7 +1634,7 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, B
 
 
 					elif Type in DBS_Arr:
-						sigPlt.plotDBS(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=False)
+						sigPlt.plotDBS(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=True)
 						FF_temp_Dir = "%s/DBS" % FF_Dir
 						FF_temp_cmd_1 = "mkdir %s" % FF_temp_Dir
 						FF_temp_cmd_2 = "cp %s %s/%s.DBS%s.all" % (matrix_path, FF_temp_Dir, Project_ID, Final_Type)
@@ -1629,7 +1653,7 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, B
 
 
 					elif Type in ID_Arr:
-						sigPlt.plotID(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=False)
+						sigPlt.plotID(matrix_path, Final_output_Dir, Project_ID, Final_Type, percentage=True)
 
 						FF_temp_Dir = "%s/ID" % FF_Dir
 						FF_temp_cmd_1 = "mkdir %s" % FF_temp_Dir
@@ -1811,9 +1835,12 @@ if __name__ == "__main__":
 # python mSigPortal_Profiler_Extraction_v30.py -f catalog_csv -i Demo_input/demo_input_catalog.csv -p Project -o Test_Output_Catlog_CSV -g GRCh37 -t WGS
 
 ### Usage for catalog_tsv
-# python mSigPortal_Profiler_Extraction_v30.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv -p Project -o Test_Output_Catlog_TSV -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction_v32.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv -p Project -o z-9-Test_Output_Catlog_TSV -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction_v32.py -f catalog_csv -i Demo_input_2/tmp2.csv -p Project -o z-9-Test_Output_Catlog_TSV -g GRCh37 -t WGS
 
 
-### Usage for maf
-# python mSigPortal_Profiler_Extraction_v31.py -f maf -i Demo_input/demo_input_multi_MAF.txt -p Project -o Test_Output_MAF -g GRCh37 -t WGS
+### Usage for catalog_maf
+# python mSigPortal_Profiler_Extraction_v32.py -f maf -i Demo_input/demo_input_multi_MAF.txt -p Project -o z-9-Test_Output_Catlog_TSV -g GRCh37 -t WGS
+
+
 
