@@ -10,27 +10,28 @@ import pandas as pd
 Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
 Version:	1.32
-Date:		November-01-2021
+Date:		November-02-2021
 Update:		(01) Generate seqInfo for downloading (seqInfo=True)
-			(02) Generate Compressed Dir: DBS.tar.gz;ID.tar.gz;plots.tar.gz;SBS.tar.gz;vcf_files.tar.gz;
-			(03) Generate Statistics.txt (need to update: github:SigProfilerMatrixGenerator-master/SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py)
-			(04) Solve the 'True' bug for Collpase Option 
-			(05) Fix the bug in Catalog format with -c function
-			(06) Generate Matrix_List.txt
-			(07) Solve the problem "The header is incorrectly displayed in the CSV/TSV File"
-			(08) Fix the bug of -F function in CSV/TSV format
-			(09) Filter the line of ALT with ","
-			(10) Improve the function of -F with "-" in CSV, TSV and VCF format 
-			(11) Improve the function of Collpase [The All_Samples@Filter]
-			(12) Fix the bug of "rm -rf /tmp"!
-			(13) Improve the output file: svg_files_list.txt
-			(14) Improve the output file: matrix_files_list.txt
-			(15) Improve argparse --help
-			(16) Change the ouptput structure for Catalog
-			(17) tar compressing without directory structure, This is very complicated better with zip not gzip, command is following:
-				 cmd = "zip -jr %s/File_Dir_Name.zip %s/File_Dir_Name" % (zip_Dir,Original_Dir)
-			(18) Support MAF format ["Tumor_Sample_Barcode", "Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]
-			(19) Enable sigPlt to support percentage
+		(02) Generate Compressed Dir: DBS.tar.gz;ID.tar.gz;plots.tar.gz;SBS.tar.gz;vcf_files.tar.gz;
+		(03) Generate Statistics.txt (need to update: github:SigProfilerMatrixGenerator-master/SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py)
+		(04) Solve the 'True' bug for Collpase Option 
+		(05) Fix the bug in Catalog format with -c function
+		(06) Generate Matrix_List.txt
+		(07) Solve the problem "The header is incorrectly displayed in the CSV/TSV File"
+		(08) Fix the bug of -F function in CSV/TSV format
+		(09) Filter the line of ALT with ","
+		(10) Improve the function of -F with "-" in CSV, TSV and VCF format 
+		(11) Improve the function of Collpase [The All_Samples@Filter]
+		(12) Fix the bug of "rm -rf /tmp"!
+		(13) Improve the output file: svg_files_list.txt
+		(14) Improve the output file: matrix_files_list.txt
+		(15) Improve argparse --help
+		(16) Change the ouptput structure for Catalog
+		(17) tar compressing without directory structure, This is very complicated better with zip not gzip, command is following:
+			cmd = "zip -jr %s/File_Dir_Name.zip %s/File_Dir_Name" % (zip_Dir,Original_Dir)
+		(18) Support MAF format ["Tumor_Sample_Barcode", "Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]
+		(19) Enable sigPlt to support percentage
+		(20) Support R32 and CNV48 for catalog_TSV and catalog_CSV
 '''
 
 
@@ -395,11 +396,11 @@ def maf_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 					ALT_Final = ALT_2
 				else:
 					ALT_Final = ALT_1
-				
+
 				if "," in REF:
 					pass
 				else:
-					if "-" in REF or "-" in ALT_2:
+					if "-" in REF or "-" in ALT_1 or "-" in ALT_2:
 						Output_String = "%s	%s	%s	%s	INDEL	%s	%s	%s	%s	%s	SOMATIC\n" % (Project_ID,Sample_ID,Data_Type,Genome_Building,Chr,Start,End,REF,ALT_Final)
 						mSigPortal_Format_INDEL_File.write(Output_String)
 					elif len(REF) != len(ALT_2):
@@ -1474,6 +1475,8 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, B
 	SBS_Arr = [6, 24, 96, 384, 1536, 6144]
 	ID_Arr = [28, 83, 415, 8268]
 	DBS_Arr = [78, 186, 312, 1248, 2976]
+	CNV_Arr = [48]
+	R32_Arr = [32]
 
 	Input_Path_arr = ["mSigPortal_SNV.txt", "mSigPortal_INDEL.txt", "mSigPortal_SNV_Collapse.txt", "mSigPortal_INDEL_Collapse.txt","mSigPortal_catalog_csv.txt", "mSigPortal_catalog_tsv.txt"]
 
@@ -1672,6 +1675,50 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, B
 						os.system("zip -jr %s.zip %s" % (FF_temp_Dir, FF_temp_Dir))
 
 
+					elif Type in CNV_Arr:
+						sigPlt.plotCNV(matrix_path, Final_output_Dir, Project_ID, percentage=True, aggregate=False)
+
+						#sigPlt.plotCNV(matrix_path, output_path, project, "pdf", percentage=True, aggregate=False)
+
+						FF_temp_Dir = "%s/CNV" % FF_Dir
+						FF_temp_cmd_1 = "mkdir %s" % FF_temp_Dir
+						FF_temp_cmd_2 = "cp %s %s/%s.CNV%s.all" % (matrix_path, FF_temp_Dir, Project_ID, Final_Type)
+
+						os.system(FF_temp_cmd_1)
+						os.system(FF_temp_cmd_2)
+
+						Path = "%s/%s.CNV%s.all" % (FF_temp_Dir, Project_ID, Final_Type)
+						Path = os.path.abspath(Path)
+						Catalog = "CNV"
+						Final_String = "%s,%s,%s\n" % (Catalog, Type, Path)
+						Matrix_List_File.write(Final_String)
+
+						#os.system("tar -zcvf %s.tar.gz %s" % (FF_temp_Dir, FF_temp_Dir))
+						os.system("zip -jr %s.zip %s" % (FF_temp_Dir, FF_temp_Dir))
+
+					elif Type in R32_Arr:
+						sigPlt.plotSV(matrix_path, Final_output_Dir, Project_ID, percentage=True, aggregate=False)
+
+						#sigPlt.plotCNV(matrix_path, output_path, project, "pdf", percentage=True, aggregate=False)
+
+						FF_temp_Dir = "%s/RS" % FF_Dir
+						FF_temp_cmd_1 = "mkdir %s" % FF_temp_Dir
+						FF_temp_cmd_2 = "cp %s %s/%s.RS%s.all" % (matrix_path, FF_temp_Dir, Project_ID, Final_Type)
+
+						os.system(FF_temp_cmd_1)
+						os.system(FF_temp_cmd_2)
+
+						Path = "%s/%s.RS%s.all" % (FF_temp_Dir, Project_ID, Final_Type)
+						Path = os.path.abspath(Path)
+						Catalog = "RS"
+						Final_String = "%s,%s,%s\n" % (Catalog, Type, Path)
+						Matrix_List_File.write(Final_String)
+
+						#os.system("tar -zcvf %s.tar.gz %s" % (FF_temp_Dir, FF_temp_Dir))
+						os.system("zip -jr %s.zip %s" % (FF_temp_Dir, FF_temp_Dir))
+
+
+
 					else:
 						print("Error 233: Your input type in the file is not supported yet!" )
 						sys.exit()
@@ -1829,10 +1876,10 @@ if __name__ == "__main__":
 # time python mSigPortal_Profiler_Extraction_v28.py -f tsv -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output -g GRCh37 -t WGS -c True
 # time python mSigPortal_Profiler_Extraction_v28.py -f vcf -F PASS@alt_allele_in_normal -i Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS -c True
 
-# python mSigPortal_Profiler_Extraction_v28.py -f vcf -F PASS@alt_allele_in_normal@- -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_multi.vcf -p Project -o Test_Output -g GRCh37 -t WGS -c True
+# python mSigPortal_Profiler_Extraction_v32.py -f vcf -F PASS@alt_allele_in_normal@- -i Demo_input/demo_input_multi.vcf.gz -p Project -o Test_Output -g GRCh37 -t WGS -c True
 
 ### Usage for catalog_csv
-# python mSigPortal_Profiler_Extraction_v30.py -f catalog_csv -i Demo_input/demo_input_catalog.csv -p Project -o Test_Output_Catlog_CSV -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction_v32.py -f catalog_csv -i Demo_input/demo_input_catalog.csv -p Project -o Test_Output_Catlog_CSV -g GRCh37 -t WGS
 
 ### Usage for catalog_tsv
 # python mSigPortal_Profiler_Extraction_v32.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv -p Project -o z-9-Test_Output_Catlog_TSV -g GRCh37 -t WGS
@@ -1841,6 +1888,18 @@ if __name__ == "__main__":
 
 ### Usage for catalog_maf
 # python mSigPortal_Profiler_Extraction_v32.py -f maf -i Demo_input/demo_input_multi_MAF.txt -p Project -o z-9-Test_Output_Catlog_TSV -g GRCh37 -t WGS
+
+
+### Usage for catalog_tsv RS32
+# python mSigPortal_Profiler_Extraction_v32.py -f catalog_tsv -i Demo_input_2/breast_cancer_samples_example.RS32.all -p Project -o z-9-Test_Catalog_tsv_R32 -g GRCh37 -t WGS
+
+
+
+### Usage for catalog_tsv CNV48
+# python mSigPortal_Profiler_Extraction_v32.py -f catalog_tsv -i Demo_input_2/breast_cancer_samples_example.CNV48.all -p Project -o z-9-Test_Catalog_tsv_CNV48 -g GRCh37 -t WGS
+
+
+
 
 
 
