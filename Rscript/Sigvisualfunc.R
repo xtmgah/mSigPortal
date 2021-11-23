@@ -1207,7 +1207,8 @@ profile_heatmap_plot <- function(data,output_plot = NULL,plot_width=NULL, plot_h
       geom_point()+
       scale_color_d3()+
       scale_y_continuous(breaks = pretty_breaks())+
-      labs(title = 'Number of Mutations Per Sample with Regard to Mutational Profile',x="Sample index",y="log10(Mutations)",color="Profile")+
+      labs(x="Sample index",y="log10(Mutations)",color="Profile")+
+      #title = 'Number of Mutations Per Sample with Regard to Mutational Profile',
       theme_ipsum_rc(grid = "XYy",ticks = TRUE,axis = FALSE,axis_title_just = 'm',axis_title_size = 14)+
       theme(axis.text.x = element_blank(),axis.ticks.x = element_blank(),plot.title = element_text(hjust = 0.5))+
       panel_border(color = 'black')
@@ -1220,7 +1221,8 @@ profile_heatmap_plot <- function(data,output_plot = NULL,plot_width=NULL, plot_h
       ggplot(aes(Sample,Profile,fill=(Mutations)))+
       geom_tile(col="white")+
       scale_fill_viridis_c(trans = "log10",label=comma_format(),na.value = 'black')+
-      labs(title = 'Number of Mutations Per Sample with Regard to Mutational Profile',x="",y="",fill="Number of mutations\n")+
+      labs(x="",y="",fill="Number of mutations\n")+
+      #title = 'Number of Mutations Per Sample with Regard to Mutational Profile'
       theme_ipsum_rc(grid = FALSE,ticks = FALSE,axis = FALSE)+
       theme(legend.key.width =unit(2, "cm"),legend.position = "top",plot.title = element_text(hjust = 0.5))
     
@@ -1563,12 +1565,35 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
 {
   ## profile 1 and profile 2 will be the dataframe with two columns: MutationType and value
   
+  COLORS2 = c("#1F77B4FF","#D62728FF")
   COLORS6 = c("#03BCEE", "#010101", "#E32926", "#CAC9C9", "#A1CE63", "#EBC6C4")
   COLORS10 = c("#03BCEE", "#0366CB", "#A1CE63", "#016601", "#FE9898", "#E32926", "#FEB166", "#FE8001", "#CB98FE", "#4C0198")
   COLORS16=c("#FCBD6F", "#FE8002", "#AFDC8A", "#36A02E", "#FCC9B4", "#FB896A", "#F04432", "#BB191A", "#CFE0F1", "#93C3DE", "#4A97C8", "#1764AA", "#E1E1EE", "#B5B5D7", "#8582BC", "#62409A")
   
   typelength = dim(profile1)[1]
+  typelength2 = dim(profile2)[1]
+  
+if(!(typelength %in% c(78,83,96,192))){
+  if(typelength == 0){
+    stop('Error: Sample 1 have 0 mutation of selected profile')
+  }else{
+    stop('Error: Sample 1 detected unsupported profile types. Currently, Profile Comparision only supports SBS78, SBS192, DBS78, and ID83.')
+  }
+}
+  
+  if(!(typelength2 %in% c(78,83,96,192))){
+    if(typelength2 == 0){
+      stop('Error: Sample 1 have 0 mutation of selected profile')
+    }else{
+      stop('Error: Sample 1 detected unsupported profile types. Currently, Profile Comparision only supports SBS78, SBS192, DBS78, and ID83.')
+    }
+  }
+  
+  
+  
+  
   if (is.null(colors)) {
+    if(typelength == 192){colors = COLORS6;}
     if(typelength == 96){colors = COLORS6; }
     if(typelength == 78){colors = COLORS10;}
     if(typelength == 83){colors = COLORS16;}
@@ -1581,34 +1606,35 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
   profile1 <- profile_format_df(profile1,factortype = TRUE,indel_short = indel_short) 
   profile2 <- profile_format_df(profile2,factortype = TRUE,indel_short = indel_short)
   
-  
   names(colors) <- levels(profile1$Type)
+  
+  dim2 <- dim(profile1)[2]
   
   #print(colors)
   if(normalize){
-    profile1[,4] <- profile1[,4]/sum(profile1[,4])  
-    profile2[,4] <- profile2[,4]/sum(profile2[,4]) 
+    profile1[,dim2] <- profile1[,dim2]/sum(profile1[,dim2])  
+    profile2[,dim2] <- profile2[,dim2]/sum(profile2[,dim2]) 
   }
-
-  diff = profile1[[4]] - profile2[[4]]
+  
+  diff = profile1[[dim2]] - profile2[[dim2]]
   RSS = sum(diff^2)
   RSS = format(RSS, scientific = TRUE, digits = 3)
-  cosine_sim = cos_sim(profile1[[4]], profile2[[4]])
+  cosine_sim = cos_sim(profile1[[dim2]], profile2[[dim2]])
   cosine_sim = round(cosine_sim, 3)
-  if(colnames(profile1)[4] == colnames(profile2)[4]){
-    colnames(profile1)[4] <-  "Profile1"
-    colnames(profile2)[4] <-  "Profile2"
+  if(colnames(profile1)[dim2] == colnames(profile2)[dim2]){
+    colnames(profile1)[dim2] <-  "Profile1"
+    colnames(profile2)[dim2] <-  "Profile2"
   }
   
   df <-  profile1 %>% left_join(profile2) %>% mutate(Difference=diff)
   if(is.null(profile_names)){
-    profile_names <- colnames(df)[4:5]
+    profile_names <- colnames(df)[dim2:(dim2+1)]
   }
-  colnames(df)[4:5] <- profile_names
-  df <- df %>% pivot_longer(cols = -c(1,2,3)) %>% mutate(name=factor(name,levels = c(profile_names,"Difference"))) %>% mutate(Type=factor(Type,levels = names(colors)))
+  colnames(df)[dim2:(dim2+1)] <- profile_names
+  df <- df %>% pivot_longer(cols = -c(1:(dim2-1))) %>% mutate(name=factor(name,levels = c(profile_names,"Difference"))) %>% mutate(Type=factor(Type,levels = names(colors)))
   
   if(is.null(profile_ymax)){
-    profile_ymax <- max(c(profile1[[4]],profile2[[4]]))*1.1
+    profile_ymax <- max(c(profile1[[dim2]],profile2[[dim2]]))*1.1
   }
   
   if(is.null(diff_ylim)){
@@ -1617,40 +1643,86 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
     diff_ylim[1] <- if_else(diff_ylim[1] > -0.02, -0.02,diff_ylim[1])
     diff_ylim[2] <- if_else(diff_ylim[2] < 0.02, 0.02,diff_ylim[2])
   }
-  dftmp = tibble(Type = rep(levels(profile1$Type)[1], 4), SubType = rep((profile1$SubType)[1], 4), name = c(profile_names, "Difference", "Difference"), value = c(profile_ymax, profile_ymax, diff_ylim[1], diff_ylim[2])) %>% mutate(name=factor(name,levels = c(profile_names,"Difference"))) %>% mutate(Type=factor(Type,levels = names(colors)))
+  dftmp = tibble(Type = rep(levels(profile1$Type)[1], 4), SubType = rep((profile1$SubType)[1], 4), Strand = 'T', name = c(profile_names, "Difference", "Difference"), value = c(profile_ymax, profile_ymax, diff_ylim[1], diff_ylim[2])) %>% mutate(name=factor(name,levels = c(profile_names,"Difference"))) %>% mutate(Type=factor(Type,levels = names(colors)))
   
+  
+  ## if stranded
+  if('Strand' %in% colnames(df)){
+    
+    StrandColor <- c("#1F77B4FF", "#D62728FF","#2CA02CFF")
+    names(StrandColor) <- c('Transcribed Strand','Untranscribed Strand','Nontranscribed Strand')
+    df <- df %>% mutate(Strand = factor(Strand,levels = c('T','U','N'),labels = c('Transcribed Strand','Untranscribed Strand','Nontranscribed Strand')))
+    dftmp <- dftmp %>% mutate(Strand = factor(Strand,levels = c('T','U','N'),labels = c('Transcribed Strand','Untranscribed Strand','Nontranscribed Strand')))
+    df$Strand <- fct_drop(df$Strand)
+    dftmp$Strand <- fct_drop(dftmp$Strand)
+    StrandColor <- StrandColor[levels(df$Strand)]
+  }
   
   if (condensed) {
-    plot = ggplot(data = df, aes(x = SubType, y = value,  fill = Type, width = 1)) + 
-      geom_bar(stat = "identity", position = "identity", colour = "black", size = 0.2) + 
-      geom_point(data = dftmp, aes(x = SubType, y = value), alpha = 0,size=0) + 
-      scale_fill_manual(values = colors) + 
-      facet_grid(name ~ Type, scales = "free",space = "free_x") +
-      ylab("Relative contribution") +
-      guides(fill = FALSE) + 
-      labs(x="")+
-      scale_y_continuous(labels = scales::number_format(accuracy = 0.01))+
-      #scale_y_continuous(expand = c(0,0))+
-      theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
-      ggtitle(paste("RSS = ", RSS, "; Cosine Similarity = ", cosine_sim, sep = ""))+
-      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 8,face = 'bold',angle = 90, vjust = 0.5), strip.text.x = element_text(size = 10,hjust = 0.5,face = 'bold',colour = "white", margin = margin(0.1,0.1,0.1,0.1,unit = 'cm')), strip.text.y = element_text(size = 11,hjust = 0.5,margin = margin(0.1,0.15,0.1,0.15,unit = 'cm')),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(size=15,face = 'bold',hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5)+geom_vline(xintercept = Inf,colour = 'black',size = 0.5)#axis.line.x = element_line(colour = 'black',size = 0.25),
-    #panel_border(color = gray(0.5),size = 0.3)
+    
+    if('Strand' %in% colnames(df)){
+      plot <- ggplot(data = df, aes(x = SubType, y = value,  fill = Strand, width = 1)) + 
+        geom_bar(stat = "identity", position = position_dodge2(preserve = "single"), colour = "black", size = 0.2) + 
+        geom_point(data = dftmp , aes(x = SubType, y = value), alpha = 0,size=0) + 
+        scale_fill_manual(values = StrandColor) + 
+        facet_grid(name ~ Type, scales = "free",space = "free_x") +
+        ylab("Relative contribution") +
+        labs(x="",fill="")+
+        scale_y_continuous(labels = scales::number_format(accuracy = 0.01))+
+        theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
+        ggtitle(paste("RSS = ", RSS, "; Cosine Similarity = ", cosine_sim, sep = ""))+
+        theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 8,face = 'bold',angle = 90, vjust = 0.5), strip.text.x = element_text(size = 10,hjust = 0.5,face = 'bold',colour = "white", margin = margin(0.1,0.1,0.1,0.1,unit = 'cm')), strip.text.y = element_text(size = 11,hjust = 0.5,margin = margin(0.1,0.15,0.1,0.15,unit = 'cm')),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(size=15,face = 'bold',hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25),legend.position = c(0.9,0.94),legend.text = element_text(size = 12),legend.key.size = unit(0.7,"line"))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5)+geom_vline(xintercept = Inf,colour = 'black',size = 0.5)
+      
+    }else{
+      plot = ggplot(data = df, aes(x = SubType, y = value,  fill = Type, width = 1)) + 
+        geom_bar(stat = "identity", position = "identity", colour = "black", size = 0.2) + 
+        geom_point(data = dftmp, aes(x = SubType, y = value), alpha = 0,size=0) + 
+        scale_fill_manual(values = colors) + 
+        facet_grid(name ~ Type, scales = "free",space = "free_x") +
+        ylab("Relative contribution") +
+        guides(fill = FALSE) + 
+        labs(x="")+
+        scale_y_continuous(labels = scales::number_format(accuracy = 0.01))+
+        #scale_y_continuous(expand = c(0,0))+
+        theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
+        ggtitle(paste("RSS = ", RSS, "; Cosine Similarity = ", cosine_sim, sep = ""))+
+        theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 8,face = 'bold',angle = 90, vjust = 0.5), strip.text.x = element_text(size = 10,hjust = 0.5,face = 'bold',colour = "white", margin = margin(0.1,0.1,0.1,0.1,unit = 'cm')), strip.text.y = element_text(size = 11,hjust = 0.5,margin = margin(0.1,0.15,0.1,0.15,unit = 'cm')),strip.background = element_rect(fill = "#f0f0f0"), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(size=15,face = 'bold',hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5)+geom_vline(xintercept = Inf,colour = 'black',size = 0.5)#axis.line.x = element_line(colour = 'black',size = 0.25),
+      #panel_border(color = gray(0.5),size = 0.3)
+    }
   }
   else {
-    plot = ggplot(data = df, aes(x = SubType, y = value,  fill = Type, width = 0.7)) + 
-      geom_bar(stat = "identity", position = "identity", colour = "black", size = 0) + 
-      geom_point(data = dftmp, aes(x = SubType, y = value), alpha = 0,size=0) + 
-      scale_fill_manual(values = colors) + 
-      facet_grid(name ~ Type, scales = "free",space = "free_x") +
-      ylab("Relative contribution") +
-      guides(fill = 'none') + 
-      labs(x="")+
-      scale_y_continuous(labels = scales::number_format(accuracy = 0.01))+
-      #scale_y_continuous(expand = c(0,0))+
-      theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
-      ggtitle(paste("RSS = ", RSS, "; Cosine Similarity = ", cosine_sim, sep = ""))+
-      theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 8,face = 'bold', angle = 90, vjust = 0.5), strip.text.x = element_text(size = 10,hjust = 0.5,face = 'bold',colour = "white", margin = margin(0.1,0.1,0.1,0.1,unit = 'cm')), strip.text.y = element_text(size = 11,hjust = 0.5,margin = margin(0.1,0.15,0.1,0.15,unit = 'cm')),strip.background = element_rect(fill = "#f0f0f0",), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(size=15,face = 'bold',hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5) +geom_vline(xintercept = Inf,colour = 'black',size = 0.5) #,axis.line.x = element_line(colour = 'black',size = 0.25)
-    #     panel_border(color = gray(0.5),size = 0.3)
+    
+    if('Strand' %in% colnames(df)){
+      plot = ggplot(data = df, aes(x = SubType, y = value,  fill = Strand, width = 0.7)) + 
+        geom_bar(stat = "identity", position = position_dodge2(preserve = "single"), colour = "black", size = 0) + 
+        geom_point(data = dftmp, aes(x = SubType, y = value), alpha = 0,size=0) + 
+        scale_fill_manual(values = StrandColor) + 
+        facet_grid(name ~ Type, scales = "free",space = "free_x") +
+        ylab("Relative contribution") +
+        labs(x="",fill="")+
+        scale_y_continuous(labels = scales::number_format(accuracy = 0.01))+
+        #scale_y_continuous(expand = c(0,0))+
+        theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
+        ggtitle(paste("RSS = ", RSS, "; Cosine Similarity = ", cosine_sim, sep = ""))+
+        theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 8,face = 'bold', angle = 90, vjust = 0.5), strip.text.x = element_text(size = 10,hjust = 0.5,face = 'bold',colour = "white", margin = margin(0.1,0.1,0.1,0.1,unit = 'cm')), strip.text.y = element_text(size = 11,hjust = 0.5,margin = margin(0.1,0.15,0.1,0.15,unit = 'cm')),strip.background = element_rect(fill = "#f0f0f0",), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(size=15,face = 'bold',hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25),legend.position = c(0.9,0.94),legend.text = element_text(size = 12),legend.key.size = unit(0.7,"line"))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5) +geom_vline(xintercept = Inf,colour = 'black',size = 0.5) #,axis.line.x = element_line(colour = 'black',size = 0.25)
+      #     panel_border(color = gray(0.5),size = 0.3)
+      
+    }else{
+      plot = ggplot(data = df, aes(x = SubType, y = value,  fill = Type, width = 0.7)) + 
+        geom_bar(stat = "identity", position = "identity", colour = "black", size = 0) + 
+        geom_point(data = dftmp, aes(x = SubType, y = value), alpha = 0,size=0) + 
+        scale_fill_manual(values = colors) + 
+        facet_grid(name ~ Type, scales = "free",space = "free_x") +
+        ylab("Relative contribution") +
+        guides(fill = 'none') + 
+        labs(x="")+
+        scale_y_continuous(labels = scales::number_format(accuracy = 0.01))+
+        #scale_y_continuous(expand = c(0,0))+
+        theme_ipsum_rc(axis_title_just = "m",grid = "Y",axis = TRUE) + 
+        ggtitle(paste("RSS = ", RSS, "; Cosine Similarity = ", cosine_sim, sep = ""))+
+        theme(axis.title.y = element_text(size = 14, vjust = 1), axis.text.y = element_text(size = 10), axis.title.x = element_text(size = 12), axis.text.x = element_text(size = 8,face = 'bold', angle = 90, vjust = 0.5), strip.text.x = element_text(size = 10,hjust = 0.5,face = 'bold',colour = "white", margin = margin(0.1,0.1,0.1,0.1,unit = 'cm')), strip.text.y = element_text(size = 11,hjust = 0.5,margin = margin(0.1,0.15,0.1,0.15,unit = 'cm')),strip.background = element_rect(fill = "#f0f0f0",), panel.grid.major.x = element_blank(), panel.spacing.x = unit(0, "lines"),panel.spacing.y = unit(0.2, "lines"),plot.title = element_text(size=15,face = 'bold',hjust = 0.5),axis.line.y = element_line(colour = 'black',size = 0.25))+annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf,colour = 'black',size = 0.5) +geom_vline(xintercept = Inf,colour = 'black',size = 0.5) #,axis.line.x = element_line(colour = 'black',size = 0.25)
+      #     panel_border(color = gray(0.5),size = 0.3)
+    }
   }
   
   
