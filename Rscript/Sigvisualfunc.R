@@ -1573,13 +1573,13 @@ plot_compare_profiles_diff <- function (profile1, profile2, profile_names = NULL
   typelength = dim(profile1)[1]
   typelength2 = dim(profile2)[1]
   
-if(!(typelength %in% c(78,83,96,192))){
-  if(typelength == 0){
-    stop('Error: Sample 1 have 0 mutation of selected profile')
-  }else{
-    stop('Error: Sample 1 detected unsupported profile types. Currently, Profile Comparision only supports SBS78, SBS192, DBS78, and ID83.')
+  if(!(typelength %in% c(78,83,96,192))){
+    if(typelength == 0){
+      stop('Error: Sample 1 have 0 mutation of selected profile')
+    }else{
+      stop('Error: Sample 1 detected unsupported profile types. Currently, Profile Comparision only supports SBS78, SBS192, DBS78, and ID83.')
+    }
   }
-}
   
   if(!(typelength2 %in% c(78,83,96,192))){
     if(typelength2 == 0){
@@ -3210,6 +3210,27 @@ change_data_type <- function(data){
 validate_vardf <- function(data, forces=NULL, nachars=c("","na","Na","NA","nan","NAN","Nan"), nacode='NA',Nmin=5, Nmin_drop=FALSE,excludes=NULL, lump=TRUE){
   #names_oringal <- colnames(data)
   # force data type
+  
+  # for eqaul number of unique value
+  equal_chars <- NULL
+  chrlist <- colnames(data %>% select(where(~is.character(.) & (n_distinct(.)>1))))
+  
+  if(!is.null(excludes)){ chrlist <- chrlist[!chrlist %in% excludes]}
+  
+  if(length(chrlist)>0){
+    
+    for(chr in chrlist){
+      tmpn <- data %>% select(varname=one_of(chr)) %>% count(varname) %>% count(n) %>% dim() %>% .[[1]]
+      if(tmpn==1){
+        equal_chars <- c(equal_chars,chr)
+      }
+    }
+    
+    data <- data %>% mutate(across(one_of(equal_chars),as.factor))
+    excludes <- c(excludes,equal_chars)
+  }
+  
+  
   if(!is.null(excludes)){
     names_all <- colnames(data)
     data_excludes <- data  %>% dplyr::select(one_of(excludes))
@@ -3244,7 +3265,7 @@ validate_vardf <- function(data, forces=NULL, nachars=c("","na","Na","NA","nan",
   ## exclude for the all unique value columns
   #data <- data %>% mutate(across(where(is.character),~ fct_lump(fct_infreq(as.factor(.x)),prop = 0.2)))
   if(lump){
-    data <- data %>% mutate(across(where(~ is.character(.) & (n_distinct(.) < 0.8*n())),~ fct_lump(fct_infreq(as.factor(.x)),prop = 0.2)))
+    data <- data %>% mutate(across(where(~ is.character(.) & (n_distinct(.)>1) & (n_distinct(.) < 0.8*n())),~ fct_lump(fct_infreq(as.factor(.x)),prop = 0.2)))
   }
   # if change the order
   #data <- data %>% select(names_oringal)
@@ -3581,15 +3602,40 @@ mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression
       # supported types: "parametric", "nonparametric", "robust", "bayes"
       # switch the name if Var2 is categorical
       ## remove unique value
-      tmp <- data %>% group_by(Group) %>% summarise(n1=n_distinct(Var1),n2=n_distinct(Var2)) %>% filter(n1==1|n2==1) %>% pull(Group)
+      
+      ## decide two sample test or oneway_annovar 
       
       if(var1_type=="categorical"){
-        result <- data  %>% filter(!Group %in% tmp) %>%   group_by(Group) %>% group_modify(~statsExpressions::two_sample_test(data = .,x=Var1,y=Var2,type=type)) %>% select(-expression) %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH")  
+        if(length(levels(data$Var1))==2){
+          
+          tmp <- data %>% group_by(Group) %>% filter(!is.na(Var1),!is.na(Var2))%>%  summarise(n1=n_distinct(Var1),n2=n_distinct(Var2)) %>% filter(n1!=2|n2==1) %>% pull(Group)
+          result <- data  %>% filter(!Group %in% tmp) %>%   group_by(Group) %>% group_modify(~statsExpressions::two_sample_test(data = .,x=Var1,y=Var2,type=type)) %>% select(-expression) %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH")
+        }
+        
+        if(length(levels(data$Var1))>2){
+          tmp <- data %>% filter(!is.na(Var1),!is.na(Var2)) %>% group_by(Group,Var1) %>% summarise(SD=sd(Var2)) %>% filter(SD==0) %>% select(Group) %>% unique() %>% pull(Group) %>% as.character()
+          result <- data  %>% filter(!Group %in% tmp) %>%   group_by(Group) %>% group_modify(~statsExpressions::oneway_anova(data = .,x=Var1,y=Var2,type=type)) %>% select(-expression) %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH")
+        }
+        
         result$parameter1 <- Var1
         result$parameter2 <- Var2
         colnames(result)[1:3] <- c(tolower(Group_Var),"variable_name1","varible_name2")
       }else{
-        result <- data  %>% filter(!Group %in% tmp) %>%   group_by(Group) %>% group_modify(~statsExpressions::two_sample_test(data = .,x=Var2,y=Var1,type=type)) %>% select(-expression) %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH")  
+        
+        # 
+        # result <- data  %>% filter(!Group %in% tmp) %>%   group_by(Group) %>% group_modify(~statsExpressions::two_sample_test(data = .,x=Var2,y=Var1,type=type)) %>% select(-expression) %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH")  
+        # 
+        if(length(levels(data$Var2))==2){
+          
+          tmp <- data %>% group_by(Group) %>% filter(!is.na(Var1),!is.na(Var2))%>%  summarise(n1=n_distinct(Var2),n2=n_distinct(Var1)) %>% filter(n1!=2|n2==1) %>% pull(Group)
+          result <- data  %>% filter(!Group %in% tmp) %>%   group_by(Group) %>% group_modify(~statsExpressions::two_sample_test(data = .,x=Var2,y=Var1,type=type)) %>% select(-expression) %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH")
+        }
+        
+        if(length(levels(data$Var2))>2){
+          tmp <- data %>% filter(!is.na(Var1),!is.na(Var2)) %>% group_by(Group,Var2) %>% summarise(SD=sd(Var1)) %>% filter(SD==0) %>% select(Group) %>% unique() %>% pull(Group) %>% as.character()
+          result <- data  %>% filter(!Group %in% tmp) %>%   group_by(Group) %>% group_modify(~statsExpressions::oneway_anova(data = .,x=Var2,y=Var1,type=type)) %>% select(-expression) %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH")
+        }
+        
         result$parameter1 <- Var2
         result$parameter2 <- Var1
         colnames(result)[1:3] <- c(tolower(Group_Var),"variable_name1","varible_name2")
