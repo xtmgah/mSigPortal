@@ -513,7 +513,7 @@ probabilities <-  function(W, H){
 
 # SBS96_plot --------------------------------------------------------------
 
-plot_sbs_96_profile <- function(data,samplename=NULL,totalmut=NULL,samplename_plot=TRUE, totalmut_plot=TRUE,filename=NULL,percentage=TRUE,ytitle="Percentage of Single Base Subsitutions"){
+plot_sbs_96_profile <- function(data,samplename=NULL,totalmut=NULL,samplename_plot=TRUE, totalmut_plot=TRUE,filename=NULL,percentage=TRUE,ytitle=NULL){
   
   require(tidyverse)
   require(hrbrthemes)
@@ -550,10 +550,14 @@ plot_sbs_96_profile <- function(data,samplename=NULL,totalmut=NULL,samplename_pl
     data %>% group_by(Type) %>% dplyr::slice(16) %>% ungroup() %>% mutate(Value2=Seq+0.25) %>% select(Value2)
   )
   
+  
+  if(is.null(totalmut)){
+    totalmut <- sum(data$Value)
+  }  
+  
+  
   if(percentage){
-    
     if(sum(data$Value)>10){
-      totalmut <- sum(data$Value)
       data$Value <- data$Value/totalmut
     }
     ymax <- max(data$Value)/0.9
@@ -561,7 +565,12 @@ plot_sbs_96_profile <- function(data,samplename=NULL,totalmut=NULL,samplename_pl
     labelx <- percent
     #ylabp <- percent(pretty_breaks(n = 5)(ymax))
     ylabp <- percent(seq(0,ymax,length.out = 5))
-    ytext <- ytitle
+    if(is.null(ytitle)) {
+      ytext <- "Percentage of Single Base Subsitutions"
+    }else{
+      ytext <- ytitle
+    }
+    
     
   }else{
     ymax <- max(data$Value)/0.9
@@ -569,7 +578,11 @@ plot_sbs_96_profile <- function(data,samplename=NULL,totalmut=NULL,samplename_pl
     labelx <- comma
     #ylabp <- comma(pretty_breaks(n = 5)(ymax))
     ylabp <- comma(seq(0,ymax,length.out = 5))
-    ytext <- "Number of Single Base Subsitutions"
+    if(is.null(ytitle)) {
+      ytext <- "Number of Single Base Subsitutions"
+    }else{
+      ytext <- ytitle
+    }
   }
   
   
@@ -614,7 +627,7 @@ plot_sbs_96_profile <- function(data,samplename=NULL,totalmut=NULL,samplename_pl
     ggplot(aes(Seq,Value,fill=Type))+
     geom_col(color="white",width = 0.5,size=0)+
     scale_fill_manual(values=COLORS6)+
-    scale_x_continuous(expand = c(0,0),labels = data$SubType,breaks = data$Seq,sec.axis = dup_axis(labels = NULL,name = NULL))+
+    scale_x_continuous(expand = expansion(add = c(0.25,0.3)),labels = data$SubType,breaks = data$Seq,sec.axis = dup_axis(labels = NULL,name = NULL))+
     scale_y_continuous(expand = c(0,0),labels = labelx,breaks = seq(0,ymax,length.out = 5),limits = c(0,ymax),sec.axis = dup_axis(labels = NULL,name = NULL))+
     labs(x="",y=ytext)+
     theme(axis.title.y=element_text(size=12,face = "bold"),
@@ -695,7 +708,148 @@ plot_sbs_96_profile <- function(data,samplename=NULL,totalmut=NULL,samplename_pl
 
 # PLOT_DBS_78 -------------------------------------------------------------
 
-plot_dbs_78_profile <- function(data,samplename=NULL,samplename_plot=TRUE, filename=NULL){
+plot_dbs_78_profile <- function(data,samplename=NULL,samplename_plot=TRUE, filename=NULL,totalmut=NULL,totalmut_plot=TRUE,percentage=TRUE,ytitle=NULL){
+  require(tidyverse)
+  require(hrbrthemes)
+  require(scales)
+  require(cowplot)  
+  
+  data <- data %>% mutate(Type=paste0(str_sub(MutationType,1,3),"NN"),SubType=str_sub(MutationType,4,5)) %>% select(Type,SubType,MutationType,everything()) %>% arrange(Type,SubType)
+  
+  if(is.null(samplename)){
+    samplename <- colnames(data)[4]
+  }
+  
+  colnames(data)[4] <- "Value"
+  data <- data %>% mutate(Seq=seq_along(MutationType)) %>% mutate(Type=fct_inorder(Type),SubType=fct_inorder(SubType),MutationType=fct_inorder(MutationType))
+  stype <- unique(data$Type)
+  
+  if(!is.null(totalmut)){
+    totalmut <- comma_format()(totalmut)
+  }
+  
+  if(percentage){
+    if(sum(data$Value)>10){
+      totalmut <- sum(data$Value)
+      data$Value <- data$Value/totalmut
+    }
+    
+    if(is.null(ytitle)) {
+      ytext <- "Percentage of Double Base Subsitutions"
+    }else{
+      ytext <- ytitle
+    }
+  }else{
+    if(is.null(ytitle)) {
+      ytext <- "Number of Double Base Subsitutions"
+    }else{
+      ytext <- ytitle
+    }    
+  }
+  
+  
+  COLORS10 = c("#03BCEE", "#0366CB", "#A1CE63", "#016601", "#FE9898", "#E32926", "#FEB166", "#FE8001", "#CB98FE", "#4C0198")
+  names(COLORS10) <- stype
+  
+  ymax <- max(data$Value)/0.9
+  ymax <- 4*ceiling(ymax/4)
+  
+  #ylabp <- pretty_breaks(n = 5)(data$Value)
+  ylabp <- comma(seq(0,ymax,length.out = 5))
+  ylabp <- ylabp[length(ylabp)]
+  
+  data0 <- bind_cols(
+    data %>% group_by(Type) %>% filter(row_number() == 1) %>% ungroup() %>% mutate(Value1=Seq+0.25) %>% select(Value1,Type),
+    data %>% group_by(Type) %>% "["(.,c(which(data$Type != lag(data$Type))-1, 78),) %>% ungroup() %>% mutate(Value2=Seq+0.25) %>% select(Value2)
+  )
+  
+  #ylabp <- pretty_breaks(n = 5)(data$Value)
+  #ylabp <- ylabp[length(ylabp)]
+  
+  anno.x=(data0$Value1+data0$Value2)/2
+  anno.lab=data0$Type
+  
+  p1 <- 
+    data0 %>% ggplot(aes(xmin=Value1,xmax=Value2,ymin=0,ymax=0.9,fill=Type))+
+    geom_rect()+
+    scale_fill_manual(values=COLORS10)+
+    scale_x_continuous(expand = c(0,0),limits=c(1,78.5))+
+    scale_y_continuous(expand = c(0,0),breaks = 1,labels = ylabp,limits = c(0,2.2),sec.axis = dup_axis(labels = NULL,name = NULL))+
+    labs(y=" ",x=NULL)+annotate("text",x=anno.x,y=1.5,label=anno.lab,size=5,fontface =2,hjust=0.5)+
+    theme(axis.title.y=element_text(size=12,face = "bold"),
+          axis.title.x=element_blank(),
+          axis.text.y=element_text(size=10,color = "white"),
+          axis.text.x=element_blank(),
+          strip.text=element_blank(),
+          panel.background = element_blank(),
+          panel.border = element_blank(),
+          axis.ticks = element_blank(),
+          legend.position = "none",
+          panel.grid = element_blank(),
+          #axis.line.x = element_line(colour = 'white',size=0.6),
+          #axis.line.y = element_line(colour = 'white',size=0.6),
+          axis.line = element_blank(),
+          plot.margin=margin(b=0,l = 0.2,unit="cm"),
+    )
+  #+theme(plot.background = element_rect(fill = "darkblue"))
+  
+  p2 <- data %>% 
+    ggplot(aes(Seq,Value,fill=Type))+
+    geom_col(color="white",width = 0.4,size=0)+
+    scale_fill_manual(values=COLORS10)+
+    scale_x_continuous(expand = c(0,0),labels = data$SubType,breaks = data$Seq,sec.axis = dup_axis(labels = NULL,name = NULL))+
+    scale_y_continuous(expand = c(0,0),breaks = seq(0,ymax,length.out = 5),limits = c(0,ymax),sec.axis = dup_axis(labels = NULL,name = NULL))+
+    labs(x="",y=ytext)+
+    theme(axis.title.y=element_text(size=12,face = "bold"),
+          axis.title.x=element_blank(),
+          axis.text.y=element_text(size=10),
+          axis.text.x=element_text(size=11,angle = 90,hjust = 1,vjust = 0.5,colour = COLORS10[data$Type]),
+          #axis.text.x=element_blank(),
+          strip.text=element_blank(),
+          strip.background = element_blank(),
+          panel.background = element_blank(),
+          panel.border = element_blank(),
+          axis.ticks = element_blank(),
+          legend.position = "none",
+          panel.grid.major.y = element_line(colour = "gray90",size = 0.3,linetype="solid"),
+          panel.grid.minor.y = element_line(colour = "gray96",size = 0.3,linetype="solid"),
+          panel.grid.major.x = element_blank(),
+          axis.line.x = element_line(colour = 'gray80',size=0.6),
+          axis.line.y = element_line(colour = 'gray80',size=0.6),
+          plot.margin=margin(t=0,l=0.2,unit="cm")
+    )
+  
+  # if(samplename_plot & !is.null(samplename)){
+  #   p2 <- p2+annotate("text", x = 1, y = ymax*0.9, label = paste0(samplename,": ",totalmut," double subs"),size=7,fontface =2,hjust = 0)
+  # }
+  # 
+  
+  if(samplename_plot & !is.null(samplename)){
+    p2 <- p2+annotate("text", x = 1.5, y = ymax*0.9, label = samplename,size=7,fontface =2,hjust = 0)
+  }
+  
+  if(totalmut_plot & !is.null(totalmut)){
+    p2 <- p2+annotate("text", x = 78, y = ymax*0.88, label = paste0("Total Mutations: ",totalmut),size=6.5,fontface =2,hjust = 0)
+  }
+  
+  
+  #invisible(capture.output(p2 <- flush_ticks(p2,flush = "X")))
+  p2 <- p2+ theme(axis.text.y=element_text(vjust=c(0, rep(0.5, 3), 1)))
+  
+  
+  #cairo_pdf(file = 'tmp.pdf',width = 16,height = 4)
+  #pcomb <- ggarrange(p1,p2,nrow = 2,align = "h",heights = c(3,15))
+  #pcomb <- grid.arrange(p1,p2,nrow=2)
+  pcomb <- plot_grid(p1, p2, align = "v", nrow = 2, rel_heights = c(1/6,5/6))
+  
+  if(is.null(filename)){
+    return(pcomb)
+  } else {
+    ggsave(filename,pcomb,width = 18,height = 4,device = cairo_pdf)
+  }
+  
+}
+plot_dbs_78_profile_old <- function(data,samplename=NULL,samplename_plot=TRUE, filename=NULL){
   require(tidyverse)
   require(hrbrthemes)
   require(scales)
