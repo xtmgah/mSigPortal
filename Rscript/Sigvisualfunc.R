@@ -92,6 +92,7 @@ signames <-
       "SBS59",
       "SBS60",
       "SBS84",
+      "SBS85",
       "SBS92",
       "SBS-others"
     ),
@@ -163,6 +164,7 @@ signames <-
       "Signature Subs-59",
       "Signature Subs-60",
       "Signature Subs-84",
+      "Signature Subs-85",
       "Signature Subs-92",
       "Signature Subs-others"
       
@@ -226,6 +228,7 @@ Subscolor <- c(
   'Signature Subs-54'='#fcc5c0',
   'Signature Subs-56'='#8c510a',
   'Signature Subs-84'='#063C3C',
+  'Signature Subs-85'='#AA9139',
   'Signature Subs-92'='#0E1844',
   'Signature Subs-others'='#cececa'
 )
@@ -2445,10 +2448,179 @@ decompsite_distribution <- function(decompsite,output_plot = NULL,plot_width=NUL
 }
 
 
+### Landscape of mutational signature cluster function ####
+Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_cat = TRUE, studycolor=NULL,study_cutoff = -Inf,studyname = NULL,puritydata=NULL,puritydata_cat=FALSE,puritycol=NULL,purity_cutoff=-Inf,purityname = NULL,cosinedata=NULL,cosine_cutoff=0,highlight=NULL,legendnrow=NULL,sampletext_size=6,output_plot=NULL,plot_height=NULL,plot_width=NULL,clustern=NULL,kcolors=NULL,hc_func='hclust',hc_metric = 'euclidean',hc_method = 'ward.D2',stand=TRUE){
+  require(tidyverse)
+  require(scales)
+  require(janitor)
+  require(ggsci)
+  require(factoextra)
+  require(cowplot)
+  require(ggpubr)
+  require(hrbrthemes)
+  
+  # remove signature name with 0 contribution
+  sigdata <- sigdata %>% select(where(~ is.character(.x) || sum(.x) !=0 ))
+  
+  
+  # define color for categoly variable
+  colset <- c(pal_npg()(10),pal_jama()(7),pal_igv()(51))
+  #colset <- pal_igv()(51)
+  colnames(sigdata)[1] <- 'Samples'
+  
+  ## define color for signature
+  if(is.null(sigcolor)){
+    uvalues <- colnames(sigdata)[-1] #sort
+    if(unique(uvalues %in% names(Subscolor)) == TRUE && length(unique(uvalues %in% names(Subscolor))) == 1){
+      sigcolorindex <- as.character(Subscolor[uvalues])
+      names(sigcolorindex) <- uvalues
+    } else if(unique(uvalues %in% names(SBScolor)) == TRUE && length(unique(uvalues %in% names(SBScolor))) == 1){
+      sigcolorindex <- as.character(SBScolor[uvalues])
+      names(sigcolorindex) <- uvalues
+    } else {
+      sigcolorindex <- as.character(SBScolor[1:length(uvalues)])
+      names(sigcolorindex) <- uvalues
+    }
+  }else{
+    sigcolorindex <- sigcolor
+  }
+  
+  # cluster data
+  tmp=sigdata %>% adorn_percentages('row') 
+  #%>% mutate_if(is.numeric, funs(replace_na(., 0)))
+  mdata=as.matrix(tmp[,-1])
+  rownames(mdata) <- tmp$Samples
+  
+  #fviz_nbclust(mdata, kmeans, method = "gap_stat")
+  if(is.null(clustern)){
+    clustern=2
+    kcolors="black"
+  }else{
+    clustern <- if_else(dim(mdata)[1]<clustern+5,2L,as.integer(clustern))
+    if(is.null(kcolors)) {kcolors="black"}
+  }
+  
+  res <- hcut(mdata,k = clustern,hc_func = hc_func,hc_metric = hc_metric,hc_method = hc_method,stand=stand)
+  
+  # p_cluster
+  p_cluster <- fviz_dend(res, rect = TRUE, cex = 0.5,k_colors = kcolors,lwd = 0.3,show_labels = F)+scale_x_discrete(expand = c(0,0))+ theme(plot.margin=margin(b=-0.7,unit="cm"),title = element_blank())
+  
+  ## p_mutation
+  p_mutation <- sigdata %>% gather(Signature,Weight,-Samples) %>% mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% ggplot(aes(Samples,(Weight),fill=factor(Signature,levels = names(sigcolorindex))))+geom_bar(stat="identity",col="gray95",width=1,size=0.1)+theme_ipsum_rc(axis_title_just = "m",axis_title_size = 12,axis = "xy")+theme(legend.title = element_blank(),axis.ticks.x = element_blank(), axis.text.x = element_blank(),panel.grid.major.x=element_blank(),legend.position = "none",plot.margin=margin(b=-1,t = 1,unit="cm"))+scale_y_continuous(expand = c(0, 0),breaks = pretty_breaks(),labels = comma)+scale_fill_manual(values = sigcolorindex,drop=FALSE)+guides(fill=guide_legend(nrow=2,byrow=TRUE))+xlab("")+ylab("Number of mutations \n")
+  
+  # p_proportion plot
+  if(is.null(legendnrow)){
+    nsize <- dim(sigdata)[2]-1
+    if(nsize > 20){
+      legendnrow <- 2
+    }else {
+      legendnrow <- 1
+    }
+  }
+  
+  
+  # define the legend size
+  legend_size_cat <- theme(legend.box.background = element_blank(),legend.key.size = unit(0.5, "cm"), legend.key.height = unit(0.3, "cm"), legend.key.width =unit(0.4, "cm"), legend.position=c(0,1),legend.justification = c(0,1))
+  legend_size_num <-  theme(legend.box.background = element_blank(),legend.key.width =unit(0.3,"cm"),legend.key.height = unit(1,"cm"),legend.position=c(0,1),legend.justification = c(0,1))
+  
+  p_proportion <- sigdata %>% gather(Signature,Weight,-Samples) %>% mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% ggplot(aes(Samples,Weight,fill=factor(Signature,levels = names(sigcolorindex))))+geom_bar(stat="identity",position="fill",col="gray95",width = 1,size=0.1)+theme_ipsum_rc(axis_title_just = "m",axis_title_size = 12,grid = FALSE)+theme(panel.background = element_blank(),axis.ticks.x = element_blank(), axis.text.x = element_text(size = sampletext_size, angle = 90, vjust = 0.5, hjust = 1),panel.grid.major=element_line(),axis.ticks.y = element_line(colour = "black"))+scale_y_continuous(expand = c(0, 0),breaks = pretty_breaks())+xlab("")+scale_fill_manual("Sigantures",values = sigcolorindex,drop=FALSE)+ylab("Signature contribution\n")+guides(fill=guide_legend(ncol=legendnrow,byrow=FALSE))+legend_size_cat
+  
+  p_proportion_legend <- get_legend(p_proportion)
+  p_proportion <- p_proportion + theme(legend.position = "none")
+  
+  if(!is.null(highlight)){
+    samhigh <- sigdata %>% mutate(Samples_high=if_else(Samples %in% highlight,paste0("*",Samples),Samples))
+    p_proportion <-  p_proportion+scale_x_discrete(breaks=samhigh$Samples,labels=samhigh$Samples_high)
+  }
+  
+  if(!is.null(cosinedata)){
+    p_cosine <- cosinedata %>%  mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% mutate(Similarity=if_else(Similarity<cosine_cutoff,NA_real_,Similarity)) %>% ggplot(aes(Samples,1,fill=Similarity))+geom_tile(col="black")+scale_fill_viridis_c("Cosine\nSimilarity",na.value = "#cccccc",option = 'C',limits = c(0.6, 1), oob = scales::squish)+theme_minimal()+theme(panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+ylim(c(0,2))+legend_size_num
+    p_cosine_legend <- get_legend(p_cosine)
+    p_cosine <- p_cosine + theme(legend.position = "none",plot.margin=margin(b=-1.2,t = 0.5,unit="cm"))
+    
+  }else{
+    p_cosine <- NULL
+    p_cosine_legend <- NULL
+  }
+  
+  
+  # study color bar
+  if(!is.null(studydata)){
+    colnames(studydata) <- c('Samples','Study')
+    studydata <- studydata %>% filter(Samples %in% res$labels) %>% mutate(Samples=factor(Samples,levels=res$labels[res$order])) 
+    studyname <- if_else(is.null(studyname),"",studyname)
+    if(!studydata_cat) {
+      #studyname <- paste0(studyname,"\n")
+      studydata <- studydata %>% mutate(Study=if_else(Study<study_cutoff,NA_real_,Study))
+      p_study <- studydata %>% ggplot(aes(Samples,1,fill=Study))+geom_tile(col="black")+scale_fill_viridis_c(studyname,na.value = "#cccccc",option = 'D',breaks=pretty_breaks(5))+theme_minimal()+theme(panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+ylim(c(0,2))+legend_size_num
+      p_study_legend <- get_legend(p_study)
+      p_study <- p_study + theme(legend.position = "none",plot.margin=margin(b=-1,t = 0.5,unit="cm"))
+      
+    }else { 
+      if(is.null(studycolor)){
+        studycolor <-  colset[1:length(unique(studydata$Study))]
+        names(studycolor) <- unique(studydata$Study)
+      }
+      p_study <- studydata %>% ggplot(aes(Samples,1,fill=factor(Study,levels = names(studycolor))))+geom_tile(col="black")+scale_fill_manual(studyname,values =studycolor)+theme_minimal()+theme(panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+ylim(c(0,2))+legend_size_cat
+      p_study_legend <- get_legend(p_study)
+      p_study <- p_study + theme(legend.position = "none",plot.margin=margin(b=-1,t=0.5,unit="cm"))
+    }
+  }else {
+    p_study <- NULL
+    p_study_legend <- NULL
+  }
+  
+  if(!is.null(puritydata)){
+    colnames(puritydata) <- c('Samples','Purity')
+    puritydata <- puritydata %>% filter(Samples %in% res$labels) %>% mutate(Samples=factor(Samples,levels=res$labels[res$order])) 
+    purityname <- if_else(is.null(purityname),"",purityname)
+    if(!puritydata_cat) {
+      #purityname <-  paste0(purityname,"\n")
+      puritydata <- puritydata %>% mutate(Purity=if_else(Purity<purity_cutoff,NA_real_,Purity))
+      p_purity <- puritydata %>% ggplot(aes(Samples,1,fill=Purity))+geom_tile(col="black")+scale_fill_viridis_c(purityname,na.value = "#cccccc",option = 'D',breaks=pretty_breaks(5))+theme_minimal()+theme(panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+ylim(c(0,2))+legend_size_num
+      p_purity_legend <- get_legend(p_purity)
+      p_purity <- p_purity + theme(legend.position = "none",plot.margin=margin(b=-1,t = 0.5,unit="cm"))
+    }else {
+      #purityname <-  paste0(purityname,"\n")
+      if(is.null(puritycol)){
+        puritycol <- colset[1:length(unique(puritydata$Purity))]
+        names(puritycol) <- unique(puritydata$Purity)
+      }
+      p_purity <- puritydata %>% ggplot(aes(Samples,1,fill=factor(Purity,levels = names(puritycol))))+geom_tile(col="black")+scale_fill_manual(purityname,values =puritycol)+theme_minimal()+theme(panel.background = element_blank(),axis.title = element_blank(),axis.ticks = element_blank(),axis.text = element_blank(),panel.grid = element_blank())+ylim(c(0,2))+legend_size_cat
+      p_purity_legend <- get_legend(p_purity)
+      p_purity <- p_purity + theme(legend.position = "none",plot.margin=margin(b=-1,t=0.5,unit="cm"))
+      
+    }
+  }else {
+    p_purity <- NULL
+    p_purity_legend <- NULL
+  }
+  
+  h_study <- if_else(is.null(p_study),0,0.14)
+  h_purity <- if_else(is.null(p_study),0,0.11)
+  
+  xleng <- 2.5+dim(sigdata)[1]*0.1
+  xleng <- if_else(xleng>20,20,xleng)
+  yleng <- 12
+  if(is.null(plot_width)){ plot_width <-  xleng}
+  if(is.null(plot_height)){ plot_height <-  yleng}
+  
+  
+  p_legends <- plot_grid(p_study_legend,p_purity_legend, p_cosine_legend, p_proportion_legend, align = 'v',axis = 'l',ncol = 1,rel_heights = c(1,1,1,1.5))
+  p_main <- plot_grid(p_cluster,p_study,p_purity,p_mutation,p_cosine,p_proportion,align = 'v',axis = 'lr',ncol = 1,rel_heights = c(2,h_study,h_purity,4,0.05,7))
+  p_all <- plot_grid(p_main,p_legends+theme(plot.margin = margin(l = -0.5,unit = 'cm')),ncol = 2,rel_widths = c(10,2))
+  
+  if(is.null(output_plot)){
+    return(pall)
+  }else{
+    ggsave(filename = output_plot,plot = p_all,width = plot_width,height = plot_height)
+  }
+  
+}
 
 
 ### Landscape of mutational signature cluster function ####
-Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_cat = TRUE, studycolor=NULL,study_cutoff = -Inf,studyname = NULL,puritydata=NULL,puritydata_cat=FALSE,puritycol=NULL,purity_cutoff=-Inf,purityname = NULL,cosinedata=NULL,cosine_cutoff=0,highlight=NULL,legendnrow=NULL,sampletext_size=6,output_plot=NULL,plot_height=NULL,plot_width=NULL,clustern=NULL,kcolors=NULL,hc_func='hclust',hc_metric = 'euclidean',hc_method = 'ward.D2',stand=TRUE){
+Exposure_Clustering_old <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_cat = TRUE, studycolor=NULL,study_cutoff = -Inf,studyname = NULL,puritydata=NULL,puritydata_cat=FALSE,puritycol=NULL,purity_cutoff=-Inf,purityname = NULL,cosinedata=NULL,cosine_cutoff=0,highlight=NULL,legendnrow=NULL,sampletext_size=6,output_plot=NULL,plot_height=NULL,plot_width=NULL,clustern=NULL,kcolors=NULL,hc_func='hclust',hc_metric = 'euclidean',hc_method = 'ward.D2',stand=TRUE){
   require(tidyverse)
   require(scales)
   require(janitor)
@@ -2515,7 +2687,7 @@ Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_c
     }
   }
   
-  p_proportion <- sigdata %>% gather(Signature,Weight,-Samples) %>% mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% ggplot(aes(Samples,Weight,fill=factor(Signature,levels = names(sigcolorindex))))+geom_bar(stat="identity",position="fill",col="gray95",width = 1,size=0.1)+theme_ipsum_rc(axis_title_just = "m",axis_title_size = 12,grid = FALSE)+theme(panel.background = element_blank(),axis.ticks.x = element_blank(), axis.text.x = element_text(size = sampletext_size, angle = 90, vjust = 0.5, hjust = 1),panel.grid.major=element_line(),legend.position = "bottom",legend.box.background = element_blank(),legend.box.spacing = unit(-0.5,"cm"),legend.key = element_rect(size = 0),axis.ticks.y = element_line(colour = "black"),legend.key.size = unit(0.25, "cm"),legend.key.width =unit(1.5, "cm"))+scale_y_continuous(expand = c(0, 0),breaks = pretty_breaks())+xlab("")+scale_fill_manual("Mutational sigantures\n",values = sigcolorindex,drop=FALSE)+guides(fill=guide_legend(nrow=legendnrow,byrow=TRUE,label.position = "bottom"))+ylab("Signature contribution\n")
+  p_proportion <- sigdata %>% gather(Signature,Weight,-Samples) %>% mutate(Samples=factor(Samples,levels=res$labels[res$order])) %>% ggplot(aes(Samples,Weight,fill=factor(Signature,levels = names(sigcolorindex))))+geom_bar(stat="identity",position="fill",col="gray95",width = 1,size=0.1)+theme_ipsum_rc(axis_title_just = "m",axis_title_size = 12,grid = FALSE)+theme(panel.background = element_blank(),axis.ticks.x = element_blank(), axis.text.x = element_text(size = sampletext_size, angle = 90, vjust = 0.5, hjust = 1),panel.grid.major=element_line(),legend.position = "bottom",legend.box.background = element_blank(),legend.box.spacing = unit(-0.5,"cm"),legend.key = element_rect(size = 0),axis.ticks.y = element_line(colour = "black"),legend.key.size = unit(0.25, "cm"),legend.key.width =unit(1.5, "cm"))+scale_y_continuous(expand = c(0, 0),breaks = pretty_breaks())+xlab("")+scale_fill_manual("Mutational sigantures",values = sigcolorindex,drop=FALSE)+guides(fill=guide_legend(nrow=legendnrow,byrow=TRUE,label.position = "bottom"))+ylab("Signature contribution\n")
   #+theme(plot.margin=margin(t=4,unit="pt"))
   #legend.title = element_blank(),
   
@@ -2637,8 +2809,6 @@ Exposure_Clustering <- function(sigdata,sigcolor=NULL,studydata=NULL,studydata_c
   }
   
 }
-
-
 
 
 ## piechar common
@@ -3361,7 +3531,7 @@ change_data_type <- function(data){
   return(data)
 }
 
-validate_vardf <- function(data, forces=NULL, nachars=c("","na","Na","NA","nan","NAN","Nan"), nacode='NA',Nmin=5, Nmin_drop=FALSE,excludes=NULL, lump=TRUE){
+validate_vardf <- function(data, forces=NULL, nachars=c("","na","Na","NA","nan","NAN","Nan"), nacode='NA',Nmin=5, Nmin_drop=FALSE,excludes=NULL, lump=FALSE){
   #names_oringal <- colnames(data)
   # force data type
   
@@ -3419,7 +3589,8 @@ validate_vardf <- function(data, forces=NULL, nachars=c("","na","Na","NA","nan",
   ## exclude for the all unique value columns
   #data <- data %>% mutate(across(where(is.character),~ fct_lump(fct_infreq(as.factor(.x)),prop = 0.2)))
   if(lump){
-    data <- data %>% mutate(across(where(~ is.character(.) & (n_distinct(.)>1) & (n_distinct(.) < 0.8*n())),~ fct_lump(fct_infreq(as.factor(.x)),prop = 0.2)))
+    nrows <- dim(data)[1]
+    data <- data %>% mutate(across(where(~ is.character(.) & (n_distinct(.)>1) & (n_distinct(.) < 0.8*nrows)),~ fct_lump(fct_infreq(as.factor(.x)),prop = 0.2)))
   }
   # if change the order
   #data <- data %>% select(names_oringal)
