@@ -1861,13 +1861,19 @@ def Run_SigProfilerClusters(Input_Path, Output_Dir, Project_ID, Genome_Building)
 	### 003 SigProfilerClusters
 	hp.analysis(Project_ID, Genome_Building, "96", ["96"], Run_SigProfilerClusters_Output, analysis="all", sortSims=True, subClassify=True, correction=True, calculateIMD=True, max_cpu=6, TCGA=True, sanger=False)
 
+
+
+
 	### 004 Integrate SigProfilerClusters results of text
+
 	print("\n####### Arrange Final Results: Clusters File\n")
 	
-	SigProfilerClusters_Result = "%s/Result" % (Run_SigProfilerClusters_Output)
+	SigProfilerClusters_Result = "%sResult" % (Run_SigProfilerClusters_Output)
 
 	GenerateDir(SigProfilerClusters_Result)
 	
+	
+
 	c1a_Path = "%soutput/vcf_files_corrected/%s_clustered/subclasses/class1a/%s_clustered_class1a.txt" % (Run_SigProfilerClusters_Output,Project_ID, Project_ID)
 	c1b_Path = "%soutput/vcf_files_corrected/%s_clustered/subclasses/class1b/%s_clustered_class1b.txt" % (Run_SigProfilerClusters_Output,Project_ID, Project_ID)
 	c1c_Path = "%soutput/vcf_files_corrected/%s_clustered/subclasses/class1c/%s_clustered_class1c.txt" % (Run_SigProfilerClusters_Output,Project_ID, Project_ID)
@@ -1936,15 +1942,18 @@ def Run_SigProfilerClusters(Input_Path, Output_Dir, Project_ID, Genome_Building)
 		print("Error:  There is no file: %s" % c3_Path)
 
 	clustered_class_All_Output_File.close()
-
+	
+	
 	### 005 Integrate SigProfilerClusters results of image
-	print(" \n####### Arrange Final Results: Clusters image\n")
 
-	clustered_image_Output_Dir = "%s/output/plots" % (SigProfilerClusters_Result, Project_ID)
-	image_CP_cmd = "cp %s/* %s" % (clustered_image_Output_Dir, clustered_class_All_Output_Dir)
+	print(" \n####### Arrange Final Results: Clusters image\n")
+	#print("\n\nHello World 1")
+
+	clustered_image_Output_Dir = "%soutput/plots" % (Run_SigProfilerClusters_Output)
+	image_CP_cmd = "cp %s/* %s" % (clustered_image_Output_Dir, SigProfilerClusters_Result)
 	print(image_CP_cmd)
 	os.system(image_CP_cmd)
-	print("\n\nHello World")
+	#print("\n\nHello World 2")
 
 
 
@@ -2040,7 +2049,7 @@ if __name__ == "__main__":
 
 
 ### Usage for Run_SigProfilerClusters
-# python mSigPortal_Profiler_Extraction_V34.py -f vcf -i Demo_input_Test/demo_input_multi.vcf -p Project -o zzzz-Del-test-4 -g GRCh37 -t WGS -C True
+# python mSigPortal_Profiler_Extraction_V34.py -f vcf -i Demo_input_Test/demo_input_multi.vcf -p Project -o zzzz-Del-test-5 -g GRCh37 -t WGS -C True
 
 
 
