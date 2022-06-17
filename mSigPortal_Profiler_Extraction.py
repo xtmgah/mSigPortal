@@ -9,29 +9,30 @@ import pandas as pd
 '''
 Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
-Version:	1.32
-Date:		November-02-2021
+Version:	1.34
+Date:		Jun-16-2022
 Update:		(01) Generate seqInfo for downloading (seqInfo=True)
-		(02) Generate Compressed Dir: DBS.tar.gz;ID.tar.gz;plots.tar.gz;SBS.tar.gz;vcf_files.tar.gz;
-		(03) Generate Statistics.txt (need to update: github:SigProfilerMatrixGenerator-master/SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py)
-		(04) Solve the 'True' bug for Collpase Option 
-		(05) Fix the bug in Catalog format with -c function
-		(06) Generate Matrix_List.txt
-		(07) Solve the problem "The header is incorrectly displayed in the CSV/TSV File"
-		(08) Fix the bug of -F function in CSV/TSV format
-		(09) Filter the line of ALT with ","
-		(10) Improve the function of -F with "-" in CSV, TSV and VCF format 
-		(11) Improve the function of Collpase [The All_Samples@Filter]
-		(12) Fix the bug of "rm -rf /tmp"!
-		(13) Improve the output file: svg_files_list.txt
-		(14) Improve the output file: matrix_files_list.txt
-		(15) Improve argparse --help
-		(16) Change the ouptput structure for Catalog
-		(17) tar compressing without directory structure, This is very complicated better with zip not gzip, command is following:
-			cmd = "zip -jr %s/File_Dir_Name.zip %s/File_Dir_Name" % (zip_Dir,Original_Dir)
-		(18) Support MAF format ["Tumor_Sample_Barcode", "Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]
-		(19) Enable sigPlt to support percentage
-		(20) Support R32 and CNV48 for catalog_TSV and catalog_CSV
+			(02) Generate Compressed Dir: DBS.tar.gz;ID.tar.gz;plots.tar.gz;SBS.tar.gz;vcf_files.tar.gz;
+			(03) Generate Statistics.txt (need to update: github:SigProfilerMatrixGenerator-master/SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py)
+			(04) Solve the 'True' bug for Collpase Option 
+			(05) Fix the bug in Catalog format with -c function
+			(06) Generate Matrix_List.txt
+			(07) Solve the problem "The header is incorrectly displayed in the CSV/TSV File"
+			(08) Fix the bug of -F function in CSV/TSV format
+			(09) Filter the line of ALT with ","
+			(10) Improve the function of -F with "-" in CSV, TSV and VCF format 
+			(11) Improve the function of Collpase [The All_Samples@Filter]
+			(12) Fix the bug of "rm -rf /tmp"!
+			(13) Improve the output file: svg_files_list.txt
+			(14) Improve the output file: matrix_files_list.txt
+			(15) Improve argparse --help
+			(16) Change the ouptput structure for Catalog
+			(17) tar compressing without directory structure, This is very complicated better with zip not gzip, command is following:
+				 cmd = "zip -jr %s/File_Dir_Name.zip %s/File_Dir_Name" % (zip_Dir,Original_Dir)
+			(18) Support MAF format ["Tumor_Sample_Barcode", "Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]
+			(19) Enable sigPlt to support percentage
+			(20) Support R32 and CNV48 for catalog_TSV and catalog_CSV
+			(21) Add Cluster Function     # 2022-06-16
 '''
 
 
@@ -41,9 +42,9 @@ Update:		(01) Generate seqInfo for downloading (seqInfo=True)
 ####### 01-0 重写 arg_Parse help 文档
 Help_String = '''
 Program:	mSigPortal_Profiler_Extraction
-Version:	Alpha v 1.28
+Version:	Alpha v 1.34
 Function:	Extract and generate standard format for mSigPortal analysis from multiple type of input file.
-Updated:	Sep-09-2020
+Updated:	June-16-2022
 
 Usage:	 	python3 mSigPortal_Profiler_Extraction.py [options]
 
@@ -87,6 +88,7 @@ def Parser():
 	parser.add_argument('-z', '--gzip', required=False, type=str, nargs='?', help="Whether gzip results? samples into one group, If yes: add '-z True'")
 	parser.add_argument('-s', '--vcf_split_all_filter', required=False, type=str, nargs='?', help="Whether split all vcf filter? If yes: add '-s True'")
 	parser.add_argument('-b', '--Bed', required=False, type=str, nargs='?', help="Bed File for SigProfilerMatrixGenerator")
+	parser.add_argument('-C', '--Cluster', required=False, type=str, nargs='?', help="Whether perform SigProfilerClusters, If yes: add '-C True'")
 
 	
 	if len(sys.argv) < 2:
@@ -94,12 +96,12 @@ def Parser():
 		sys.exit(1)
 	args = parser.parse_args()
 
-	return args.Input_Format,args.Input_Path,args.Project_ID,args.Output_Dir,args.Genome_Building,args.Data_Type,args.Filter,args.Collapse,args.gzip,args.vcf_split_all_filter,args.Bed
+	return args.Input_Format,args.Input_Path,args.Project_ID,args.Output_Dir,args.Genome_Building,args.Data_Type,args.Filter,args.Collapse,args.gzip,args.vcf_split_all_filter,args.Bed,args.Cluster
 
 ####### 01-14 If input file is compressed?
 def If_Compressed():
 	### 000 Parse Options
-	Input_Format,Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse,gzip,vcf_split_all_filter,Bed = Parser()
+	Input_Format,Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse,gzip,vcf_split_all_filter,Bed,Cluster = Parser()
 	
 	Input_Path_New_Name = Input_Path
 	
@@ -156,7 +158,7 @@ def If_Compressed():
 ####### 01-2 Parse Options
 ####### Choose Sub Function according to Options
 def Parse_Options():
-	Input_Format,Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse,gzip,vcf_split_all_filter,Bed = Parser()
+	Input_Format,Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse,gzip,vcf_split_all_filter,Bed,Cluster = Parser()
 	
 
 	### 000 if Output_Dir exists, delete it! #######
@@ -281,6 +283,7 @@ def Parse_Options():
 			print(String)
 
 
+
 	elif Input_Format == "maf":
 		
 		if vcf_split_all_filter != None:
@@ -328,6 +331,14 @@ def Parse_Options():
 		print(String)
 		sys.exit()
 
+
+	###### Parse Options 006 Run_SigProfilerClusters
+	###### Only if Cluster option is given, Run_SigProfilerClusters will run
+	if Input_Format == "vcf":
+		if Cluster == "True":
+			Run_SigProfilerClusters(Input_Path, Output_Dir, Project_ID, Genome_Building)
+			String = "Finish Run_SigProfilerClusters Step\n"
+			print(String)
 
 ####### 01-4 GenerateDir
 def GenerateDir(Dir):
@@ -1450,7 +1461,6 @@ def Convert_Collapse(Output_Dir,Collapse,Project_ID):
 		os.system(cmd_2)
 
 
-
 ####### 01-16 gzip_Output(Output_Dir)
 def gzip_Output(Output_Dir):
 	print("Compress Output File")
@@ -1816,6 +1826,126 @@ def Print_Statistic(Output_Dir):
 					print("%s	%s" % (key,Value))
 
 
+####### 01-19 Run_SigProfilerClusters(Input_Path, Output_Dir)
+####### This function only support VCF format
+
+def Run_SigProfilerClusters(Input_Path, Output_Dir, Project_ID, Genome_Building):
+	# need bcftools to be installed
+	from SigProfilerSimulator import SigProfilerSimulator as sigSim
+	from SigProfilerClusters import SigProfilerClusters as hp
+	import subprocess
+	
+	print("\n\n Run_SigProfilerClusters \n\n")
+
+	Run_SigProfilerClusters_Output = "%s/Cluster/" % (Output_Dir)
+	GenerateDir(Run_SigProfilerClusters_Output)
+
+	### 001 First cp and split Input vcf file into Dir
+	cmd = "bcftools query -l %s" % (Input_Path)
+	result = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+	m_stdout, m_stderr = result.communicate()
+	sample_ID_str = m_stdout.decode("utf8")
+	sample_ID_arr = sample_ID_str.strip().split("\n")
+	
+	for sample in sample_ID_arr:
+		
+		sub_cmd_Str = "bcftools view -c1 -s %s -o %s/%s.vcf %s" % (sample, Run_SigProfilerClusters_Output, sample, Input_Path)
+		os.system(sub_cmd_Str)
+	
+	#cmd_001_cp_VCF = "cp %s %s" % (Input_Path, Run_SigProfilerClusters_Output)
+	#os.system(cmd_001_cp_VCF)
+
+	### 002 SigProfilerSimulator
+	sigSim.SigProfilerSimulator(Project_ID, Run_SigProfilerClusters_Output, Genome_Building, contexts = ['96'], chrom_based=True, simulations=100)
+
+	### 003 SigProfilerClusters
+	hp.analysis(Project_ID, Genome_Building, "96", ["96"], Run_SigProfilerClusters_Output, analysis="all", sortSims=True, subClassify=True, correction=True, calculateIMD=True, max_cpu=6, TCGA=True, sanger=False)
+
+	### 004 Integrate SigProfilerClusters results of text
+	print("\n####### Arrange Final Results: Clusters File\n")
+	
+	SigProfilerClusters_Result = "%s/Result" % (Run_SigProfilerClusters_Output)
+
+	GenerateDir(SigProfilerClusters_Result)
+	
+	c1a_Path = "%soutput/vcf_files_corrected/%s_clustered/subclasses/class1a/%s_clustered_class1a.txt" % (Run_SigProfilerClusters_Output,Project_ID, Project_ID)
+	c1b_Path = "%soutput/vcf_files_corrected/%s_clustered/subclasses/class1b/%s_clustered_class1b.txt" % (Run_SigProfilerClusters_Output,Project_ID, Project_ID)
+	c1c_Path = "%soutput/vcf_files_corrected/%s_clustered/subclasses/class1c/%s_clustered_class1c.txt" % (Run_SigProfilerClusters_Output,Project_ID, Project_ID)
+	c2_Path = "%soutput/vcf_files_corrected/%s_clustered/subclasses/class2/%s_clustered_class2.txt" % (Run_SigProfilerClusters_Output,Project_ID, Project_ID)
+	c3_Path = "%soutput/vcf_files_corrected/%s_clustered/subclasses/class3/%s_clustered_class3.txt" % (Run_SigProfilerClusters_Output,Project_ID, Project_ID)
+
+	clustered_class_All_Output_Path = "%s/%s_clustered_class_All.txt" % (SigProfilerClusters_Result, Project_ID)
+	clustered_class_All_Output_File = open(clustered_class_All_Output_Path, 'w')
+	clustered_class_All_Output_Header = "project	samples	ID	genome	mutType	chr	start	end	ref	alt	mutClass	IMDplot	group	IMD	VAF/CCF	subclass\n"
+	clustered_class_All_Output_File.write(clustered_class_All_Output_Header)
+
+
+	if os.path.exists(c1a_Path):
+		File = open(c1a_Path)
+		for line in File:
+			if re.match(r'project	samples', line):
+				pass
+			else:
+				clustered_class_All_Output_File.write(line)
+		File.close()
+	else:
+		print("Error:  There is no file: %s" % c1a_Path)
+
+	if os.path.exists(c1b_Path):
+		File = open(c1b_Path)
+		for line in File:
+			if re.match(r'project	samples', line):
+				pass
+			else:
+				clustered_class_All_Output_File.write(line)
+		File.close()
+	else:
+		print("Error:  There is no file: %s" % c1b_Path)
+
+	if os.path.exists(c1c_Path):
+		File = open(c1c_Path)
+		for line in File:
+			if re.match(r'project	samples', line):
+				pass
+			else:
+				clustered_class_All_Output_File.write(line)
+		File.close()
+	else:
+		print("Error:  There is no file: %s" % c1c_Path)
+
+	if os.path.exists(c2_Path):
+		File = open(c2_Path)
+		for line in File:
+			if re.match(r'project	samples', line):
+				pass
+			else:
+				clustered_class_All_Output_File.write(line)
+		File.close()
+	else:
+		print("Error:  There is no file: %s" % c2_Path)
+
+	if os.path.exists(c3_Path):
+		File = open(c3_Path)
+		for line in File:
+			if re.match(r'project	samples', line):
+				pass
+			else:
+				clustered_class_All_Output_File.write(line)
+		File.close()
+	else:
+		print("Error:  There is no file: %s" % c3_Path)
+
+	clustered_class_All_Output_File.close()
+
+	### 005 Integrate SigProfilerClusters results of image
+	print(" \n####### Arrange Final Results: Clusters image\n")
+
+	clustered_image_Output_Dir = "%s/output/plots" % (SigProfilerClusters_Result, Project_ID)
+	image_CP_cmd = "cp %s/* %s" % (clustered_image_Output_Dir, clustered_class_All_Output_Dir)
+	print(image_CP_cmd)
+	os.system(image_CP_cmd)
+	print("\n\nHello World")
+
 
 
 if __name__ == "__main__":
@@ -1858,7 +1988,6 @@ if __name__ == "__main__":
 ### Usage for Compressed File
 # python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf.gz -p Project -o Test_Output -g GRCh37 -t WGS
 # python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf.tar.gz -p Project -o Test_Output -g GRCh37 -t WGS
-# python mSigPortal_Profiler_Extraction_v28.py -f vcf -F PASS@alt_allele_in_normal@- -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf.zip -p Project -o Test_Output -g GRCh37 -t WGS
 # python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf.tar -p Project -o Test_Output-6-22 -g GRCh37 -t WGS
 # python mSigPortal_Profiler_Extraction.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv.zip -p Project -o Test_Output -g GRCh37 -t WGS
 # python mSigPortal_Profiler_Extraction.py -f vcf -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf.tar -p Project -o Test_Output -g GRCh37 -t WGS
@@ -1882,8 +2011,8 @@ if __name__ == "__main__":
 # python mSigPortal_Profiler_Extraction_v32.py -f catalog_csv -i Demo_input/demo_input_catalog.csv -p Project -o Test_Output_Catlog_CSV -g GRCh37 -t WGS
 
 ### Usage for catalog_tsv
-# python mSigPortal_Profiler_Extraction_v32.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv -p Project -o z-9-Test_Output_Catlog_TSV -g GRCh37 -t WGS
-# python mSigPortal_Profiler_Extraction_v32.py -f catalog_csv -i Demo_input_2/tmp2.csv -p Project -o z-9-Test_Output_Catlog_TSV -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction_V32.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv -p Project -o z-9-Test_Output_Catlog_TSV -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction_V32.py -f catalog_csv -i Demo_input_2/tmp2.csv -p Project -o z-9-Test_Output_Catlog_TSV -g GRCh37 -t WGS
 
 
 ### Usage for catalog_maf
@@ -1892,6 +2021,8 @@ if __name__ == "__main__":
 
 ### Usage for catalog_tsv RS32
 # python mSigPortal_Profiler_Extraction_v32.py -f catalog_tsv -i Demo_input_2/breast_cancer_samples_example.RS32.all -p Project -o z-9-Test_Catalog_tsv_R32 -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction_v32.py -f catalog_tsv -i Demo_input_3/Cancer_Reference_Signatures_GRCh37_RS32 -p Project -o z-9-Test_Catalog_tsv_R32_TW1 -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction_v32.py -f catalog_tsv -i Demo_input_3/Cancer_Reference_Signatures_GRCh37_RS32 -p Project -o Cancer_Reference_Signatures_GRCh37_RS32 -g GRCh37 -t WGS
 
 
 
@@ -1899,7 +2030,17 @@ if __name__ == "__main__":
 # python mSigPortal_Profiler_Extraction_v32.py -f catalog_tsv -i Demo_input_2/breast_cancer_samples_example.CNV48.all -p Project -o z-9-Test_Catalog_tsv_CNV48 -g GRCh37 -t WGS
 
 
+# python mSigPortal_Profiler_Extraction_V32.py -f catalog_tsv -i /Users/sangj2/0-Project/2-1-New-Package/z-8-Reports/R-3-2021-01-19/Test-02-Plot-Signatures/1-Raw-To-Catalog.txt -p Project -o /Users/sangj2/0-Project/2-1-New-Package/z-8-Reports/R-3-2021-01-19/Test-02-Plot-Signatures/z-9-Test_Output_Catlog_TSV -g GRCh37 -t WGS
 
+# python mSigPortal_Profiler_Extraction_V32.py -f catalog_tsv -i /Users/sangj2/0-Project/3-Tongwu/0-mSigPortal/0-mSigPortal_Profiler_Extraction/Demo_input_4_2022_0222/SBS96.txt -p Project -o /Users/sangj2/0-Project/3-Tongwu/0-mSigPortal/0-mSigPortal_Profiler_Extraction/z-10-Demo_input_4_2022_0222 -g GRCh37 -t WGS
+
+
+# python mSigPortal_Profiler_Extraction_V33.py -f catalog_tsv -i Demo_input_Test/Demo_input_4_2022_0222/DBS78.txt -p Project -o zzzz-Del-test -g GRCh37 -t WGS
+
+
+
+### Usage for Run_SigProfilerClusters
+# python mSigPortal_Profiler_Extraction_V34.py -f vcf -i Demo_input_Test/demo_input_multi.vcf -p Project -o zzzz-Del-test-4 -g GRCh37 -t WGS -C True
 
 
 
