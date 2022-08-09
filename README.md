@@ -24,6 +24,7 @@ pip install -e Path/SigProfilerClusters-master/
 $ python <br>
 from SigProfilerMatrixGenerator import install as genInstall <br>
 genInstall.install('GRCh37', rsync=False, bash=True)<br>
+genInstall.install('GRCh38', rsync=False, bash=True)<br>
 
  
 
