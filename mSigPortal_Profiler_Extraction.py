@@ -17,10 +17,10 @@ Update:
 			(18) Support MAF format ["Tumor_Sample_Barcode", "Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]
 			(19) Enable sigPlt to support percentage
 			(20) Support R32 and CNV48 for catalog_TSV and catalog_CSV
-			(21) Add Cluster Function     # 2022-06-16
-			(22) Fix the bug of VAF=-1.5  # 2022-07-30
-			(23) Add Plotting and SeqInfo parameters
-			(24) Fix the bug: If Empline file with 0 line was generated as input, delete them. 
+			(21) Add Cluster Function     # 06-16-2022
+			(22) Fix the bug of VAF=-1.5  # 07-30-2022
+			(23) Add Plotting and SeqInfo parameters # 09-20-2022
+			(24) Fix the bug: If Empline file with 0 line was generated as input, delete them. # 09-20-2022
  '''
 
 
