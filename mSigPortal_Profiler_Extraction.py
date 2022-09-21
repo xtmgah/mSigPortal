@@ -12,15 +12,15 @@ Function:	Generate Input File for mSigPortal
 Version:	1.36
 Date:		Sep-20-2022
 Update:		
-			(17) tar compressing without directory structure, This is very complicated better with zip not gzip, command is following:
-				 cmd = "zip -jr %s/File_Dir_Name.zip %s/File_Dir_Name" % (zip_Dir,Original_Dir)
-			(18) Support MAF format ["Tumor_Sample_Barcode", "Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]
-			(19) Enable sigPlt to support percentage
-			(20) Support R32 and CNV48 for catalog_TSV and catalog_CSV
-			(21) Add Cluster Function     # 06-16-2022
-			(22) Fix the bug of VAF=-1.5  # 07-30-2022
-			(23) Add Plotting and SeqInfo parameters # 09-20-2022
-			(24) Fix the bug: If Empline file with 0 line was generated as input, delete them. # 09-20-2022
+		(17) tar compressing without directory structure, This is very complicated better with zip not gzip, command is following:
+		     cmd = "zip -jr %s/File_Dir_Name.zip %s/File_Dir_Name" % (zip_Dir,Original_Dir)
+		(18) Support MAF format ["Tumor_Sample_Barcode", "Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]
+		(19) Enable sigPlt to support percentage
+		(20) Support R32 and CNV48 for catalog_TSV and catalog_CSV
+		(21) Add Cluster Function     # 06-16-2022
+		(22) Fix the bug of VAF=-1.5  # 07-30-2022
+		(23) Add Plotting and SeqInfo parameters # 09-20-2022
+		(24) Fix the bug: If Empline file with 0 line was generated as input, delete them. # 09-20-2022
  '''
 
 
