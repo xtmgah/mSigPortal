@@ -9,24 +9,9 @@ import pandas as pd
 '''
 Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
-Version:	1.35
-Date:		July-30-2022
-Update:		(01) Generate seqInfo for downloading (seqInfo=True)
-			(02) Generate Compressed Dir: DBS.tar.gz;ID.tar.gz;plots.tar.gz;SBS.tar.gz;vcf_files.tar.gz;
-			(03) Generate Statistics.txt (need to update: github:SigProfilerMatrixGenerator-master/SigProfilerMatrixGenerator/scripts/SigProfilerMatrixGeneratorFunc.py)
-			(04) Solve the 'True' bug for Collpase Option 
-			(05) Fix the bug in Catalog format with -c function
-			(06) Generate Matrix_List.txt
-			(07) Solve the problem "The header is incorrectly displayed in the CSV/TSV File"
-			(08) Fix the bug of -F function in CSV/TSV format
-			(09) Filter the line of ALT with ","
-			(10) Improve the function of -F with "-" in CSV, TSV and VCF format 
-			(11) Improve the function of Collpase [The All_Samples@Filter]
-			(12) Fix the bug of "rm -rf /tmp"!
-			(13) Improve the output file: svg_files_list.txt
-			(14) Improve the output file: matrix_files_list.txt
-			(15) Improve argparse --help
-			(16) Change the ouptput structure for Catalog
+Version:	1.36
+Date:		Sep-20-2022
+Update:		
 			(17) tar compressing without directory structure, This is very complicated better with zip not gzip, command is following:
 				 cmd = "zip -jr %s/File_Dir_Name.zip %s/File_Dir_Name" % (zip_Dir,Original_Dir)
 			(18) Support MAF format ["Tumor_Sample_Barcode", "Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]
@@ -34,13 +19,15 @@ Update:		(01) Generate seqInfo for downloading (seqInfo=True)
 			(20) Support R32 and CNV48 for catalog_TSV and catalog_CSV
 			(21) Add Cluster Function     # 2022-06-16
 			(22) Fix the bug of VAF=-1.5  # 2022-07-30
+			(23) Add Plotting and SeqInfo parameters
+			(24) Fix the bug: If Empline file with 0 line was generated as input, delete them. 
  '''
 
 
 ########################################################################
 ###################### 0 Define Basic Function #########################
 ########################################################################
-####### 01-0 重写 arg_Parse help 文档
+####### 01-0 Rewrite arg_Parse help Document
 Help_String = '''
 Program:	mSigPortal_Profiler_Extraction
 Version:	Alpha v 1.34
@@ -60,6 +47,9 @@ Required Options:
 		   Default:GRCh37 .
   -t		(--Data_Type) Define the project source type: 
 		   'WGS' for 'Whole Genome Sequencing Porject'; 'WES' for "Whole Exome Sequencing Project".
+  -c        (--Cluster) Whether perform SigProfilerClusters
+  -P        (--Cluster) Whether Generate Plotting
+  -S        (--Cluster) Whether Generate SeqInfo
 
 Optional Options:
   -F		(--Filter) Define the terms for variations filtration.
@@ -90,6 +80,8 @@ def Parser():
 	parser.add_argument('-s', '--vcf_split_all_filter', required=False, type=str, nargs='?', help="Whether split all vcf filter? If yes: add '-s True'")
 	parser.add_argument('-b', '--Bed', required=False, type=str, nargs='?', help="Bed File for SigProfilerMatrixGenerator")
 	parser.add_argument('-C', '--Cluster', required=False, type=str, nargs='?', help="Whether perform SigProfilerClusters, If yes: add '-C True'")
+	parser.add_argument('-P', '--Plotting', required=False, type=str, nargs='?', default="False", help="Whether Generate Plotting, If yes: add '-P True'")
+	parser.add_argument('-S', '--SeqInfo', required=False, type=str, nargs='?', default="False", help="Whether Generate seqInfo, If yes: add '-S True'")
 
 	
 	if len(sys.argv) < 2:
@@ -97,12 +89,12 @@ def Parser():
 		sys.exit(1)
 	args = parser.parse_args()
 
-	return args.Input_Format,args.Input_Path,args.Project_ID,args.Output_Dir,args.Genome_Building,args.Data_Type,args.Filter,args.Collapse,args.gzip,args.vcf_split_all_filter,args.Bed,args.Cluster
+	return args.Input_Format, args.Input_Path, args.Project_ID, args.Output_Dir, args.Genome_Building, args.Data_Type, args.Filter, args.Collapse, args.gzip, args.vcf_split_all_filter, args.Bed, args.Cluster, args.Plotting, args.SeqInfo
 
 ####### 01-14 If input file is compressed?
 def If_Compressed():
 	### 000 Parse Options
-	Input_Format,Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse,gzip,vcf_split_all_filter,Bed,Cluster = Parser()
+	Input_Format,Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse,gzip,vcf_split_all_filter,Bed,Cluster,Plotting,SeqInfo = Parser()
 	
 	Input_Path_New_Name = Input_Path
 	
@@ -159,8 +151,8 @@ def If_Compressed():
 ####### 01-2 Parse Options
 ####### Choose Sub Function according to Options
 def Parse_Options():
-	Input_Format,Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse,gzip,vcf_split_all_filter,Bed,Cluster = Parser()
-	
+	Input_Format,Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse,gzip,vcf_split_all_filter,Bed,Cluster,Plotting,SeqInfo = Parser()
+
 
 	### 000 if Output_Dir exists, delete it! #######
 	if os.path.exists(Output_Dir):
@@ -315,9 +307,18 @@ def Parse_Options():
 	Print_Statistic(Output_Dir)
 
 
-	###### Parse Options 004 Print Basic Output Statistic.
-	sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed)
-	#print("ssssssss")
+	###### Parse Options 004 sigProfilerPlotting. Need to test Plotting and SeqInfo
+	if Plotting not in ["True", "False"]:
+		print("Error in Format, only \'True\' and \'False\' are supported for option: -p/--Plotting")
+		sys.exit()
+	if SeqInfo not in ["True", "False"]:
+		print("Error in Format, only \'True\' and \'False\' are supported for option: -S/--SeqInfo_Para")
+		sys.exit()
+	else:
+		print(Plotting, SeqInfo)
+		sigProfilerPlotting(Input_Format,Output_Dir,Project_ID,Genome_Building,Bed,Plotting,SeqInfo)
+
+
 
 	###### Parse Options 005 Checke if gzip is on.
 	## 004 Check gzip:
@@ -340,6 +341,12 @@ def Parse_Options():
 			Run_SigProfilerClusters(Input_Path, Output_Dir, Project_ID, Genome_Building)
 			String = "Finish Run_SigProfilerClusters Step\n"
 			print(String)
+
+	# if Input_Format != "vcf":
+		# if Cluster == "True":
+			# String = "Error: Option -c/Cluster only support VCF file as input \n"
+			# print(String)
+			# sys.exit()
 
 ####### 01-4 GenerateDir
 def GenerateDir(Dir):
@@ -1491,8 +1498,42 @@ def gzip_Output(Output_Dir):
 
 
 ####### 01-17 sigProfilerPlotting
-def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, Bed):
+#def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, Bed):
+def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building,Bed,Plotting,SeqInfo):
+	####### 01-17-0 If there is 0 line in the intput file, delete it.
+	mSigPortal_Format_SNV_Path = "%s/%s_mSigPortal_SNV.txt" %  (Output_Dir,Project_ID)
+	n_SNV = 0
+	mSigPortal_Format_SNV_File = open(mSigPortal_Format_SNV_Path)
+	for line in mSigPortal_Format_SNV_File:
+		if re.match(r'\n', line):
+			pass
+		else:
+			n_SNV += 1
+	mSigPortal_Format_SNV_File.close()
+	if n_SNV == 0:
+		Note = "\nThere is 0 line in input file: %s, will delete it!\n" % mSigPortal_Format_SNV_Path
+		print(Note)
+		os.system("rm %s" % mSigPortal_Format_SNV_Path)
 
+
+	mSigPortal_Format_INDEL_Path = "%s/%s_mSigPortal_INDEL.txt" % (Output_Dir,Project_ID)
+	n_INDEL = 0
+	mSigPortal_Format_INDEL_File = open(mSigPortal_Format_INDEL_Path)
+	for line in mSigPortal_Format_INDEL_File:
+		if re.match(r'\n', line):
+			pass
+		else:
+			n_INDEL += 1
+	mSigPortal_Format_INDEL_File.close()
+
+	if n_INDEL == 0:
+		Note = "\nThere is 0 line in input file: %s, will delete it!\n" % mSigPortal_Format_INDEL_Path
+		print(Note)
+		os.system("rm %s" % mSigPortal_Format_INDEL_Path)
+
+
+
+	####### 01-17-1 Which format is the input file
 	Input_Format_arr_1 = ['vcf', 'csv', 'tsv', 'maf']
 	Input_Format_arr_2 = ['catalog_csv', 'catalog_tsv']
 	
@@ -1505,9 +1546,20 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, B
 	Input_Path_arr = ["mSigPortal_SNV.txt", "mSigPortal_INDEL.txt", "mSigPortal_SNV_Collapse.txt", "mSigPortal_INDEL_Collapse.txt","mSigPortal_catalog_csv.txt", "mSigPortal_catalog_tsv.txt"]
 
 
-	# ####### Which format is the input file
+	####### Which format is the input file
+	if Plotting == "False":
+		Plotting = False
+	if Plotting == "True":
+		plotting = True
+	if SeqInfo == "False":
+		SeqInfo = False
+	if SeqInfo == "True":
+		SeqInfo = True
+
+
+	####### Which format is the input file
 	if Input_Format in Input_Format_arr_1:
-		matrices = matGen.SigProfilerMatrixGeneratorFunc(Project_ID, Genome_Building, Output_Dir, exome=False, bed_file=Bed, chrom_based=False, plot=True, tsb_stat=False, seqInfo=True)
+		matrices = matGen.SigProfilerMatrixGeneratorFunc(Project_ID, Genome_Building, Output_Dir, exome=False, bed_file=Bed, chrom_based=False, plot=Plotting, tsb_stat=False, seqInfo=SeqInfo)
 		
 		####### Generate Summary File
 		summary_Path = "%s/svg_files_list.txt" % (Output_Dir)
@@ -1517,7 +1569,8 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, B
 		SVG_Ouput_Dir = "%s/output/plots/svg" % (Output_Dir)
 		#print(SVG_Ouput_Dir)
 		SVG_New_Output_Dir = "%s/output/svg" % (Output_Dir)
-		os.system("mv %s %s" % (SVG_Ouput_Dir, SVG_New_Output_Dir))
+		if os.path.exists(SVG_New_Output_Dir):
+			os.system("mv %s %s" % (SVG_Ouput_Dir, SVG_New_Output_Dir))
 
 		####### Generate Download File and Matrix_List_File #######
 		Matrix_List_Path = "%s/matrix_files_list.txt" % (Output_Dir)
@@ -1587,29 +1640,29 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, B
 
 
 		####### zip #######
+		if os.path.exists(SVG_New_Output_Dir):
+			for svg in os.listdir(SVG_New_Output_Dir):
+				if "_plots_" in svg:
+					#print(svg)
+					Type = svg.split("_plots_")[0]
+					Profile_Type = Type.split("_")[0]
+					Matrix = "%s" % (Type.split("_")[1])
 
-		for svg in os.listdir(SVG_New_Output_Dir):
-			if "_plots_" in svg:
-				#print(svg)
-				Type = svg.split("_plots_")[0]
-				Profile_Type = Type.split("_")[0]
-				Matrix = "%s" % (Type.split("_")[1])
-
-				Tag = "NA"
-				sample_Name = ""
-				sample_Name_Tag = svg.split("%s_" % Project_ID)[1].strip(".svg")
-				if "@" in sample_Name_Tag:
-					Tag = sample_Name_Tag.split("@")[1]
-					sample_Name = sample_Name_Tag.split("@")[0]
-				else:
-					sample_Name = sample_Name_Tag
-				if sample_Name == "filter":
-					pass
-				else:
-					svg_Location = "%s/%s" % (SVG_New_Output_Dir,svg)
-					abs_path = os.path.abspath(svg_Location)
-					String = "%s,%s,%s,%s,%s\n" % (sample_Name,Profile_Type,Matrix,Tag,abs_path)
-					summary_File.write(String)
+					Tag = "NA"
+					sample_Name = ""
+					sample_Name_Tag = svg.split("%s_" % Project_ID)[1].strip(".svg")
+					if "@" in sample_Name_Tag:
+						Tag = sample_Name_Tag.split("@")[1]
+						sample_Name = sample_Name_Tag.split("@")[0]
+					else:
+						sample_Name = sample_Name_Tag
+					if sample_Name == "filter":
+						pass
+					else:
+						svg_Location = "%s/%s" % (SVG_New_Output_Dir,svg)
+						abs_path = os.path.abspath(svg_Location)
+						String = "%s,%s,%s,%s,%s\n" % (sample_Name,Profile_Type,Matrix,Tag,abs_path)
+						summary_File.write(String)
 		summary_File.close()
 
 	elif Input_Format in Input_Format_arr_2:
@@ -1753,10 +1806,11 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, B
 					FF_command_1 = "mv %s*pdf %s/" % (Final_output_Dir, FF_Dir_pdf)
 					os.system(FF_command_1)
 					FF_Dir_svg = "%s/svg" % (FF_Dir)
-
-					FF_command_2 = "mv %s/svg %s/" % (Output_Dir, FF_Dir)
-					print(FF_command_2)
-					os.system(FF_command_2)
+					
+					if os.path.exists(FF_Dir_svg):
+						FF_command_2 = "mv %s/svg %s/" % (Output_Dir, FF_Dir)
+						print(FF_command_2)
+						os.system(FF_command_2)
 					#os.system("tar -zcvf %s.tar.gz %s" % (FF_Dir_pdf, FF_Dir_pdf))
 					#os.system("tar -zcvf %s.tar.gz %s" % (FF_Dir_svg, FF_Dir_svg))
 
@@ -2113,10 +2167,12 @@ if __name__ == "__main__":
 
 
 ### Usage for Run_SigProfilerClusters
-# python3 mSigPortal_Profiler_Extraction_V35.py -f vcf -i Demo_input_Test/demo_input_multi.vcf -p Project -o test-15 -g GRCh37 -t WGS -C True
-# python3 mSigPortal_Profiler_Extraction_V35.py -f vcf -i Demo_input_Test/demo_input_multi.vcf.gz -p Project -o test-15 -g GRCh37 -t WGS -C True
+# python3 mSigPortal_Profiler_Extraction_V36.py -f vcf -i Demo_input_Test/demo_input_multi.vcf -p Project -o test-19 -g GRCh37 -t WGS -C True
+
+# python3 mSigPortal_Profiler_Extraction_V36.py -f vcf -i Demo_input_Test/demo_input_multi.vcf.gz -p Project -o test-20 -g GRCh37 -t WGS -C True
 
 
+# python3 mSigPortal_Profiler_Extraction_V36.py -f tsv -i Demo_input_Test/demo_input_multi.tsv -p Project -o test-17-tsv -g GRCh37 -t WGS
 
 
 
