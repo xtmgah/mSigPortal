@@ -48,8 +48,8 @@ Required Options:
   -t		(--Data_Type) Define the project source type: 
 		   'WGS' for 'Whole Genome Sequencing Porject'; 'WES' for "Whole Exome Sequencing Project".
   -c        (--Cluster) Whether perform SigProfilerClusters
-  -P        (--Cluster) Whether Generate Plotting
-  -S        (--Cluster) Whether Generate SeqInfo
+  -P        (--Plotting) Whether Generate Plotting
+  -S        (--SeqInfo) Whether Generate SeqInfo
 
 Optional Options:
   -F		(--Filter) Define the terms for variations filtration.
