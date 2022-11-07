@@ -9,18 +9,19 @@ import pandas as pd
 '''
 Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
-Version:	1.36
-Date:		Sep-20-2022
+Version:	1.37
+Date:		Nov-05-2022
 Update:		
-		(17) tar compressing without directory structure, This is very complicated better with zip not gzip, command is following:
-		     cmd = "zip -jr %s/File_Dir_Name.zip %s/File_Dir_Name" % (zip_Dir,Original_Dir)
-		(18) Support MAF format ["Tumor_Sample_Barcode", "Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]
-		(19) Enable sigPlt to support percentage
-		(20) Support R32 and CNV48 for catalog_TSV and catalog_CSV
-		(21) Add Cluster Function     # 06-16-2022
-		(22) Fix the bug of VAF=-1.5  # 07-30-2022
-		(23) Add Plotting and SeqInfo parameters # 09-20-2022
-		(24) Fix the bug: If Empline file with 0 line was generated as input, delete them. # 09-20-2022
+			(17) tar compressing without directory structure, This is very complicated better with zip not gzip, command is following:
+				 cmd = "zip -jr %s/File_Dir_Name.zip %s/File_Dir_Name" % (zip_Dir,Original_Dir)
+			(18) Support MAF format ["Tumor_Sample_Barcode", "Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]
+			(19) Enable sigPlt to support percentage
+			(20) Support R32 and CNV48 for catalog_TSV and catalog_CSV
+			(21) Add Cluster Function     # 06-16-2022
+			(22) Fix the bug of VAF=-1.5  # 07-30-2022
+			(23) Add Plotting and SeqInfo parameters # 09-20-2022
+			(24) Fix the bug: If Empline file with 0 line was generated as input, delete them. # 09-20-2022
+			(25) Fix the bug: catalog_tsv and catalog_csv
  '''
 
 
@@ -1501,35 +1502,39 @@ def gzip_Output(Output_Dir):
 #def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building, Bed):
 def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building,Bed,Plotting,SeqInfo):
 	####### 01-17-0 If there is 0 line in the intput file, delete it.
-	mSigPortal_Format_SNV_Path = "%s/%s_mSigPortal_SNV.txt" %  (Output_Dir,Project_ID)
-	n_SNV = 0
-	mSigPortal_Format_SNV_File = open(mSigPortal_Format_SNV_Path)
-	for line in mSigPortal_Format_SNV_File:
-		if re.match(r'\n', line):
-			pass
-		else:
-			n_SNV += 1
-	mSigPortal_Format_SNV_File.close()
-	if n_SNV == 0:
-		Note = "\nThere is 0 line in input file: %s, will delete it!\n" % mSigPortal_Format_SNV_Path
-		print(Note)
-		os.system("rm %s" % mSigPortal_Format_SNV_Path)
+	
+	if Input_Format in ['catalog_tsv', 'catalog_csv']:
+		pass
+	else:
+		mSigPortal_Format_SNV_Path = "%s/%s_mSigPortal_SNV.txt" %  (Output_Dir,Project_ID)
+		n_SNV = 0
+		mSigPortal_Format_SNV_File = open(mSigPortal_Format_SNV_Path)
+		for line in mSigPortal_Format_SNV_File:
+			if re.match(r'\n', line):
+				pass
+			else:
+				n_SNV += 1
+		mSigPortal_Format_SNV_File.close()
+		if n_SNV == 0:
+			Note = "\nThere is 0 line in input file: %s, will delete it!\n" % mSigPortal_Format_SNV_Path
+			print(Note)
+			os.system("rm %s" % mSigPortal_Format_SNV_Path)
 
 
-	mSigPortal_Format_INDEL_Path = "%s/%s_mSigPortal_INDEL.txt" % (Output_Dir,Project_ID)
-	n_INDEL = 0
-	mSigPortal_Format_INDEL_File = open(mSigPortal_Format_INDEL_Path)
-	for line in mSigPortal_Format_INDEL_File:
-		if re.match(r'\n', line):
-			pass
-		else:
-			n_INDEL += 1
-	mSigPortal_Format_INDEL_File.close()
+		mSigPortal_Format_INDEL_Path = "%s/%s_mSigPortal_INDEL.txt" % (Output_Dir,Project_ID)
+		n_INDEL = 0
+		mSigPortal_Format_INDEL_File = open(mSigPortal_Format_INDEL_Path)
+		for line in mSigPortal_Format_INDEL_File:
+			if re.match(r'\n', line):
+				pass
+			else:
+				n_INDEL += 1
+		mSigPortal_Format_INDEL_File.close()
 
-	if n_INDEL == 0:
-		Note = "\nThere is 0 line in input file: %s, will delete it!\n" % mSigPortal_Format_INDEL_Path
-		print(Note)
-		os.system("rm %s" % mSigPortal_Format_INDEL_Path)
+		if n_INDEL == 0:
+			Note = "\nThere is 0 line in input file: %s, will delete it!\n" % mSigPortal_Format_INDEL_Path
+			print(Note)
+			os.system("rm %s" % mSigPortal_Format_INDEL_Path)
 
 
 
@@ -1801,29 +1806,32 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building,Be
 						sys.exit()
 
 					###### Try to Generate same output Structure as non catalog format
+					####### FF_Dir = "%s/output" % Output_Dir
+
 					FF_Dir_pdf = "%s/plots" % (FF_Dir)
 					GenerateDir(FF_Dir_pdf)
 					FF_command_1 = "mv %s*pdf %s/" % (Final_output_Dir, FF_Dir_pdf)
 					os.system(FF_command_1)
-					FF_Dir_svg = "%s/svg" % (FF_Dir)
+					FF_Dir_svg = "%s/svg" % (Output_Dir)
 					
 					if os.path.exists(FF_Dir_svg):
 						FF_command_2 = "mv %s/svg %s/" % (Output_Dir, FF_Dir)
 						print(FF_command_2)
 						os.system(FF_command_2)
-					#os.system("tar -zcvf %s.tar.gz %s" % (FF_Dir_pdf, FF_Dir_pdf))
-					#os.system("tar -zcvf %s.tar.gz %s" % (FF_Dir_svg, FF_Dir_svg))
 
-					os.system("zip -jr %s.zip %s" % (FF_Dir_pdf, FF_Dir_pdf))
-					os.system("zip -jr %s.zip %s" % (FF_Dir_svg, FF_Dir_svg))
+					cmd_pdf_zip = "zip -jr %s.zip %s" % (FF_Dir_pdf, FF_Dir_pdf)
+					print(cmd_pdf_zip)
+					os.system(cmd_pdf_zip)
+					
+					FF_Dir_svg = "%s/svg" % FF_Dir
+					cmd_svg_zip = "zip -jr %s.zip %s" % (FF_Dir_svg, FF_Dir_svg)
+					print(cmd_svg_zip)
+					os.system(cmd_svg_zip)
 
 
 		Matrix_List_File.close()
 		print("Finisheh !!!!!!!!!!!!!!!!!!!!!!!!!!")
 		print(Final_Type)
-
-
-
 
 		####### Generate Summary File
 		summary_Path = "%s/svg_files_list.txt" % (Output_Dir)
@@ -1832,27 +1840,28 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building,Be
 		summary_File.write(Header)
 		SVG_Ouput_Dir = "%s/output/svg" % (Output_Dir)
 
-		for svg in os.listdir(SVG_Ouput_Dir):
-			if "_plots_" in svg:
-				#print(svg)
-				Type = svg.split("_plots_")[0]
-				Profile_Type = Type.split("_")[0]
-				Matrix = "%s" % (Type.split("_")[1])
-				
-				Tag = "NA"
-				sample_Name = ""
-				sample_Name_Tag = svg.split("%s_" % Project_ID)[1].strip(".svg")
-				if "@" in sample_Name_Tag:
-					Tag = sample_Name_Tag.split("@")[1]
-					sample_Name = sample_Name_Tag.split("@")[0]
-				else:
-					sample_Name = sample_Name_Tag
-				if sample_Name == "filter":
-					pass
-				else:
-					svg_Location = "%s/%s" % (SVG_Ouput_Dir,svg)
-					String = "%s,%s,%s,%s,%s\n" % (sample_Name,Profile_Type,Matrix,Tag,svg_Location)
-					summary_File.write(String)
+		if os.path.exists(SVG_Ouput_Dir):
+			for svg in os.listdir(SVG_Ouput_Dir):
+				if "_plots_" in svg:
+					#print(svg)
+					Type = svg.split("_plots_")[0]
+					Profile_Type = Type.split("_")[0]
+					Matrix = "%s" % (Type.split("_")[1])
+					
+					Tag = "NA"
+					sample_Name = ""
+					sample_Name_Tag = svg.split("%s_" % Project_ID)[1].strip(".svg")
+					if "@" in sample_Name_Tag:
+						Tag = sample_Name_Tag.split("@")[1]
+						sample_Name = sample_Name_Tag.split("@")[0]
+					else:
+						sample_Name = sample_Name_Tag
+					if sample_Name == "filter":
+						pass
+					else:
+						svg_Location = "%s/%s" % (SVG_Ouput_Dir,svg)
+						String = "%s,%s,%s,%s,%s\n" % (sample_Name,Profile_Type,Matrix,Tag,svg_Location)
+						summary_File.write(String)
 		summary_File.close()
 
 
@@ -2139,7 +2148,6 @@ if __name__ == "__main__":
 
 ### Usage for catalog_tsv
 # python mSigPortal_Profiler_Extraction_V32.py -f catalog_tsv -i Demo_input/demo_input_catalog.tsv -p Project -o z-9-Test_Output_Catlog_TSV -g GRCh37 -t WGS
-# python mSigPortal_Profiler_Extraction_V32.py -f catalog_csv -i Demo_input_2/tmp2.csv -p Project -o z-9-Test_Output_Catlog_TSV -g GRCh37 -t WGS
 
 
 ### Usage for catalog_maf
@@ -2162,7 +2170,8 @@ if __name__ == "__main__":
 # python mSigPortal_Profiler_Extraction_V35.py -f catalog_tsv -i /Users/sangj2/0-Project/3-Tongwu/0-mSigPortal/0-mSigPortal_Profiler_Extraction/Demo_input_4_2022_0222/SBS96.txt -p Project -o /Users/sangj2/0-Project/3-Tongwu/0-mSigPortal/0-mSigPortal_Profiler_Extraction/z-10-Demo_input_4_2022_0222 -g GRCh37 -t WGS
 
 
-# python mSigPortal_Profiler_Extraction_V35.py -f catalog_tsv -i Demo_input_Test/Demo_input_4_2022_0222/DBS78.txt -p Project -o test-14 -g GRCh37 -t WGS
+# python3 mSigPortal_Profiler_Extraction_V36.py -f catalog_tsv -i Demo_input_Test/Demo_input_4_2022_0222/DBS78.txt -p Project -o test-14 -g GRCh37 -t WGS
+# python3 mSigPortal_Profiler_Extraction_V36.py -f catalog_csv -i Demo_input_Test/demo_input_catalog.csv -p Project -o z-9-Test_Output_Catlog_CSV -g GRCh37 -t WGS
 
 
 
