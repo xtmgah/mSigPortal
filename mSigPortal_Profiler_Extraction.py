@@ -7,10 +7,10 @@ from zipfile import ZipFile
 import pandas as pd
 
 '''
-Name:		mSigPortal_Profiler_Extraction
-Function:	Generate Input File for mSigPortal
-Version:	1.37
-Date:		Nov-05-2022
+Name:			mSigPortal_Profiler_Extraction
+Function:		Generate Input File for mSigPortal
+Version:		1.37
+Date:			Nov-05-2022
 Update:		
 			(17) tar compressing without directory structure, This is very complicated better with zip not gzip, command is following:
 				 cmd = "zip -jr %s/File_Dir_Name.zip %s/File_Dir_Name" % (zip_Dir,Original_Dir)
