@@ -1,5 +1,7 @@
 Hugo_Symbol	Entrez_Gene_Id	Center	NCBI_Build	Chromosome	Start_position	End_position	Strand	Variant_Classification	Variant_Type	Reference_Allele	Tumor_Seq_Allele1	Tumor_Seq_Allele2	dbSNP_RS	dbSNP_Val_Status	Tumor_Sample_Barcode	Matched_Norm_Sample_Barcode
 HPSE2	0	broad.mit.edu	37	10	100610427	100610427	+	Intron	SNP	G	G	T			REBC-ACDL-TTP1-A-1-1-D-A49X-36	REBC-ACDL-NT1-A-1-1-D-A49X-36
+Unknown	0	broad.mit.edu	37	10	101003626	101003626	+	IGR	SNP	G	G	A			REBC-ACBU-TTP1-A-1-1-D-A49W-36	REBC-ACBU-NT1-A-1-1-D-A49W-36
+Unknown	0	broad.mit.edu	37	10	101046255	101046255	+	IGR	SNP	G	G	A			REBC-ACDL-TTP1-A-1-1-D-A49X-36	REBC-ACDL-NT1-A-1-1-D-A49X-36
 GOT1	0	broad.mit.edu	37	10	101191282	101191282	+	5'Flank	SNP	C	C	T			REBC-ACDL-TTP1-A-1-1-D-A49X-36	REBC-ACDL-NT1-A-1-1-D-A49X-36
 COX15	0	broad.mit.edu	37	10	101475139	101475139	+	Intron	SNP	G	G	A			REBC-ACDL-TTP1-A-1-1-D-A49X-36	REBC-ACDL-NT1-A-1-1-D-A49X-36
 BTRC	0	broad.mit.edu	37	10	103265151	103265151	+	Intron	SNP	C	C	T			REBC-ACDL-TTP1-A-1-1-D-A49X-36	REBC-ACDL-NT1-A-1-1-D-A49X-36
