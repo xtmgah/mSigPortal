@@ -6,5 +6,3 @@ SC349747	GL000226.1	58	58	A	T	alt_allele_in_normal;clustered_events
 SC349747	GL000226.1	59	59	C	T	alt_allele_in_normal;clustered_events
 SC420396	GL000226.1	63	64	TG	T	alt_allele_in_normal;clustered_events
 SB749362	GL000198.1	64	64	A	G	clustered_events;homologous_mapping_event
-SC420396	GL000226.1	64	64	G	A	alt_allele_in_normal;clustered_events
-SB749362	GL000198.1	65	65	C	A	clustered_events;homologous_mapping_event
