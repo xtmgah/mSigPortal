@@ -3,3 +3,6 @@ SC420396,GL000226.1,34,34,A,T,alt_allele_in_normal;clustered_events;t_lod_fstar
 SC420396,GL000226.1,36,36,T,G,alt_allele_in_normal;clustered_events;t_lod_fstar
 SC349747,GL000226.1,37,37,T,C,alt_allele_in_normal;clustered_events;t_lod_fstar
 SC349747,GL000226.1,58,58,A,T,alt_allele_in_normal;clustered_events
+SC349747,GL000226.1,59,59,C,T,alt_allele_in_normal;clustered_events
+SC420396,GL000226.1,63,64,TG,T,alt_allele_in_normal;clustered_events
+SB749362,GL000198.1,64,64,A,G,clustered_events;homologous_mapping_event
