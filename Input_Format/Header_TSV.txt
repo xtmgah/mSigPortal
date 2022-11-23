@@ -1,5 +1,10 @@
-MutationType	NSLC-0065-T01	NSLC-0108-T01	NSLC-0228-T01
-A[C>A]A	125	208	237
-A[C>A]C	85	140	174
-A[C>A]G	8	11	21
-A[C>A]T	74	157	185
+SAMPLE	CHROM	START	END	REF	ALT	FILTER
+SC420396	GL000226.1	34	34	A	T	alt_allele_in_normal;clustered_events;t_lod_fstar
+SC420396	GL000226.1	36	36	T	G	alt_allele_in_normal;clustered_events;t_lod_fstar
+SC349747	GL000226.1	37	37	T	C	alt_allele_in_normal;clustered_events;t_lod_fstar
+SC349747	GL000226.1	58	58	A	T	alt_allele_in_normal;clustered_events
+SC349747	GL000226.1	59	59	C	T	alt_allele_in_normal;clustered_events
+SC420396	GL000226.1	63	64	TG	T	alt_allele_in_normal;clustered_events
+SB749362	GL000198.1	64	64	A	G	clustered_events;homologous_mapping_event
+SC420396	GL000226.1	64	64	G	A	alt_allele_in_normal;clustered_events
+SB749362	GL000198.1	65	65	C	A	clustered_events;homologous_mapping_event
