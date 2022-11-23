@@ -3,3 +3,6 @@ MutationType,NSLC-0065-T01,NSLC-0108-T01,NSLC-0228-T01
 1:Del:C:1,24,21,27
 1:Del:C:2,4,7,14
 1:Del:C:3,4,5,10
+1:Del:C:4,2,7,6
+1:Del:C:5,4,2,2
+1:Del:T:0,18,20,21
