@@ -36,9 +36,9 @@ Update:
 ####### 01-0 Rewrite arg_Parse help Document
 Help_String = '''
 Program:	mSigPortal_Profiler_Extraction
-Version:	Alpha v 1.34
+Version:	Alpha v 1.38
 Function:	Extract and generate standard format for mSigPortal analysis from multiple type of input file.
-Updated:	June-16-2022
+Updated:	Feb-23-2023
 
 Usage:	 	python3 mSigPortal_Profiler_Extraction.py [options]
 
