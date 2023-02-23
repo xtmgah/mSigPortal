@@ -7,10 +7,10 @@ from zipfile import ZipFile
 import pandas as pd
 
 '''
-Name:			mSigPortal_Profiler_Extraction
-Function:		Generate Input File for mSigPortal
-Version:		1.37
-Date:			Nov-05-2022
+Name:		mSigPortal_Profiler_Extraction
+Function:	Generate Input File for mSigPortal
+Version:	1.38
+Date:		Feb-23-2023
 Update:		
 			(17) tar compressing without directory structure, This is very complicated better with zip not gzip, command is following:
 				 cmd = "zip -jr %s/File_Dir_Name.zip %s/File_Dir_Name" % (zip_Dir,Original_Dir)
@@ -22,6 +22,11 @@ Update:
 			(23) Add Plotting and SeqInfo parameters # 09-20-2022
 			(24) Fix the bug: If Empline file with 0 line was generated as input, delete them. # 09-20-2022
 			(25) Fix the bug: catalog_tsv and catalog_csv
+			(26) Add support for SBS288 to both catalog_tsv and catalog_csv
+			(27) Support flexible header of input file in both catalog_tsv and catalog_csv.
+				 Now they don't need to begain with the word of "MutationType". Any users' own defined word (like 'Mutation_ID' or 'Mutations') will be 
+				 automatically transform to "MutationType".
+			
  '''
 
 
@@ -1093,6 +1098,21 @@ def catalog_tsv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Buildin
 	mSigPortal_Format_catalog_File = open(mSigPortal_Format_catalog_Path,'w')
 
 	####### 01-3-1 Parse File 
+	####### New function modify header 	####### 
+	with open(Input_Path, 'r', encoding='utf-8') as f:
+		lines = f.readlines()
+	print(lines[0])
+	Header_Line_Arr = lines[0].split("\t")
+	Header_Line_Arr[0] = "MutationType"
+	New_Header = "\t".join(Header_Line_Arr)
+	print(New_Header)
+	lines[0] = New_Header
+
+	with open(Input_Path, 'w', encoding='utf-8') as f:
+		f.writelines(lines)
+	####### New function modify header 	####### 
+	
+	
 	Input_File = open(Input_Path)
 	Header = "MutationType	"
 	String_File = ""
@@ -1140,7 +1160,22 @@ def catalog_tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Ty
 	mSigPortal_Format_catalog_Path = "%s/%s_mSigPortal_catalog_tsv.txt" % (Output_Dir,Project_ID)
 	mSigPortal_Format_catalog_File = open(mSigPortal_Format_catalog_Path,'w')
 
-	####### 01-3-1 Parse File 
+	####### 01-3-1 Parse File
+	####### New function modify header 	####### 
+	with open(Input_Path, 'r', encoding='utf-8') as f:
+		lines = f.readlines()
+	print(lines[0])
+	Header_Line_Arr = lines[0].split("\t")
+	Header_Line_Arr[0] = "MutationType"
+	New_Header = "\t".join(Header_Line_Arr)
+	print(New_Header)
+	lines[0] = New_Header
+
+	with open(Input_Path, 'w', encoding='utf-8') as f:
+		f.writelines(lines)
+	####### New function modify header 	####### 
+	
+
 	Input_File = open(Input_Path)
 	Header = "MutationType	"
 	String_File = ""
@@ -1178,7 +1213,22 @@ def catalog_csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Ty
 	mSigPortal_Format_catalog_Path = "%s/%s_mSigPortal_catalog_csv.txt" % (Output_Dir,Project_ID)
 	mSigPortal_Format_catalog_File = open(mSigPortal_Format_catalog_Path,'w')
 
-	####### 01-3-1 Parse File 
+	####### 01-3-1 Parse File
+	####### New function modify header 	####### 
+	with open(Input_Path, 'r', encoding='utf-8') as f:
+		lines = f.readlines()
+	print(lines[0])
+	Header_Line_Arr = lines[0].split(",")
+	Header_Line_Arr[0] = "MutationType"
+	New_Header = ",".join(Header_Line_Arr)
+	print(New_Header)
+	lines[0] = New_Header
+
+	with open(Input_Path, 'w', encoding='utf-8') as f:
+		f.writelines(lines)
+	####### New function modify header 	####### 
+
+
 	Input_File = open(Input_Path)
 	Header = "MutationType,"
 	String_File = ""
@@ -1192,7 +1242,8 @@ def catalog_csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Ty
 	if Header not in String_File:
 		print("Error 233: A header line like \"MutationType,Sample1,Sample2,Sample3...\" is required!")
 		sys.exit()
-	Input_File.close()
+
+	#Input_File.close()
 
 	####### 01-3-2 Generate Result
 	Input_File = open(Input_Path)
@@ -1216,7 +1267,21 @@ def catalog_csv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Buildin
 	mSigPortal_Format_catalog_Path = "%s/%s_mSigPortal_catalog_csv.txt" % (Output_Dir,Project_ID)
 	mSigPortal_Format_catalog_File = open(mSigPortal_Format_catalog_Path,'w')
 
-	####### 01-3-1 Parse File 
+	####### 01-3-1 Parse File
+	####### New function modify header 	####### 
+	with open(Input_Path, 'r', encoding='utf-8') as f:
+		lines = f.readlines()
+	print(lines[0])
+	Header_Line_Arr = lines[0].split(",")
+	Header_Line_Arr[0] = "MutationType"
+	New_Header = ",".join(Header_Line_Arr)
+	print(New_Header)
+	lines[0] = New_Header
+
+	with open(Input_Path, 'w', encoding='utf-8') as f:
+		f.writelines(lines)
+	####### New function modify header 	####### 
+
 	Input_File = open(Input_Path)
 	Header = "MutationType,"
 	String_File = ""
@@ -1542,7 +1607,7 @@ def sigProfilerPlotting(Input_Format, Output_Dir, Project_ID, Genome_Building,Be
 	Input_Format_arr_1 = ['vcf', 'csv', 'tsv', 'maf']
 	Input_Format_arr_2 = ['catalog_csv', 'catalog_tsv']
 	
-	SBS_Arr = [6, 24, 96, 384, 1536, 6144]
+	SBS_Arr = [6, 24, 96, 384, 288, 1536, 6144]
 	ID_Arr = [28, 83, 415, 8268]
 	DBS_Arr = [78, 186, 312, 1248, 2976]
 	CNV_Arr = [48]
@@ -2120,7 +2185,6 @@ if __name__ == "__main__":
 # python mSigPortal_Profiler_Extraction.py -f tsv -F PASS@alt_allele_in_normal -i Demo_input/demo_input_multi.tsv -p Project -o Test_Output -g GRCh37 -t WGS
 
 
-
 ### Usage for Compressed File
 # python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf.gz -p Project -o Test_Output -g GRCh37 -t WGS
 # python mSigPortal_Profiler_Extraction.py -f vcf -F PASS@alt_allele_in_normal@- -i /Users/sangj2/z-0-Projects/2-mSigPortal/Demo_input/demo_input_single.vcf.tar.gz -p Project -o Test_Output -g GRCh37 -t WGS
@@ -2170,19 +2234,36 @@ if __name__ == "__main__":
 # python mSigPortal_Profiler_Extraction_V35.py -f catalog_tsv -i /Users/sangj2/0-Project/3-Tongwu/0-mSigPortal/0-mSigPortal_Profiler_Extraction/Demo_input_4_2022_0222/SBS96.txt -p Project -o /Users/sangj2/0-Project/3-Tongwu/0-mSigPortal/0-mSigPortal_Profiler_Extraction/z-10-Demo_input_4_2022_0222 -g GRCh37 -t WGS
 
 
-# python3 mSigPortal_Profiler_Extraction_V36.py -f catalog_tsv -i Demo_input_Test/Demo_input_4_2022_0222/DBS78.txt -p Project -o test-14 -g GRCh37 -t WGS
-# python3 mSigPortal_Profiler_Extraction_V36.py -f catalog_csv -i Demo_input_Test/demo_input_catalog.csv -p Project -o z-9-Test_Output_Catlog_CSV -g GRCh37 -t WGS
-
-
-
 ### Usage for Run_SigProfilerClusters
-# python3 mSigPortal_Profiler_Extraction_V36.py -f vcf -i Demo_input_Test/demo_input_multi.vcf -p Project -o test-19 -g GRCh37 -t WGS -C True
 
-# python3 mSigPortal_Profiler_Extraction_V36.py -f vcf -i Demo_input_Test/demo_input_multi.vcf.gz -p Project -o test-20 -g GRCh37 -t WGS -C True
+# python3 mSigPortal_Profiler_Extraction_V37.py -f catalog_tsv -i Demo_input_Test/Demo_input_4_2022_0222/DBS78.txt -p Project -o test-14 -g GRCh37 -t WGS
+# python3 mSigPortal_Profiler_Extraction_V37.py -f catalog_csv -i Demo_input_Test/demo_input_catalog.csv -p Project -o z-9-Test_Output_Catlog_CSV -g GRCh37 -t WGS -C True
 
 
-# python3 mSigPortal_Profiler_Extraction_V36.py -f tsv -i Demo_input_Test/demo_input_multi.tsv -p Project -o test-17-tsv -g GRCh37 -t WGS
+# python3 mSigPortal_Profiler_Extraction_V37.py -f vcf -i Demo_input_Test/demo_input_multi.vcf -p Project -o test-19 -g GRCh37 -t WGS -C True
 
+# python3 mSigPortal_Profiler_Extraction_V37.py -f vcf -i Demo_input_Test/demo_input_multi.vcf.gz -p Project -o test-20 -g GRCh37 -t WGS -C True
+
+
+# python3 mSigPortal_Profiler_Extraction_V37.py -f tsv -i Demo_input_Test/demo_input_multi.tsv -p Project -o test-17-tsv -g GRCh37 -t WGS
+
+
+# python3 mSigPortal_Profiler_Extraction_V38.py -f tsv -i Demo_input_Test/demo_input_multi.tsv -p Project -o test-17-tsv -g GRCh38 -t WGS -C True
+
+
+
+### Usage for catalog_csv
+# python mSigPortal_Profiler_Extraction_v38.py -f catalog_csv -i Demo_Input_Test_CSV_TSV/demo_input_catalog.csv -p Project -o z-9-Test_Output_Catlog_CSV -g GRCh37 -t WGS
+
+### Usage for catalog_csv
+# python mSigPortal_Profiler_Extraction_v38.py -f catalog_csv -i Demo_Input_Test_CSV_TSV/Test.SBS.288.csv.txt -p Project -o z-9-Test_Output_Catlog_CSV -g GRCh37 -t WGS
+
+
+### Usage for catalog_tsv
+# python mSigPortal_Profiler_Extraction_V38.py -f catalog_tsv -i Demo_Input_Test_CSV_TSV/demo_input_catalog.tsv -p Project -o z-9-Test_Output_Catlog_TSV -g GRCh37 -t WGS
+
+### Usage for catalog_tsv
+# python mSigPortal_Profiler_Extraction_V38.py -f catalog_tsv -i Demo_Input_Test_CSV_TSV/Test.SBS.288.txt -p Project -o z-9-Test_Output_Catlog_TSV -g GRCh37 -t WGS
 
 
 
