@@ -1061,30 +1061,30 @@ id29_col1 <- c(
   "[+C]T",
   "[+C]C",
   "[+C]CC",
-  "[+C]LongRep",
+  "[+C]LR",
   "[+T]A",
   "[+T]C",
   "[+T]G",
   "[+T]T",
   "[+T]TT",
-  "[+T]LongRep",
-  "[+>1]NonRep",
+  "[+T]LR",
+  "[+>1]NonR",
   "[+>1]Rep",
   "[-C]A",
   "[-C]G",
   "[-C]T",
   "[-C]C",
   "[-C]CC",
-  "[-C]LongRep",
+  "[-C]LR",
   "[-T]A",
   "[-T]C",
   "[-T]G",
   "[-T]T",
   "[-T]TT",
-  "[-T]LongRep",
-  "[->1]Others",
+  "[-T]LR",
+  "[->1]NonR",
   "[->1]Rep",
-  "[->1]Mh")
+  "[-]MH")
 
 id29_col2 <- c(
   "[+C]A",
@@ -1115,7 +1115,7 @@ id29_col2 <- c(
   "[-T]LR",
   "[->1]NonR",
   "[->1]Rep",
-  "[-]Mh")
+  "[-]MH")
 
 id29_colors <- c("[+C]"="#0C5CA2","[+T]"="#CA4904","[+>1]"="#BF6196","[-C]"="#47A4E3","[-T]"="#DF8E05","[->1]"="#139060","[-]"="#7C00A5")
 id29 <- tibble(MutationType1=id29_col1,MutationType2=id29_col2) %>% 
@@ -1219,8 +1219,120 @@ plot_profile_id29_logo <- function (profile, colors = id29_colors,output_plot = 
 
 
 
+
+
+# CN48 logo ---------------------------------------------------------------
+
+cn48_mutationtype <- c(
+  '0:homdel:0-100kb',
+  '0:homdel:100kb-1Mb',
+  '0:homdel:>1Mb',
+  '1:LOH:0-100kb',
+  '1:LOH:100kb-1Mb',
+  '1:LOH:1Mb-10Mb',
+  '1:LOH:10Mb-40Mb',
+  '1:LOH:>40Mb',
+  '2:LOH:0-100kb',
+  '2:LOH:100kb-1Mb',
+  '2:LOH:1Mb-10Mb',
+  '2:LOH:10Mb-40Mb',
+  '2:LOH:>40Mb',
+  '3-4:LOH:0-100kb',
+  '3-4:LOH:100kb-1Mb',
+  '3-4:LOH:1Mb-10Mb',
+  '3-4:LOH:10Mb-40Mb',
+  '3-4:LOH:>40Mb',
+  '5-8:LOH:0-100kb',
+  '5-8:LOH:100kb-1Mb',
+  '5-8:LOH:1Mb-10Mb',
+  '5-8:LOH:10Mb-40Mb',
+  '5-8:LOH:>40Mb',
+  '9+:LOH:0-100kb',
+  '9+:LOH:100kb-1Mb',
+  '9+:LOH:1Mb-10Mb',
+  '9+:LOH:10Mb-40Mb',
+  '9+:LOH:>40Mb',
+  '2:het:0-100kb',
+  '2:het:100kb-1Mb',
+  '2:het:1Mb-10Mb',
+  '2:het:10Mb-40Mb',
+  '2:het:>40Mb',
+  '3-4:het:0-100kb',
+  '3-4:het:100kb-1Mb',
+  '3-4:het:1Mb-10Mb',
+  '3-4:het:10Mb-40Mb',
+  '3-4:het:>40Mb',
+  '5-8:het:0-100kb',
+  '5-8:het:100kb-1Mb',
+  '5-8:het:1Mb-10Mb',
+  '5-8:het:10Mb-40Mb',
+  '5-8:het:>40Mb',
+  '9+:het:0-100kb',
+  '9+:het:100kb-1Mb',
+  '9+:het:1Mb-10Mb',
+  '9+:het:10Mb-40Mb',
+  '9+:het:>40Mb'
+)
+
+
+cn48_color_mapping = c('0:0-100kb'='#F0F8FF', '0:100kb-1Mb'='#787CE6', '0:>1Mb'='#0000CD', 
+                       '1:0-100kb'='#EBEBEB', '1:100kb-1Mb'='#C5C5C5', '1:1Mb-10Mb'='#9F9F9F', '1:10Mb-40Mb'='#797979', 
+                       '1:>40Mb'='#545454', '2:0-100kb'='#F5FFFA', '2:100kb-1Mb'='#C0E2C3', 
+                       '2:1Mb-10Mb'='#8BC48E', '2:10Mb-40Mb'='#56A858', '2:>40Mb'='#228B22', 
+                       '3-4:0-100kb'='#FFF0F5', '3-4:100kb-1Mb'='#DEBDEB', '3-4:1Mb-10Mb'='#BE8BE1', 
+                       '3-4:10Mb-40Mb'='#9D58D7', '3-4:>40Mb'='#7D26CD', '5-8:0-100kb'='#FFFAF0', 
+                       '5-8:100kb-1Mb'='#F2DCB3', '5-8:1Mb-10Mb'='#E6BF78', '5-8:10Mb-40Mb'='#D9A23C', 
+                       '5-8:>40Mb'='#CD8500', '9+:0-100kb'='#FFE4E1', '9+:100kb-1Mb'='#E2ADBC', 
+                       '9+:1Mb-10Mb'='#C47798', '9+:10Mb-40Mb'='#A84074', '9+:>40Mb'='#8B0A50')
+#colors = ['#0000CD', '#545454', '#228B22', '#7D26CD','#CD8500', '#8B0A50']
+
+cn48_mutationtype
+cn48_signature <- tibble(MutationType=cn48_mutationtype) %>% mutate(tmp=MutationType) %>% separate(col = tmp,into = c('a','b','c'),sep = ':') %>% mutate(key=paste0(a,":",c)) %>% select(MutationType,Class=b,Type=a,SubType=c,key) %>% mutate(color=NA_character_)
+cn48_signature$color <- cn48_color_mapping[cn48_signature$key]
+cn48_signature <- cn48_signature %>% select(-key) 
+
+cn48_signature_color <- cn48_signature$color
+names(cn48_signature_color) <- cn48_signature$MutationType
+
+plot_profile_logo_cn48 <- function (profile, output_plot = NULL,plot_width=NULL, plot_height=NULL) 
+{
+  ## profile 1 and profile 2 will be the dataframe with two columns: MutationType and value
+  colnames(profile) <- c('MutationType','Value')
+  
+  profile <- cn48_signature %>% left_join(profile) %>% mutate(MutationType = fct_inorder(MutationType))
+  
+  #profile[,2] <- profile[,2]/sum(profile[,2])  
+  plot <- 
+    ggplot(data = profile, aes(x = MutationType, y = Value,  fill = MutationType, width = 0.7)) + 
+    geom_bar(stat = "identity", position = "identity", colour = 'black', size = 0.05) + 
+    scale_fill_manual(values = cn48_signature_color) + 
+    #facet_grid(. ~ Type, scales = "free",space = "free_x") +
+    guides(fill = "none") + 
+    scale_x_discrete(expand = expansion(add = 0))+
+    scale_y_continuous(expand = expansion(mult = c(0,0.1)))+
+    theme(axis.ticks = element_blank(),axis.title = element_blank(), axis.text = element_blank(),panel.background = element_blank(),panel.grid = element_blank(),strip.text.x = element_blank(),panel.spacing.x = unit(0, "lines"),axis.line.x = element_line(colour = 'black',size = 0.05))
+  
+  # 
+  if(is.null(output_plot)){
+    return(plot)
+  }else{
+    xleng <- 2
+    yleng <- 0.8
+    if(is.null(plot_width)){ plot_width <-  xleng}
+    if(is.null(plot_height)){ plot_height <-  yleng}
+    
+    ggsave(filename = output_plot,plot = plot,width = plot_width,height = plot_height)
+  }
+  
+}
+
+
+
+
 # DBS_signal_plot ---------------------------------------------------------
-dbs78_signal_colors <- c('AA>NN'='#E4446E','AC>NN'='#63C26F','AG>NN'='#FEE74C','AT>NN'='#4195CF','CA>NN'='#F3935C','CC>NN'='#9F47BE','CG>NN'='#6FF3F3','GA>NN'='#EF50E8','GC>NN'='#D9F964','TA>NN'='#F8C6C6')
+# dbs78_signal_colors <- c('AA>NN'='#E4446E','AC>NN'='#63C26F','AG>NN'='#FEE74C','AT>NN'='#4195CF','CA>NN'='#F3935C','CC>NN'='#9F47BE','CG>NN'='#6FF3F3','GA>NN'='#EF50E8','GC>NN'='#D9F964','TA>NN'='#F8C6C6')
+
+dbs78_signal_colors <- c('AC>NN'="#03BCEE",'AT>NN'="#0366CB",'CC>NN'="#A1CE63",'CG>NN'="#016601",'CT>NN'="#FE9898",'GC>NN'="#E32926",'TA>NN'="#FEB166",'TC>NN'="#FE8001",'TG>NN'="#CB98FE",'TT>NN'="#4C0198")
 
 plot_profile_dbs78_signal <- function (profile, colors = dbs78_signal_colors,output_plot = NULL,plot_width=NULL, plot_height=NULL) 
 {
@@ -2812,7 +2924,6 @@ Exposure_Clustering_old <- function(sigdata,sigcolor=NULL,studydata=NULL,studyda
 
 
 ## piechar common
-
 piechart_plot <- function(data,colset=NULL,keep_legend = TRUE,legend_name=NULL, output_plot = NULL,plot_width=NULL, plot_height=NULL){
   
   ## data format: Type,Catelogy,Freq,Label
@@ -2854,7 +2965,10 @@ piechart_plot <- function(data,colset=NULL,keep_legend = TRUE,legend_name=NULL, 
   rpie <- 1
   rlabel_out <- 1.05 * rpie
   rlabel_in <- 0.6 * rpie
-  legend_name <- if_else(is.null(legend_name),'',legend_name)
+  if(is.null(legend_name)){
+    legend_name <- ''
+  }
+  #legend_name <- if_else(is.null(legend_name),'',legend_name)
   
   p <- ggplot(data_pie) +
     geom_arc_bar(aes(x0 = 0, y0 = 0, r0 = 0, r = rpie, start = start_angle, end = end_angle, fill = Catelogy)) +
@@ -2971,7 +3085,7 @@ barchart_plot2 <- function(data, output_plot = NULL,plot_width=NULL, plot_height
 
 
 
-prevalence_plot <- function(sigdata,nmutation = 0, legend_name="Sigantures", output_plot = NULL,plot_width=NULL, plot_height=NULL){
+prevalence_plot <- function(sigdata,nmutation = 0, legend_name="Sigantures", colset = NULL, output_plot = NULL,plot_width=NULL, plot_height=NULL,rel_widths=NULL){
   require(janitor)
   pie_input <- sigdata %>% 
     summarise(across(where(is.numeric),~sum(.x,na.rm=TRUE))) %>% 
@@ -3000,13 +3114,15 @@ prevalence_plot <- function(sigdata,nmutation = 0, legend_name="Sigantures", out
   p_barchart <- NULL
   
   if(!is.null(bar_input)) {
-    p_piechart <- piechart_plot(data = pie_input,keep_legend = FALSE)
-    p_barchart <- barchart_plot(data = bar_input,legend_name = legend_name,keep_legend = FALSE)
+    p_piechart <- piechart_plot(data = pie_input,keep_legend = FALSE,colset = colset)
+    p_barchart <- barchart_plot(data = bar_input,legend_name = legend_name,keep_legend = FALSE,colset = colset)
     uvalues <- sort(unique(bar_input$Catelogy))
-    pall <- plot_grid(p_piechart+theme(plot.margin = margin(r = -2)),p_barchart,align = 'h',nrow = 1,rel_widths = c(3,length(uvalues)))
+    if(is.null(rel_widths)){rel_widths <- c(3,length(uvalues))}
+    pall <- plot_grid(p_piechart+theme(plot.margin = margin(r = -2)),p_barchart,align = 'h',nrow = 1,rel_widths = rel_widths)
   }else{
     uvalues <- 3
     p_piechart <- piechart_plot(data = pie_input,keep_legend = TRUE)
+    if(is.null(rel_widths)){rel_widths <- c(3,length(uvalues))}
     pall <- plot_grid(p_piechart+theme(plot.margin = margin(r = -2)),p_barchart,align = 'h',nrow = 1,rel_widths = c(3,length(uvalues)))
     
   }
@@ -3612,7 +3728,7 @@ rowAny <- function(x) rowSums(x) > 0
 # mSigPortal_associaiton --------------------------------------------------
 mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=NULL, xlab="Variable1", ylab="Variable2",filter1=NULL, filter2=NULL,log1=FALSE,log2=FALSE, type="parametric", collapse_var1=NULL, collapse_var2=NULL, output_plot=NULL,plot_width=12,plot_height=8) {
   
-  data <- validate_vardf(data)
+  data <- validate_vardf(data,lump = T)
   
   if(regression){
     ## for regression module
