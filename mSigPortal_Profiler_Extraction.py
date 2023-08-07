@@ -9,8 +9,8 @@ import pandas as pd
 '''
 Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
-Version:	1.38
-Date:		Feb-23-2023
+Version:	1.39
+Date:		Aug-01-2023
 Update:		
 			(17) tar compressing without directory structure, This is very complicated better with zip not gzip, command is following:
 				 cmd = "zip -jr %s/File_Dir_Name.zip %s/File_Dir_Name" % (zip_Dir,Original_Dir)
@@ -26,6 +26,7 @@ Update:
 			(27) Support flexible header of input file in both catalog_tsv and catalog_csv.
 				 Now they don't need to begain with the word of "MutationType". Any users' own defined word (like 'Mutation_ID' or 'Mutations') will be 
 				 automatically transform to "MutationType".
+			(28) Fix the bug: Cannot find input_path after collapse 
 			
  '''
 
@@ -36,9 +37,9 @@ Update:
 ####### 01-0 Rewrite arg_Parse help Document
 Help_String = '''
 Program:	mSigPortal_Profiler_Extraction
-Version:	Alpha v 1.38
+Version:	Alpha v 1.34
 Function:	Extract and generate standard format for mSigPortal analysis from multiple type of input file.
-Updated:	Feb-23-2023
+Updated:	June-16-2022
 
 Usage:	 	python3 mSigPortal_Profiler_Extraction.py [options]
 
@@ -1445,6 +1446,9 @@ def Convert_Collapse(Output_Dir,Collapse,Project_ID):
 	mSigPortal_Format_SNV_Collapse_Path = "%s/%s_mSigPortal_SNV_Collapse.txt" %  (Output_Dir,Project_ID)
 	mSigPortal_Format_INDEL_Collapse_Path = "%s/%s_mSigPortal_INDEL_Collapse.txt" % (Output_Dir,Project_ID)
 
+	#mSigPortal_Format_SNV_Collapse_Path = "%s/%s_mSigPortal_SNV.txt" %  (Output_Dir,Project_ID)
+	#mSigPortal_Format_INDEL_Collapse_Path = "%s/%s_mSigPortal_INDEL.txt" % (Output_Dir,Project_ID)
+
 	####### 01-12-2 Count the Sample in Input_Path: mSigPortal_Format_SNV_File
 	SNV_Sample_Count = []
 	mSigPortal_Format_SNV_File = open(mSigPortal_Format_SNV_Path)
@@ -1492,7 +1496,9 @@ def Convert_Collapse(Output_Dir,Collapse,Project_ID):
 
 		####### 01-6-0 RM mSigPortal_Format_SNV_Path
 		cmd_1 = "rm %s" % (mSigPortal_Format_SNV_Path)
+		cmd_3 = "cp %s %s" % (mSigPortal_Format_SNV_Collapse_Path, mSigPortal_Format_SNV_Path)
 		os.system(cmd_1)
+		os.system(cmd_3)
 
 
 
@@ -1545,7 +1551,10 @@ def Convert_Collapse(Output_Dir,Collapse,Project_ID):
 
 		####### 01-6-0 RM  mSigPortal_Format_INDEL_Path
 		cmd_2 = "rm %s" % (mSigPortal_Format_INDEL_Path)
+		cmd_4 = "cp %s %s" % (mSigPortal_Format_INDEL_Collapse_Path, mSigPortal_Format_INDEL_Path)
+
 		os.system(cmd_2)
+		os.system(cmd_4)
 
 
 ####### 01-16 gzip_Output(Output_Dir)
