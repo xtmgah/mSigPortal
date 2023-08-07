@@ -26,7 +26,7 @@ Update:
 			(27) Support flexible header of input file in both catalog_tsv and catalog_csv.
 				 Now they don't need to begain with the word of "MutationType". Any users' own defined word (like 'Mutation_ID' or 'Mutations') will be 
 				 automatically transform to "MutationType".
-			(28) Fix the bug: Cannot find input_path after collapse 
+			(28) Fix the bug: Format for InputPath; and Cannot find input_path after collapse 
 			
  '''
 
