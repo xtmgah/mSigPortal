@@ -1,12 +1,10 @@
 SAMPLE,CHROM,START,END,REF,ALT,FILTER
-SC349747,1,104193,104193,A,G,alt_allele_in_normal;triallelic_site
-SC349747,1,104194,104194,C,A,multi_event_alt_allele_in_normal;t_lod_fstar
-SC349747,1,104195,104195,A,G,alt_allele_in_normal;germline_risk
-SC420396,1,231480,231480,G,C,alt_allele_in_normal;germline_risk
-SB749362,1,231481,231481,G,C,clustered_events;multi_event_alt_allele_in_normal
-SB749362,1,233286,233286,T,C,clustered_events;germline_risk;multi_event_alt_allele_in_normal;alt_allele_in_normal
-SC349747,1,233286,233286,T,C,clustered_events;germline_risk;multi_event_alt_allele_in_normal;alt_allele_in_normal
-SB749362,1,233287,233287,G,A,clustered_events;germline_risk;multi_event_alt_allele_in_normal;alt_allele_in_normal
-SC349747,1,233287,233287,G,A,clustered_events;germline_risk;multi_event_alt_allele_in_normal;alt_allele_in_normal
-SC420396,1,234431,234431,C,T,alt_allele_in_normal;clustered_events
-SB749362,1,234432,234432,A,G,alt_allele_in_normal;clustered_events
+1	104193	.	A	G	.	alt_allele_in_normal;triallelic_site	ECNT=3;HCNT=2;MAX_ED=2;MIN_ED=1;NLOD=2.99;TLOD=6.48;AC=1;AN=2	GT:AD:AF:ALT_F1R2:ALT_F2R1:FOXOG:QSS:REF_F1R2:REF_F2R1	./.:.:.:.:.:.:.:.:.	./.:.:.:.:.:.:.:.:.	"0/1:49,3:0.038:1:1:0.5:1379,62:22:27"
+1	104194	.	C	A	.	multi_event_alt_allele_in_normal;t_lod_fstar	ECNT=3;HCNT=4;MAX_ED=2;MIN_ED=1;NLOD=7.02;TLOD=4.11;AC=1;AN=2	GT:AD:AF:ALT_F1R2:ALT_F2R1:FOXOG:QSS:REF_F1R2:REF_F2R1	./.:.:.:.:.:.:.:.:.	./.:.:.:.:.:.:.:.:.	"0/1:48,3:0.055:0:3:1:1353,83:25:23"
+1	104195	.	A	G	.	alt_allele_in_normal;germline_risk	ECNT=3;HCNT=5;MAX_ED=2;MIN_ED=1;NLOD=1.54;TLOD=14.73;AC=1;AN=2	GT:AD:AF:ALT_F1R2:ALT_F2R1:FOXOG:QSS:REF_F1R2:REF_F2R1	./.:.:.:.:.:.:.:.:.	./.:.:.:.:.:.:.:.:.	"0/1:46,6:0.056:2:1:0.333:1301,91:22:24"
+1	231480	rs200482415	G	C	.	alt_allele_in_normal;germline_risk	DB;ECNT=1;HCNT=36;MAX_ED=.;MIN_ED=.;NLOD=3.28;TLOD=40.1;AC=1;AN=2	GT:AD:AF:ALT_F1R2:ALT_F2R1:FOXOG:QSS:REF_F1R2:REF_F2R1	"0/1:168,30:0.16:11:19:0.367:4947,780:91:77"	./.:.:.:.:.:.:.:.:.	./.:.:.:.:.:.:.:.:.
+1	231481	.	G	C	.	clustered_events;multi_event_alt_allele_in_normal	ECNT=3;HCNT=2;MAX_ED=9;MIN_ED=3;NLOD=43.66;TLOD=7.9;AC=1;AN=2	GT:AD:AF:ALT_F1R2:ALT_F2R1:FOXOG:PGT:PID:QSS:REF_F1R2:REF_F2R1	./.:.:.:.:.:.:.:.:.:.:.	"0/1:516,5:0.008:0:5:0:0|1:231478_T_C:14561,148:247:269"	./.:.:.:.:.:.:.:.:.:.:.
+1	233286	.	T	C	.	clustered_events;germline_risk;multi_event_alt_allele_in_normal;alt_allele_in_normal	ECNT=10;HCNT=8;MAX_ED=161;MIN_ED=12;NLOD=1.82;TLOD=8.05;AC=2;AN=4	GT:AD:AF:ALT_F1R2:ALT_F2R1:FOXOG:PGT:PID:QSS:REF_F1R2:REF_F2R1	./.:.:.:.:.:.:.:.:.:.:.	"0/1:178,3:0.016:3:0:1:0|1:233286_T_C:5174,83:80:98"	"0/1:69,3:0.041:1:2:0.333:0|1:233286_T_C:2134,88:35:34"
+1	233287	.	G	A	.	clustered_events;germline_risk;multi_event_alt_allele_in_normal;alt_allele_in_normal	ECNT=10;HCNT=8;MAX_ED=161;MIN_ED=12;NLOD=1.82;TLOD=8.05;AC=2;AN=4	GT:AD:AF:ALT_F1R2:ALT_F2R1:FOXOG:PGT:PID:QSS:REF_F1R2:REF_F2R1	./.:.:.:.:.:.:.:.:.:.:.	"0/1:176,3:0.016:3:0:1:0|1:233286_T_C:4990,81:79:97"	"0/1:70,3:0.041:1:2:0.333:0|1:233286_T_C:2073,83:35:35"
+1	234431	.	C	T	.	alt_allele_in_normal;clustered_events	ECNT=2;HCNT=10;MAX_ED=38;MIN_ED=38;NLOD=17.07;TLOD=6.3;AC=1;AN=2	GT:AD:AF:ALT_F1R2:ALT_F2R1:FOXOG:QSS:REF_F1R2:REF_F2R1	"0/1:191,7:0.037:4:3:0.429:5335,171:111:80"	./.:.:.:.:.:.:.:.:.	./.:.:.:.:.:.:.:.:.
+1	234432	rs8179455	A	G	.	alt_allele_in_normal;clustered_events	DB;ECNT=5;HCNT=10;MAX_ED=186;MIN_ED=11;NLOD=11.76;TLOD=16.64;AC=1;AN=2	GT:AD:AF:ALT_F1R2:ALT_F2R1:FOXOG:QSS:REF_F1R2:REF_F2R1	./.:.:.:.:.:.:.:.:.	"0/1:263,14:0.053:6:8:0.571:7701,354:136:127"	./.:.:.:.:.:.:.:.:.
