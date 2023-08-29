@@ -9,8 +9,8 @@ import pandas as pd
 '''
 Name:		mSigPortal_Profiler_Extraction
 Function:	Generate Input File for mSigPortal
-Version:	1.39
-Date:		Aug-01-2023
+Version:	1.40
+Date:		Aug-25-2023
 Update:		
 			(17) tar compressing without directory structure, This is very complicated better with zip not gzip, command is following:
 				 cmd = "zip -jr %s/File_Dir_Name.zip %s/File_Dir_Name" % (zip_Dir,Original_Dir)
@@ -26,7 +26,8 @@ Update:
 			(27) Support flexible header of input file in both catalog_tsv and catalog_csv.
 				 Now they don't need to begain with the word of "MutationType". Any users' own defined word (like 'Mutation_ID' or 'Mutations') will be 
 				 automatically transform to "MutationType".
-			(28) Fix the bug: Format for InputPath; and Cannot find input_path after collapse 
+			(28) Fix the bug: Cannot find input_path after collapse 
+			(29) Add Error Code: 2727 to Capture Wrong Format of Input File.
 			
  '''
 
@@ -396,7 +397,7 @@ def maf_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 	
 	for cc in Check_headers_Arr:
 		if cc not in df.columns:
-			print("Error 233: The column of %s can not be found from your MAF file!" % (cc))
+			print("Error 2727: The column of %s can not be found from your MAF file!" % (cc))
 			sys.exit()
 
 	####### 01-3-2 Build Clean df:
@@ -478,11 +479,11 @@ def csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 			String_File += line
 		else:
 			print(ss)
-			print("Error 233: The CSV option requires each line in input file should include 7 Item: SAMPLE,CHROM,START,END,REF,ALT,FILTER.\nHowever, the %d line contains %d items!" % (Count,len(ss)))
+			print("Error 2727: The CSV option requires each line in input file should include 7 Item: SAMPLE,CHROM,START,END,REF,ALT,FILTER.\nHowever, the %d line contains %d items!" % (Count,len(ss)))
 			sys.exit()
 			Count += 1
 	if Header not in String_File:
-		print("Error 233: A header line: \"SAMPLE,CHROM,START,END,REF,ALT,FILTER\" is required!")
+		print("Error 2727: A header line: \"SAMPLE,CHROM,START,END,REF,ALT,FILTER\" is required!")
 		sys.exit()
 		
 	####### 01-3-2 Generate Result
@@ -536,11 +537,11 @@ def csv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Typ
 		if len(ss) == 7:
 			String_File += line
 		else:
-			print("Error 233: The CSV option requires each line in input file should include 7 Item: Sample,Chrom,Start,End,Ref,Alt,Filter.\nHowever, the %d line contains %d items!" % (Count,len(ss)))
+			print("Error 2727: The CSV option requires each line in input file should include 7 Item: Sample,Chrom,Start,End,Ref,Alt,Filter.\nHowever, the %d line contains %d items!" % (Count,len(ss)))
 			sys.exit()
 			Count += 1
 	if Header not in String_File:
-		print("Error 233: A header line: \"SAMPLE,CHROM,START,END,REF,ALT,FILTER\" is required!")
+		print("Error 2727: A header line: \"SAMPLE,CHROM,START,END,REF,ALT,FILTER\" is required!")
 		sys.exit()
 
 	####### 01-6-2 Parse Filter:
@@ -630,11 +631,11 @@ def csv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type
 		if len(ss) == 7:
 			String_File += line
 		else:
-			print("Error 233: The CSV option requires each line in input file should include 7 Item: Sample,Chrom,Start,End,Ref,Alt,Filter.\nHowever, the %d line contains %d items!" % (Count,len(ss)))
+			print("Error 2727: The CSV option requires each line in input file should include 7 Item: Sample,Chrom,Start,End,Ref,Alt,Filter.\nHowever, the %d line contains %d items!" % (Count,len(ss)))
 			sys.exit()
 			Count += 1
 	if Header not in String_File:
-		print("Error 233: A header line: \"SAMPLE,CHROM,START,END,REF,ALT,FILTER\" is required!")
+		print("Error 2727: A header line: \"SAMPLE,CHROM,START,END,REF,ALT,FILTER\" is required!")
 		sys.exit()
 
 	####### 01-6-2 Parse Filter:
@@ -706,12 +707,12 @@ def tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 		if len(ss) == 7:
 			String_File += line
 		else:
-			print("Error 233: The TSV format requires each line in input file should include 7 Item: SAMPLE	CHROM	START	END	REF	ALT	FILTER.\nHowever, the following line contains %d items!" % (len(ss)))
+			print("Error 2727: The TSV format requires each line in input file should include 7 Item: SAMPLE	CHROM	START	END	REF	ALT	FILTER.\nHowever, the following line contains %d items!" % (len(ss)))
 			print(ss)
 			sys.exit()
 			Count += 1
 	if Header not in String_File:
-		print("Error 233: A header line: \"SAMPLE	CHROM	START	END	REF	ALT	FILTER\" is required!")
+		print("Error 2727: A header line: \"SAMPLE	CHROM	START	END	REF	ALT	FILTER\" is required!")
 		sys.exit()
 	#print(String_File)
 	####### 01-3-2 Generate Result
@@ -764,11 +765,11 @@ def tsv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Typ
 		if len(ss) == 7:
 			String_File += line
 		else:
-			print("Error 233: The TSV optformat requires each line in input file should include 7 Item: Sample_ID	Chrom	Start	End	Ref	Alt	Filter.\nHowever, the %d line contains %d items!" % (Count,len(ss)))
+			print("Error 2727: The TSV optformat requires each line in input file should include 7 Item: Sample_ID	Chrom	Start	End	Ref	Alt	Filter.\nHowever, the %d line contains %d items!" % (Count,len(ss)))
 			sys.exit()
 			Count += 1
 	if Header not in String_File:
-		print("Error 233: A header line: \"SAMPLE	CHROM	START	END	REF	ALT	FILTER\" is required!")
+		print("Error 2727: A header line: \"SAMPLE	CHROM	START	END	REF	ALT	FILTER\" is required!")
 		sys.exit()
 
 	####### 01-6-2 Parse Filter:
@@ -854,11 +855,11 @@ def tsv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type
 		if len(ss) == 7:
 			String_File += line
 		else:
-			print("Error 233: The TSV optformat requires each line in input file should include 7 Item: Sample_ID	Chrom	Start	End	Ref	Alt	Filter.\nHowever, the %d line contains %d items!" % (Count,len(ss)))
+			print("Error 2727: The TSV optformat requires each line in input file should include 7 Item: Sample_ID	Chrom	Start	End	Ref	Alt	Filter.\nHowever, the %d line contains %d items!" % (Count,len(ss)))
 			sys.exit()
 			Count += 1
 	if Header not in String_File:
-		print("Error 233: A header line: \"SAMPLE	CHROM	START	END	REF	ALT	FILTER\" is required!")
+		print("Error 2727: A header line: \"SAMPLE	CHROM	START	END	REF	ALT	FILTER\" is required!")
 		sys.exit()
 
 	####### 01-6-3 Generate Result
@@ -927,7 +928,7 @@ def vcf_Multiple_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_T
 	Input_File.close()
 
 	if header not in String_File:
-		print("Error 233: A header line: \"#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	Sample1...\" is required!")
+		print("Error 2727: A header line: \"#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	Sample1...\" is required!")
 		sys.exit()
 
 
@@ -1006,7 +1007,7 @@ def vcf_Multiple_Convert_Split_All_Filter(Input_Path,Project_ID,Output_Dir,Genom
 	Input_File.close()
 
 	if header not in String_File:
-		print("Error 233: A header line: \"#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	Sample1...\" is required!")
+		print("Error 2727: A header line: \"#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	Sample1...\" is required!")
 		sys.exit()
 
 
@@ -1125,7 +1126,7 @@ def catalog_tsv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Buildin
 			String_File += line
 		
 	if Header not in String_File:
-		print("Error 233: A header line like \"MutationType	Sample1	Sample2	Sample3...\" is required!")
+		print("Error 2727: A header line like \"MutationType	Sample1	Sample2	Sample3...\" is required!")
 		sys.exit()
 		
 	####### 01-3-2 Generate Result
@@ -1188,7 +1189,7 @@ def catalog_tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Ty
 			String_File += line
 		
 	if Header not in String_File:
-		print("Error 233: A header line like \"MutationType	Sample1	Sample2	Sample3...\" is required!")
+		print("Error 2727: A header line like \"MutationType	Sample1	Sample2	Sample3...\" is required!")
 		sys.exit()
 	Input_File.close()
 
@@ -1218,7 +1219,7 @@ def catalog_csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Ty
 	####### New function modify header 	####### 
 	with open(Input_Path, 'r', encoding='utf-8') as f:
 		lines = f.readlines()
-	print(lines[0])
+	#print(lines[0])
 	Header_Line_Arr = lines[0].split(",")
 	Header_Line_Arr[0] = "MutationType"
 	New_Header = ",".join(Header_Line_Arr)
@@ -1241,7 +1242,7 @@ def catalog_csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Ty
 			String_File += line
 		
 	if Header not in String_File:
-		print("Error 233: A header line like \"MutationType,Sample1,Sample2,Sample3...\" is required!")
+		print("Error 2727: A header line like \"MutationType,Sample1,Sample2,Sample3...\" is required!")
 		sys.exit()
 
 	#Input_File.close()
@@ -1294,7 +1295,7 @@ def catalog_csv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Buildin
 			String_File += line
 		#print(line)
 	if Header not in String_File:
-		print("Error 233: A header line like \"MutationType,Sample1,Sample2,Sample3...\" is required!")
+		print("Error 2727: A header line like \"MutationType,Sample1,Sample2,Sample3...\" is required!")
 		sys.exit()
 	#mSigPortal_Format_catalog_File.write("ss")
 	####### 01-3-2 Generate Result
@@ -1348,7 +1349,7 @@ def vcf_Multiple_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building
 	Input_File.close()
 
 	if header not in String_File:
-		print("Error 233: A header line: \"#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	Sample1...\" is required!")
+		print("Error 2727: A header line: \"#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	Sample1...\" is required!")
 		sys.exit()
 
 
@@ -2269,10 +2270,13 @@ if __name__ == "__main__":
 
 
 ### Usage for catalog_tsv
-# python mSigPortal_Profiler_Extraction_V38.py -f catalog_tsv -i Demo_Input_Test_CSV_TSV/demo_input_catalog.tsv -p Project -o z-9-Test_Output_Catlog_TSV -g GRCh37 -t WGS
+# python mSigPortal_Profiler_Extraction_V39.py -f tsv -i z-9-1-Data-Input/hkbcs_mSigPortal_input_subset.tsv -p Project -o z-9-Test_Output_Catlog_TSV -g GRCh37 -t WGS
 
-### Usage for catalog_tsv
-# python mSigPortal_Profiler_Extraction_V38.py -f catalog_tsv -i Demo_Input_Test_CSV_TSV/Test.SBS.288.txt -p Project -o z-9-Test_Output_Catlog_TSV -g GRCh37 -t WGS
+
+
+
+
+
 
 
 
