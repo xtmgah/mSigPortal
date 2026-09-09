@@ -454,6 +454,10 @@ def maf_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 	mSigPortal_Format_SNV_File.close()
 	mSigPortal_Format_INDEL_File.close()
 
+	# Remove intermediate file so SigProfilerMatrixGenerator does not read it as input (its Chromosome column would appear as a spurious sample)
+	if os.path.exists(mSigPortal_Format_Tem_Path):
+		os.remove(mSigPortal_Format_Tem_Path)
+
 
 ####### 01-5 csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
 def csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse):
@@ -2271,7 +2275,6 @@ if __name__ == "__main__":
 
 ### Usage for catalog_tsv
 # python mSigPortal_Profiler_Extraction_V39.py -f tsv -i z-9-1-Data-Input/hkbcs_mSigPortal_input_subset.tsv -p Project -o z-9-Test_Output_Catlog_TSV -g GRCh37 -t WGS
-
 
 
 
