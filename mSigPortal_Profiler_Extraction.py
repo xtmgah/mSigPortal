@@ -14,7 +14,7 @@ Date:		Aug-25-2023
 Update:		
 			(17) tar compressing without directory structure, This is very complicated better with zip not gzip, command is following:
 				 cmd = "zip -jr %s/File_Dir_Name.zip %s/File_Dir_Name" % (zip_Dir,Original_Dir)
-			(18) Support MAF format ["Tumor_Sample_Barcode", "Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]
+			(18) Support MAF format ["Tumor_Sample_Barcode", "Chromosome", "Start_Position", "End_Position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]
 			(19) Enable sigPlt to support percentage
 			(20) Support R32 and CNV48 for catalog_TSV and catalog_CSV
 			(21) Add Cluster Function     # 06-16-2022
@@ -390,18 +390,21 @@ def maf_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 
 
 	####### 01-3-1 Check headers:
-	Check_headers_Arr = ["Tumor_Sample_Barcode", "Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]
+	Check_headers_Arr = ["Tumor_Sample_Barcode", "Chromosome", "Start_Position", "End_Position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]
 	
 	df = pd.read_table(Input_Path)
 	
-	
+	# Match headers case-insensitively so any casing in the MAF file is accepted
+	col_map = {c.lower(): c for c in df.columns}
+	Selected_Cols = []
 	for cc in Check_headers_Arr:
-		if cc not in df.columns:
+		if cc.lower() not in col_map:
 			print("Error 2727: The column of %s can not be found from your MAF file!" % (cc))
 			sys.exit()
+		Selected_Cols.append(col_map[cc.lower()])
 
 	####### 01-3-2 Build Clean df:
-	Clean_df = df[["Tumor_Sample_Barcode", "Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"]]
+	Clean_df = df[Selected_Cols]
 	print(Clean_df)
 
 	Clean_df.to_csv(mSigPortal_Format_Tem_Path, sep="\t", header=True, quoting=None, index=None)
