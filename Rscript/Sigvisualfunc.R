@@ -3938,6 +3938,9 @@ mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression
     ## subset data
     data <- data %>% select(one_of(c(Group_Var,Var1,Var2)))
     colnames(data) <- c("Group","Var1","Var2")
+    # character variables are categorical; coerce to factor so type detection works for all cardinalities
+    if(is.character(data[["Var1"]])){ data[["Var1"]] <- as.factor(data[["Var1"]]) }
+    if(is.character(data[["Var2"]])){ data[["Var2"]] <- as.factor(data[["Var2"]]) }
     var1_type <- if_else(is.factor(data[["Var1"]]),"categorical", if_else(is.numeric(data[["Var1"]]),"continuous",NA_character_))
     var2_type <- if_else(is.factor(data[["Var2"]]),"categorical", if_else(is.numeric(data[["Var2"]]),"continuous",NA_character_))
     
@@ -4103,6 +4106,11 @@ multivariable_inputs <- function(data,listpars) {
     datav <- data %>%
       filter(data_source == Var$source, data_type == Var$type, variable_name == Var$name)
     
+    # no rows means the selected variable has no samples overlapping the signature-set exposures
+    if (nrow(datav) == 0) {
+      known_error(paste0("mSigPortal Association failed: the selected variable name ", Var$name, " has no samples overlapping the selected signature set exposures. Please select another variable."))
+    }
+    
     var_type <- if_else(unique(datav$variable_value_type) == "character","categorical", if_else(unique(datav$variable_value_type) == "numeric","continuous",NA_character_))
     
     # change data type for regression
@@ -4146,5 +4154,4 @@ multivariable_inputs <- function(data,listpars) {
   
   return(result)
 }
-
 
