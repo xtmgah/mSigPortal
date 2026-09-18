@@ -3726,16 +3726,24 @@ rowAny <- function(x) rowSums(x) > 0
 
 
 # mSigPortal_associaiton --------------------------------------------------
-mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=NULL, xlab="Variable1", ylab="Variable2",filter1=NULL, filter2=NULL,log1=FALSE,log2=FALSE, type="parametric", collapse_var1=NULL, collapse_var2=NULL, output_plot=NULL,plot_width=12,plot_height=8) {
-  
-  data <- validate_vardf(data,lump = T)
+mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=NULL, xlab="Variable1", ylab="Variable2",filter1=NULL, filter2=NULL,log1=FALSE,log2=FALSE, type="parametric", collapse_var1=NULL, collapse_var2=NULL, output_plot=NULL,plot_width=12,plot_height=8, name_map=NULL) {
   
   if(regression){
     ## for regression module
     supported_types <- c("lm", "glm")
     
-    if(!str_detect(formula,"~")){
+    if(is.null(formula)|!str_detect(formula,"~")){
       stop("Please check your formula for regression, for example, lm( mpg ~ vs + gear")
+    }
+    
+    # Keep the response (LHS) numeric; validate_vardf would otherwise coerce
+    # low-cardinality exposures to a factor and break glm / silently corrupt lm.
+    response_var <- trimws(str_split_fixed(formula, "~", 2)[,1])
+    data <- validate_vardf(data, lump = T, excludes = response_var)
+    data[[response_var]] <- as.numeric(data[[response_var]])
+    
+    if(sum(!is.na(data[[response_var]])) < 2 || n_distinct(data[[response_var]], na.rm = TRUE) < 2){
+      known_error(paste0("mSigPortal Association failed: the exposure variable '", response_var, "' has too few distinct values for regression. Please select another exposure or signature."))
     }
     
     input_formula <- paste0("mod <- data %>% ",type, "(", formula,", data=.)")
@@ -3749,7 +3757,13 @@ mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=N
       ggtheme = hrbrthemes::theme_ipsum_rc(axis_title_just = 'm',axis_title_size = 14)
     ) + # note the order in which the labels are entered
       ggplot2::labs(x = "Regression Coefficient", y = NULL)
+    
+    if (!is.null(name_map)) {
+      p <- p + ggplot2::scale_y_discrete(labels = function(l) restore_var_names(l, name_map))
+    }
   }else{
+    
+    data <- validate_vardf(data,lump = T)
     
     ## subset data
     data <- data %>% select(one_of(c(Var1,Var2)))
@@ -3906,11 +3920,34 @@ mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=N
   }
 }
 
+# name_map: named character vector, names = safe, values = original.
+# Restores the leading safe-name token in model terms while preserving any
+# factor-level suffix (e.g. "X7qOther" -> "7qOther").
+restore_var_names <- function(x, name_map) {
+  if (is.null(name_map) || length(name_map) == 0) return(as.character(x))
+  safes <- names(name_map)[order(nchar(names(name_map)), decreasing = TRUE)]
+  vapply(as.character(x), function(t) {
+    for (s in safes) if (startsWith(t, s)) return(paste0(name_map[[s]], substring(t, nchar(s) + 1)))
+    t
+  }, character(1), USE.NAMES = FALSE)
+}
+
+# Finalize grouped association results: Bayesian tests return bf10 (no p.value);
+# frequentist tests return p.value and get BH FDR.
+finalize_group_result <- function(df, type) {
+  df <- df %>% ungroup()
+  if (identical(type, "bayes")) {
+    if (!"bf10" %in% colnames(df)) return(df)
+    df %>% filter(!is.na(bf10)) %>% arrange(desc(bf10))
+  } else {
+    if (!"p.value" %in% colnames(df)) return(df)
+    df %>% filter(!is.na(p.value)) %>% arrange(p.value) %>%
+      mutate(fdr = p.adjust(p.value, method = "BH"), fdr.method = "BH")
+  }
+}
 
 
 mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression=FALSE, formula=NULL, filter1=NULL, filter2=NULL,log1=FALSE,log2=FALSE,type="parametric", collapse_var1=NULL, collapse_var2=NULL) {
-  
-  data <- validate_vardf(data,excludes = Group_Var)
   
   if(regression){
     ## for regression module
@@ -3918,6 +3955,16 @@ mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression
     
     if(is.null(formula)|!str_detect(formula,"~")){
       stop("Please check your formula for regression, for example, lm( mpg ~ vs + gear")
+    }
+    
+    # Keep the response (LHS) numeric; validate_vardf would otherwise coerce
+    # low-cardinality exposures to a factor and break glm / silently corrupt lm.
+    response_var <- trimws(str_split_fixed(formula, "~", 2)[,1])
+    data <- validate_vardf(data, excludes = c(Group_Var, response_var))
+    data[[response_var]] <- as.numeric(data[[response_var]])
+    
+    if(sum(!is.na(data[[response_var]])) < 2 || n_distinct(data[[response_var]], na.rm = TRUE) < 2){
+      known_error(paste0("mSigPortal Association failed: the exposure variable '", response_var, "' has too few distinct values for regression. Please select another exposure or signature."))
     }
     
     colnames(data)[colnames(data) == Group_Var] <- 'Group'
@@ -3934,6 +3981,8 @@ mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression
     result <- result %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) #%>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH") #%>% mutate(formula=formula)
     
   }else{
+    
+    data <- validate_vardf(data,excludes = Group_Var)
     
     ## subset data
     data <- data %>% select(one_of(c(Group_Var,Var1,Var2)))
@@ -4012,7 +4061,7 @@ mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression
         }
         
       }else{
-        result <- data %>% group_by(Group) %>% group_modify(~statsExpressions::corr_test(data = .,x=Var1,y=Var2,type=type) %>% select(-expression)) %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH")
+        result <- data %>% group_by(Group) %>% group_modify(~statsExpressions::corr_test(data = .,x=Var1,y=Var2,type=type) %>% select(-expression)) %>% finalize_group_result(type)
       }
       
       result$parameter1 <- Var1
@@ -4035,7 +4084,7 @@ mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression
       if(type == "fisher"){
         result <-  data %>% filter(Group %in% tmp) %>%  nest_by(Group) %>% mutate(test=list(fisher.test(data$Var1,data$Var2))) %>% summarise(tidy(test)) %>% arrange(p.value) %>% ungroup() %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% ungroup() 
       }else{
-        result <- data %>% filter(Group %in% tmp) %>%  group_by(Group) %>% group_modify(~tryCatch(expr = statsExpressions::contingency_table(data = .,x=Var1,y=Var2,type=type), error = function(e) NULL)) %>% select(-expression) %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH")
+        result <- data %>% filter(Group %in% tmp) %>%  group_by(Group) %>% group_modify(~tryCatch(expr = statsExpressions::contingency_table(data = .,x=Var1,y=Var2,type=type), error = function(e) NULL)) %>% select(-expression) %>% finalize_group_result(type)
       }
       result <- result %>% mutate(variable_name1=Var1, variable_name2 = Var2) %>% select(Group,variable_name1,variable_name2,everything())
       colnames(result)[1] <- c(tolower(Group_Var))
@@ -4053,12 +4102,12 @@ mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression
         if(length(levels(data$Var1))==2){
           
           tmp <- data %>% group_by(Group) %>% filter(!is.na(Var1),!is.na(Var2))%>%  summarise(n1=n_distinct(Var1),n2=n_distinct(Var2)) %>% filter(n1!=2|n2==1) %>% pull(Group)
-          result <- data  %>% filter(!Group %in% tmp) %>%   group_by(Group) %>% group_modify(~statsExpressions::two_sample_test(data = .,x=Var1,y=Var2,type=type)) %>% select(-expression) %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH")
+          result <- data  %>% filter(!Group %in% tmp) %>%   group_by(Group) %>% group_modify(~statsExpressions::two_sample_test(data = .,x=Var1,y=Var2,type=type)) %>% select(-expression) %>% finalize_group_result(type)
         }
         
         if(length(levels(data$Var1))>2){
           tmp <- data %>% filter(!is.na(Var1),!is.na(Var2)) %>% group_by(Group,Var1) %>% summarise(SD=sd(Var2)) %>% filter(SD==0) %>% select(Group) %>% unique() %>% pull(Group) %>% as.character()
-          result <- data  %>% filter(!Group %in% tmp) %>%   group_by(Group) %>% group_modify(~statsExpressions::oneway_anova(data = .,x=Var1,y=Var2,type=type)) %>% select(-expression) %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH")
+          result <- data  %>% filter(!Group %in% tmp) %>%   group_by(Group) %>% group_modify(~statsExpressions::oneway_anova(data = .,x=Var1,y=Var2,type=type)) %>% select(-expression) %>% finalize_group_result(type)
         }
         
         result$parameter1 <- Var1
@@ -4072,12 +4121,12 @@ mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression
         if(length(levels(data$Var2))==2){
           
           tmp <- data %>% group_by(Group) %>% filter(!is.na(Var1),!is.na(Var2))%>%  summarise(n1=n_distinct(Var2),n2=n_distinct(Var1)) %>% filter(n1!=2|n2==1) %>% pull(Group)
-          result <- data  %>% filter(!Group %in% tmp) %>%   group_by(Group) %>% group_modify(~statsExpressions::two_sample_test(data = .,x=Var2,y=Var1,type=type)) %>% select(-expression) %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH")
+          result <- data  %>% filter(!Group %in% tmp) %>%   group_by(Group) %>% group_modify(~statsExpressions::two_sample_test(data = .,x=Var2,y=Var1,type=type)) %>% select(-expression) %>% finalize_group_result(type)
         }
         
         if(length(levels(data$Var2))>2){
           tmp <- data %>% filter(!is.na(Var1),!is.na(Var2)) %>% group_by(Group,Var2) %>% summarise(SD=sd(Var1)) %>% filter(SD==0) %>% select(Group) %>% unique() %>% pull(Group) %>% as.character()
-          result <- data  %>% filter(!Group %in% tmp) %>%   group_by(Group) %>% group_modify(~statsExpressions::oneway_anova(data = .,x=Var2,y=Var1,type=type)) %>% select(-expression) %>% ungroup() %>% filter(!is.na(p.value)) %>% arrange(p.value) %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% mutate(fdr.method="BH")
+          result <- data  %>% filter(!Group %in% tmp) %>%   group_by(Group) %>% group_modify(~statsExpressions::oneway_anova(data = .,x=Var2,y=Var1,type=type)) %>% select(-expression) %>% finalize_group_result(type)
         }
         
         result$parameter1 <- Var2
