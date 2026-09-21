@@ -3982,6 +3982,8 @@ mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression
     
   }else{
     
+    result <- NULL
+    
     data <- validate_vardf(data,excludes = Group_Var)
     
     ## subset data
@@ -4084,7 +4086,7 @@ mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression
       if(type == "fisher"){
         result <-  data %>% filter(Group %in% tmp) %>%  nest_by(Group) %>% mutate(test=list(fisher.test(data$Var1,data$Var2))) %>% summarise(tidy(test)) %>% arrange(p.value) %>% ungroup() %>% mutate(fdr=p.adjust(p.value,method = 'BH')) %>% ungroup() 
       }else{
-        result <- data %>% filter(Group %in% tmp) %>%  group_by(Group) %>% group_modify(~tryCatch(expr = statsExpressions::contingency_table(data = .,x=Var1,y=Var2,type=type), error = function(e) NULL)) %>% select(-expression) %>% finalize_group_result(type)
+        result <- data %>% filter(Group %in% tmp) %>%  group_by(Group) %>% group_modify(~tryCatch(expr = statsExpressions::contingency_table(data = .,x=Var1,y=Var2,type=type), error = function(e) tibble())) %>% select(-any_of("expression")) %>% finalize_group_result(type)
       }
       result <- result %>% mutate(variable_name1=Var1, variable_name2 = Var2) %>% select(Group,variable_name1,variable_name2,everything())
       colnames(result)[1] <- c(tolower(Group_Var))
@@ -4133,6 +4135,15 @@ mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression
         result$parameter2 <- Var1
         colnames(result)[1:3] <- c(tolower(Group_Var),"variable_name1","varible_name2")
       }
+    }
+    
+    if (is.null(result) || nrow(result) == 0) {
+      known_error(paste0(
+        "mSigPortal Association failed: the '", type, "' method could not produce any results for '",
+        Var1, "' vs '", Var2, "'. This often means the two variables are incompatible with that method, ",
+        "or a numeric variable has too few distinct values and was treated as categorical. ",
+        "Please try a different signature exposure variable, choose another statistical method, or select a different signature."
+      ))
     }
     
   } 
