@@ -3743,7 +3743,7 @@ mSigPortal_associaiton <- function(data, Var1, Var2, regression=FALSE, formula=N
     data[[response_var]] <- as.numeric(data[[response_var]])
     
     if(sum(!is.na(data[[response_var]])) < 2 || n_distinct(data[[response_var]], na.rm = TRUE) < 2){
-      known_error(paste0("mSigPortal Association failed: the exposure variable '", response_var, "' has too few distinct values for regression. Please select another exposure or signature."))
+      known_error(paste0("The exposure variable '", response_var, "' has too few distinct values for regression. Please select another exposure or signature."))
     }
     
     input_formula <- paste0("mod <- data %>% ",type, "(", formula,", data=.)")
@@ -3964,7 +3964,7 @@ mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression
     data[[response_var]] <- as.numeric(data[[response_var]])
     
     if(sum(!is.na(data[[response_var]])) < 2 || n_distinct(data[[response_var]], na.rm = TRUE) < 2){
-      known_error(paste0("mSigPortal Association failed: the exposure variable '", response_var, "' has too few distinct values for regression. Please select another exposure or signature."))
+      known_error(paste0("The exposure variable '", response_var, "' has too few distinct values for regression. Please select another exposure or signature."))
     }
     
     colnames(data)[colnames(data) == Group_Var] <- 'Group'
@@ -4139,7 +4139,7 @@ mSigPortal_associaiton_group <- function(data, Var1, Var2, Group_Var, regression
     
     if (is.null(result) || nrow(result) == 0) {
       known_error(paste0(
-        "mSigPortal Association failed: the '", type, "' method could not produce any results for '",
+        "Method '", type, "' could not produce any results for '",
         Var1, "' vs '", Var2, "'. This often means the two variables are incompatible with that method, ",
         "or a numeric variable has too few distinct values and was treated as categorical. ",
         "Please try a different signature exposure variable, choose another statistical method, or select a different signature."
@@ -4168,7 +4168,7 @@ multivariable_inputs <- function(data,listpars) {
     
     # no rows means the selected variable has no samples overlapping the signature-set exposures
     if (nrow(datav) == 0) {
-      known_error(paste0("mSigPortal Association failed: the selected variable name ", Var$name, " has no samples overlapping the selected signature set exposures. Please select another variable."))
+      known_error(paste0("The selected variable name ", Var$name, " has no samples overlapping the selected signature set exposures. Please select another variable."))
     }
     
     var_type <- if_else(unique(datav$variable_value_type) == "character","categorical", if_else(unique(datav$variable_value_type) == "numeric","continuous",NA_character_))
