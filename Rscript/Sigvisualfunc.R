@@ -1712,8 +1712,12 @@ plot_cosine_heatmap_df <- function (cos_sim_df, col_order, cluster_rows = TRUE, 
   
   if (missing(col_order)) {
     #col_order = colnames(cos_sim_df)[-1]
-    hc.sample = hclust(dist(t(cos_sim_matrix)), method = method)
-    col_order = rownames(t(cos_sim_matrix))[hc.sample$order]
+    if (ncol(cos_sim_matrix) < 2) {
+      col_order = colnames(cos_sim_matrix)
+    } else {
+      hc.sample = hclust(dist(t(cos_sim_matrix)), method = method)
+      col_order = rownames(t(cos_sim_matrix))[hc.sample$order]
+    }
   }
   
   if (class(col_order) != "character") {
@@ -1723,6 +1727,7 @@ plot_cosine_heatmap_df <- function (cos_sim_df, col_order, cluster_rows = TRUE, 
     stop("col_order must have the same length as the number of signatures in the explained df")
   }
   
+  if (nrow(cos_sim_matrix) < 2) cluster_rows <- FALSE
   if (cluster_rows == TRUE) {
     hc.sample = hclust(dist(cos_sim_matrix), method = method)
     sample_order = rownames(cos_sim_matrix)[hc.sample$order]
