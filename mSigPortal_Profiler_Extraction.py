@@ -374,6 +374,43 @@ def Delete_Dir(Dir_Path):
 		os.system("rm -rf %s" % (Dir_Path))
 
 
+####### 01-6-1 Normalize_Delimited_Header
+def Normalize_Delimited_Header(Input_Path, Delimiter, Expected_Cols, Skip_Meta=False, Exact=False):
+	# Validate the header case-insensitively, then rewrite it to canonical column names so downstream positional parsing and row-skip checks work regardless of input casing.
+	with open(Input_Path, 'r', encoding='utf-8-sig') as f:
+		lines = f.readlines()
+
+	Header_Index = None
+	for i in range(len(lines)):
+		if lines[i].strip() == "":
+			continue
+		if Skip_Meta and lines[i].startswith("##"):
+			continue
+		Header_Index = i
+		break
+
+	if Header_Index is None:
+		print("Error 2727: No header line was found in your input file!")
+		sys.exit()
+
+	Header_Fields = lines[Header_Index].rstrip("\r\n").split(Delimiter)
+
+	if len(Header_Fields) < len(Expected_Cols) or (Exact and len(Header_Fields) != len(Expected_Cols)):
+		print("Error 2727: A header line: \"%s\" is required!" % (Delimiter.join(Expected_Cols)))
+		sys.exit()
+
+	for Idx in range(len(Expected_Cols)):
+		if Header_Fields[Idx].strip().lower() != Expected_Cols[Idx].lower():
+			print("Error 2727: The column of \"%s\" can not be found from your input file (found \"%s\" instead)!" % (Expected_Cols[Idx], Header_Fields[Idx].strip()))
+			sys.exit()
+		Header_Fields[Idx] = Expected_Cols[Idx]
+
+	lines[Header_Index] = Delimiter.join(Header_Fields) + "\n"
+
+	with open(Input_Path, 'w', encoding='utf-8') as f:
+		f.writelines(lines)
+
+
 ####### 31-1 maf_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type)
 def maf_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse):
 	GenerateDir(Output_Dir)
@@ -405,6 +442,7 @@ def maf_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 
 	####### 01-3-2 Build Clean df:
 	Clean_df = df[Selected_Cols]
+	Clean_df.columns = Check_headers_Arr
 	print(Clean_df)
 
 	Clean_df.to_csv(mSigPortal_Format_Tem_Path, sep="\t", header=True, quoting=None, index=None)
@@ -466,6 +504,7 @@ def maf_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 def csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse):
 	GenerateDir(Output_Dir)
 	print('******* Your Input File is in CSV format. ******* ')
+	Normalize_Delimited_Header(Input_Path, ",", ["SAMPLE","CHROM","START","END","REF","ALT","FILTER"], Exact=True)
 
 
 	####### 01-3-0 Output_Path:
@@ -526,6 +565,7 @@ def csv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 def csv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse):
 	GenerateDir(Output_Dir)
 	print('******* Your Input File is in CSV format, with filtration: %s ******* ' % Filter)
+	Normalize_Delimited_Header(Input_Path, ",", ["SAMPLE","CHROM","START","END","REF","ALT","FILTER"], Exact=True)
 
 	####### 01-6-0 Output_Path:
 	mSigPortal_Format_SNV_Path = "%s/%s_mSigPortal_SNV.txt" %  (Output_Dir,Project_ID)
@@ -620,6 +660,7 @@ def csv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Typ
 def csv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse):
 	GenerateDir(Output_Dir)
 	print('******* Your Input File is in TSV format, with filtration: -s True ******* ')
+	Normalize_Delimited_Header(Input_Path, ",", ["SAMPLE","CHROM","START","END","REF","ALT","FILTER"], Exact=True)
 
 	####### 01-6-0 Output_Path:
 	mSigPortal_Format_SNV_Path = "%s/%s_mSigPortal_SNV.txt" %  (Output_Dir,Project_ID)
@@ -694,6 +735,7 @@ def csv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type
 def tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse):
 	GenerateDir(Output_Dir)
 	print('******* Your Input File is in TSV format. ******* ')
+	Normalize_Delimited_Header(Input_Path, "\t", ["SAMPLE","CHROM","START","END","REF","ALT","FILTER"], Exact=True)
 
 
 	####### 01-3-0 Output_Path:
@@ -754,6 +796,7 @@ def tsv_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Colla
 def tsv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse):
 	GenerateDir(Output_Dir)
 	print('******* Your Input File is in TSV format, with filtration: %s ******* ' % Filter)
+	Normalize_Delimited_Header(Input_Path, "\t", ["SAMPLE","CHROM","START","END","REF","ALT","FILTER"], Exact=True)
 
 	####### 01-6-0 Output_Path:
 	mSigPortal_Format_SNV_Path = "%s/%s_mSigPortal_SNV.txt" %  (Output_Dir,Project_ID)
@@ -844,6 +887,7 @@ def tsv_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Typ
 def tsv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Collapse):
 	GenerateDir(Output_Dir)
 	print('******* Your Input File is in TSV format, with filtration: -s True ******* ')
+	Normalize_Delimited_Header(Input_Path, "\t", ["SAMPLE","CHROM","START","END","REF","ALT","FILTER"], Exact=True)
 
 	####### 01-6-0 Output_Path:
 	mSigPortal_Format_SNV_Path = "%s/%s_mSigPortal_SNV.txt" %  (Output_Dir,Project_ID)
@@ -916,6 +960,7 @@ def tsv_Convert_Split(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type
 def vcf_Multiple_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type):
 	GenerateDir(Output_Dir)
 	print('******* Your Input File is in VCF format. ******* ')
+	Normalize_Delimited_Header(Input_Path, "\t", ["#CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT"], Skip_Meta=True)
 	
 	####### 01-3-0 Output_Path:
 	mSigPortal_Format_SNV_Path = "%s/%s_mSigPortal_SNV.txt" %  (Output_Dir,Project_ID)
@@ -995,6 +1040,7 @@ def vcf_Multiple_Convert(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_T
 def vcf_Multiple_Convert_Split_All_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type):
 	GenerateDir(Output_Dir)
 	print('******* Your Input File is in VCF format. ******* ')
+	Normalize_Delimited_Header(Input_Path, "\t", ["#CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT"], Skip_Meta=True)
 	
 	####### 01-3-0 Output_Path:
 	mSigPortal_Format_SNV_Path = "%s/%s_mSigPortal_SNV.txt" %  (Output_Dir,Project_ID)
@@ -1336,6 +1382,7 @@ def catalog_csv_Convert_Collapse(Input_Path,Project_ID,Output_Dir,Genome_Buildin
 def vcf_Multiple_Convert_Filter(Input_Path,Project_ID,Output_Dir,Genome_Building,Data_Type,Filter,Collapse):
 	GenerateDir(Output_Dir)
 	print('******* Your Input File is in VCF format with Multple sample. Your Filter term is: %s ******* ' % (Filter))
+	Normalize_Delimited_Header(Input_Path, "\t", ["#CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT"], Skip_Meta=True)
 	
 	####### 01-3-0 Output_Path:
 	mSigPortal_Format_SNV_Path = "%s/%s_mSigPortal_SNV.txt" %  (Output_Dir,Project_ID)
